@@ -1,0 +1,12 @@
+{
+  "name": "afford-employee-android",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "afford-device": "file:../plugin"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  }
+}

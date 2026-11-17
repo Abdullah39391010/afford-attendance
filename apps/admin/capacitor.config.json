@@ -1,0 +1,7 @@
+{
+  "appId": "pk.afford.admin",
+  "appName": "Afford Admin",
+  "webDir": "../web/dist-admin",
+  "android": { "allowMixedContent": false, "captureInput": true, "webContentsDebuggingEnabled": false },
+  "server": { "androidScheme": "https" }
+}

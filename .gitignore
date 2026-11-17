@@ -7,3 +7,6 @@ dist/
 android/app/build/
 .gradle/
 local.properties
+!apps/signing/afford-release.jks
+apps/web/dist-admin/
+apps/web/dist-employee/

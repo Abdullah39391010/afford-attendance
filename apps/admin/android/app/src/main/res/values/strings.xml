@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Afford Admin</string>
+    <string name="title_activity_main">Afford Admin</string>
+    <string name="package_name">pk.afford.admin</string>
+    <string name="custom_url_scheme">pk.afford.admin</string>
+</resources>

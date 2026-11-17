@@ -1,0 +1,11 @@
+{
+  "name": "afford-device",
+  "version": "1.0.0",
+  "description": "Afford custom Capacitor plugin: device id, GPS with turn-on prompt and mock detection, biometrics, secure storage, share/print files, keep screen on",
+  "type": "module",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "files": ["src", "android/src", "android/build.gradle"],
+  "capacitor": { "android": { "src": "android" } },
+  "peerDependencies": { "@capacitor/core": "^8.0.0" }
+}

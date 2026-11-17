@@ -1,0 +1,351 @@
+// Settings: store, location (GPS), shifts, roles, rules, holidays; managers and permissions.
+import { h } from 'preact';
+import { useState } from 'preact/hooks';
+import { AffordDevice } from 'afford-device';
+import { api } from '../shared/api.js';
+import { t, nm, errText } from '../shared/i18n.js';
+import { dayShort, fmtDate } from '../shared/format.js';
+import { TopBar, Icon, Field, Toggle, Seg, Sheet, Loader, useLoad, toast, toastErr, go, Spinner, Empty, confirmBox, Banner, Pill } from '../shared/ui.jsx';
+import { useApp } from './app.jsx';
+import { resizePhoto } from './staff.jsx';
+
+function useSave() {
+  const app = useApp();
+  const [busy, setBusy] = useState(false);
+  const save = async (patch, msg = t('Saved')) => {
+    setBusy(true);
+    try { await api.put('/api/admin/settings', patch); await app.reloadSettings(); toast(msg, 'ok'); return true; } catch (e) { toastErr(e); return false; } finally { setBusy(false); }
+  };
+  return [save, busy];
+}
+
+export function SettingsHome() {
+  const app = useApp();
+  const s = app.settings;
+  const items = [
+    ['store', 'gear', 'Store', `${s.storeName} · ${t('logo, weekly off')}`],
+    ['location', 'pin', 'Store location', s.locations.length ? t('{n} location(s) set', { n: s.locations.length }) : t('Not set yet — staff cannot check in')],
+    ['shifts', 'clock', 'Shifts', s.shifts.map((x) => `${nm(x)} ${x.start}–${x.end}`).join(' · ')],
+    ['roles', 'users', 'Roles', t('{n} roles', { n: s.roles.length })],
+    ['rules', 'shield', 'Rules', t('Late, break, leave, cuts')],
+    ['holidays', 'cal', 'Holidays', t('{n} holidays', { n: s.holidays.length })],
+  ];
+  return (
+    <div class="screen">
+      <TopBar back title={t('Settings')} />
+      <div class="wrap">
+        {!s.locations.length && <Banner kind="warn">{t('Set the store location first. Without it nobody can check in.')}</Banner>}
+        <div class="list">
+          {items.map(([k, icon, label, sub]) => (
+            <button key={k} class="row" onClick={() => go(`settings/${k}`)}>
+              <Icon n={icon} /><div class="main"><div class="title">{t(label)}</div><div class="sub">{sub}</div></div><Icon n="fwd" cls="flip" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SettingsStore() {
+  const app = useApp();
+  const s = app.settings;
+  const [f, setF] = useState({ storeName: s.storeName, currency: s.currency, weeklyOff: s.weeklyOff });
+  const [save, busy] = useSave();
+  const uploadLogo = async (e) => {
+    const file = e.currentTarget.files[0];
+    if (!file) return;
+    try {
+      const data = await resizePhoto(file, 400);
+      await api.put('/api/admin/logo', { dataUrl: data });
+      toast(t('Logo saved'), 'ok');
+    } catch (err) { toastErr(err); }
+  };
+  return (
+    <div class="screen">
+      <TopBar back title={t('Store')} />
+      <div class="wrap">
+        <div class="card">
+          <Field label={t('Store name')}><input class="input" value={f.storeName} onInput={(e) => setF({ ...f, storeName: e.currentTarget.value })} /></Field>
+          <Field label={t('Currency')}><input class="input ltr" style="width:100%" value={f.currency} onInput={(e) => setF({ ...f, currency: e.currentTarget.value })} /></Field>
+          <Field label={t('Weekly off (store default)')} hint={t('Each employee can have their own days.')}>
+            <div class="chips">
+              {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                <button key={d} type="button" class={`chip ${f.weeklyOff.includes(d) ? 'on' : ''}`}
+                  onClick={() => setF({ ...f, weeklyOff: f.weeklyOff.includes(d) ? f.weeklyOff.filter((x) => x !== d) : [...f.weeklyOff, d] })}>{dayShort(d)}</button>
+              ))}
+            </div>
+          </Field>
+          <button class="btn block" disabled={busy} onClick={() => save(f)}>{t('Save')}</button>
+        </div>
+        <div class="card gap">
+          <img src="./logo.png" alt="" style="width:64px;height:64px;border-radius:50%" />
+          <div class="grow"><b>{t('Logo')}</b><div class="small muted">{t('Used on printouts and the owner page.')}</div></div>
+          <label class="btn small ghost"><Icon n="edit" />{t('Change')}<input type="file" accept="image/*" style="display:none" onChange={uploadLogo} /></label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SettingsLocation() {
+  const app = useApp();
+  const [locs, setLocs] = useState(app.settings.locations.map((l) => ({ ...l })));
+  const [busyGps, setBusyGps] = useState(null);
+  const [save, busy] = useSave();
+  const useMine = async (i) => {
+    setBusyGps(i);
+    try {
+      const p = await AffordDevice.getLocation({ timeoutMs: 25000 });
+      if (p.mock) toast(t('Fake GPS detected. Turn it off.'), 'err');
+      const next = [...locs];
+      if (i === -1) next.push({ name: next.length ? t('Branch {n}', { n: next.length + 1 }) : t('Main store'), lat: p.lat, lng: p.lng, radius: 100 });
+      else next[i] = { ...next[i], lat: p.lat, lng: p.lng };
+      setLocs(next);
+      toast(t('Location found (accuracy {m} m)', { m: Math.round(p.acc || 0) }), 'ok');
+    } catch (e) { toast(errText({ code: e.code || e.message }), 'err'); } finally { setBusyGps(null); }
+  };
+  const upd = (i, k, v) => setLocs(locs.map((l, j) => (j === i ? { ...l, [k]: v } : l)));
+  return (
+    <div class="screen">
+      <TopBar back title={t('Store location')} />
+      <div class="wrap">
+        <Banner kind="info">{t('Stand inside the store and tap "Use my current location". Staff can check in only inside the circle.')}</Banner>
+        {locs.map((l, i) => (
+          <div key={i} class="card">
+            <Field label={t('Name')}><input class="input" value={l.name} onInput={(e) => upd(i, 'name', e.currentTarget.value)} /></Field>
+            <div class="two">
+              <Field label={t('Latitude')}><input class="input ltr" style="width:100%" inputmode="decimal" value={l.lat} onInput={(e) => upd(i, 'lat', e.currentTarget.value)} /></Field>
+              <Field label={t('Longitude')}><input class="input ltr" style="width:100%" inputmode="decimal" value={l.lng} onInput={(e) => upd(i, 'lng', e.currentTarget.value)} /></Field>
+            </div>
+            <Field label={t('Allowed radius: {m} metres', { m: l.radius })}>
+              <input type="range" min="20" max="500" step="10" value={l.radius} style="width:100%;accent-color:var(--red)" onInput={(e) => upd(i, 'radius', Number(e.currentTarget.value))} />
+            </Field>
+            <div class="btn-row" style="margin-top:0">
+              <button class="btn small ghost" disabled={busyGps != null} onClick={() => useMine(i)}>{busyGps === i ? <Spinner sm /> : <><Icon n="pin" />{t('Use my current location')}</>}</button>
+              <a class="btn small ghost" href={`https://www.google.com/maps?q=${l.lat},${l.lng}`} target="_blank" rel="noopener"><Icon n="map" />{t('Map')}</a>
+              <button class="btn small soft" style="flex:0 0 48px" onClick={() => setLocs(locs.filter((_, j) => j !== i))} aria-label={t('Remove')}><Icon n="trash" /></button>
+            </div>
+          </div>
+        ))}
+        <button class="btn block ghost" disabled={busyGps != null} onClick={() => useMine(-1)}>{busyGps === -1 ? <Spinner sm /> : <><Icon n="pin" />{locs.length ? t('Add another branch here') : t('Use my current location')}</>}</button>
+        <button class="btn block" style="margin-top:12px" disabled={busy} onClick={() => save({ locations: locs.map((l) => ({ ...l, lat: Number(l.lat), lng: Number(l.lng) })) })}>{t('Save locations')}</button>
+      </div>
+    </div>
+  );
+}
+
+export function SettingsShifts() {
+  const app = useApp();
+  const [list, setList] = useState(app.settings.shifts.map((x) => ({ ...x })));
+  const [save, busy] = useSave();
+  const upd = (i, k, v) => setList(list.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  return (
+    <div class="screen">
+      <TopBar back title={t('Shifts')} />
+      <div class="wrap">
+        <Banner kind="info">{t('A shift ending at 24:00 or after midnight (e.g. 22:00–06:00) stays on the day it started.')}</Banner>
+        {list.map((x, i) => (
+          <div key={x.id || i} class="card">
+            <div class="two">
+              <Field label={t('Name')}><input class="input" value={x.name} onInput={(e) => upd(i, 'name', e.currentTarget.value)} /></Field>
+              <Field label={t('Name in Urdu')}><input class="input" dir="rtl" value={x.nameUr} onInput={(e) => upd(i, 'nameUr', e.currentTarget.value)} /></Field>
+            </div>
+            <div class="two">
+              <Field label={t('Starts')}><input class="input ltr" style="width:100%" type="time" value={x.start} onInput={(e) => upd(i, 'start', e.currentTarget.value)} /></Field>
+              <Field label={t('Ends')}><input class="input ltr" style="width:100%" value={x.end} placeholder="16:00" onInput={(e) => upd(i, 'end', e.currentTarget.value)} /></Field>
+            </div>
+            {list.length > 1 && <button class="btn small soft" onClick={() => setList(list.filter((_, j) => j !== i))}><Icon n="trash" />{t('Remove shift')}</button>}
+          </div>
+        ))}
+        <button class="btn block ghost" onClick={() => setList([...list, { name: t('New shift'), nameUr: '', start: '09:00', end: '17:00' }])}><Icon n="plus" />{t('Add shift')}</button>
+        <button class="btn block" style="margin-top:12px" disabled={busy} onClick={() => save({ shifts: list })}>{t('Save shifts')}</button>
+      </div>
+    </div>
+  );
+}
+
+export function SettingsRoles() {
+  const app = useApp();
+  const [list, setList] = useState(app.settings.roles.map((x) => ({ ...x })));
+  const [save, busy] = useSave();
+  const upd = (i, k, v) => setList(list.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  return (
+    <div class="screen">
+      <TopBar back title={t('Roles')} />
+      <div class="wrap">
+        {list.map((x, i) => (
+          <div key={x.id || i} class="card">
+            <div class="two">
+              <Field label={t('Role')}><input class="input" value={x.name} onInput={(e) => upd(i, 'name', e.currentTarget.value)} /></Field>
+              <Field label={t('Name in Urdu')}><input class="input" dir="rtl" value={x.nameUr} onInput={(e) => upd(i, 'nameUr', e.currentTarget.value)} /></Field>
+            </div>
+            <Toggle checked={x.checkoutAnywhere} onChange={(v) => upd(i, 'checkoutAnywhere', v)} label={t('Can check out anywhere')} sub={t('e.g. delivery boys finishing on the road')} />
+            {list.length > 1 && <button class="btn small soft" style="margin-top:8px" onClick={() => setList(list.filter((_, j) => j !== i))}><Icon n="trash" />{t('Remove role')}</button>}
+          </div>
+        ))}
+        <button class="btn block ghost" onClick={() => setList([...list, { name: t('New role'), nameUr: '', checkoutAnywhere: false }])}><Icon n="plus" />{t('Add role')}</button>
+        <button class="btn block" style="margin-top:12px" disabled={busy} onClick={() => save({ roles: list })}>{t('Save roles')}</button>
+      </div>
+    </div>
+  );
+}
+
+export function SettingsRules() {
+  const app = useApp();
+  const [r, setR] = useState({ ...app.settings.rules });
+  const [save, busy] = useSave();
+  const set = (k, v) => setR({ ...r, [k]: v });
+  const num = (k, label, hint, unit = t('min')) => (
+    <Field label={label} hint={hint}>
+      <div class="gap"><input class="input ltr" style="width:110px" type="number" inputmode="numeric" value={r[k]} onInput={(e) => set(k, e.currentTarget.value === '' ? '' : Number(e.currentTarget.value))} /><span class="muted">{unit}</span></div>
+    </Field>
+  );
+  return (
+    <div class="screen">
+      <TopBar back title={t('Rules')} />
+      <div class="wrap">
+        <div class="card">
+          <h2>{t('Salary maths')}</h2>
+          <Field label={t('Days used to work out daily pay')} hint={t('Hourly pay = salary ÷ these days ÷ shift hours')}>
+            <Seg value={String(r.daysBasis)} onChange={(v) => set('daysBasis', v === 'actual' ? 'actual' : Number(v))} options={[['26', '26'], ['30', '30'], ['actual', t('Days in month')]]} />
+          </Field>
+          <Toggle checked={r.absentCutOn} onChange={(v) => set('absentCutOn', v)} label={t('Cut one day for each absent day')} />
+        </div>
+        <div class="card">
+          <h2>{t('Late coming')}</h2>
+          {num('lateGraceMin', t('Grace time'), t('Coming within this time is not late'))}
+          <Field label={t('When late, count minutes from')}>
+            <Seg value={r.lateCountFrom} onChange={(v) => set('lateCountFrom', v)} options={[['start', t('Shift start')], ['grace', t('End of grace')]]} />
+          </Field>
+          <Toggle checked={r.lateCutOn} onChange={(v) => set('lateCutOn', v)} label={t('Cut salary for late minutes')} />
+        </div>
+        <div class="card">
+          <h2>{t('Leaving early')}</h2>
+          {num('earlyLeaveGraceMin', t('Grace time'))}
+          <Toggle checked={r.earlyLeaveCutOn} onChange={(v) => set('earlyLeaveCutOn', v)} label={t('Cut salary for leaving early')} />
+        </div>
+        <div class="card">
+          <h2>{t('Breaks')}</h2>
+          {num('breakAllowanceMin', t('Break allowed per day'))}
+          <Toggle checked={r.breakNeedsApproval} onChange={(v) => set('breakNeedsApproval', v)} label={t('Break needs approval')} sub={t('Off = break starts as soon as the employee asks')} />
+          <Toggle checked={r.breakLateCutOn} onChange={(v) => set('breakLateCutOn', v)} label={t('Cut salary for late return from break')} />
+        </div>
+        <div class="card">
+          <h2>{t('Leave & requests')}</h2>
+          {num('paidLeavePerMonth', t('Paid leave days per month'), t('Extra leave days are unpaid. Each employee can have their own number.'), t('days'))}
+          {num('pastDayRequestDays', t('Past-day requests allowed for'), t('Only within the current month'), t('days back'))}
+        </div>
+        <div class="card">
+          <h2>{t('Check-in safety')}</h2>
+          <Toggle checked={r.requireInRadiusCheckIn} onChange={(v) => set('requireInRadiusCheckIn', v)} label={t('Check-in only inside the store circle')} />
+          <Toggle checked={r.blockMockLocation} onChange={(v) => set('blockMockLocation', v)} label={t('Block fake GPS apps')} />
+          <Toggle checked={r.kioskPhoto} onChange={(v) => set('kioskPhoto', v)} label={t('Kiosk takes a photo with every punch')} />
+          {num('maxOfflineHours', t('Accept offline punches up to'), '', t('hours'))}
+          {num('autoAbsentAfterMin', t('Show as absent after shift start'), t('Before this the board shows "Not yet in"'))}
+        </div>
+        <button class="btn block" style="margin-bottom:20px" disabled={busy} onClick={() => save({ rules: r })}>{t('Save rules')}</button>
+      </div>
+    </div>
+  );
+}
+
+export function SettingsHolidays() {
+  const app = useApp();
+  const [list, setList] = useState(app.settings.holidays.map((x) => ({ ...x })));
+  const [d, setD] = useState({ date: '', name: '' });
+  const [save, busy] = useSave();
+  return (
+    <div class="screen">
+      <TopBar back title={t('Holidays')} />
+      <div class="wrap">
+        <Banner kind="info">{t('Holidays are paid days off for everyone, e.g. Eid.')}</Banner>
+        <div class="card">
+          <div class="two">
+            <Field label={t('Date')}><input class="input ltr" style="width:100%" type="date" value={d.date} onInput={(e) => setD({ ...d, date: e.currentTarget.value })} /></Field>
+            <Field label={t('Name')}><input class="input" value={d.name} placeholder={t('e.g. Eid ul Fitr')} onInput={(e) => setD({ ...d, name: e.currentTarget.value })} /></Field>
+          </div>
+          <button class="btn block ghost" disabled={!d.date} onClick={() => { setList([...list, d].sort((a, b) => a.date.localeCompare(b.date))); setD({ date: '', name: '' }); }}><Icon n="plus" />{t('Add holiday')}</button>
+        </div>
+        <div class="list">
+          {!list.length && <Empty icon="cal" text={t('No holidays added')} />}
+          {list.map((x, i) => (
+            <div key={x.date} class="row"><div class="main"><div class="title">{x.name || t('Holiday')}</div><div class="sub">{fmtDate(x.date)}</div></div>
+              <button class="iconbtn" onClick={() => setList(list.filter((_, j) => j !== i))}><Icon n="trash" /></button></div>
+          ))}
+        </div>
+        <button class="btn block" disabled={busy} onClick={() => save({ holidays: list })}>{t('Save holidays')}</button>
+      </div>
+    </div>
+  );
+}
+
+const PERM_LABELS = {
+  'employees.view': 'View staff', 'employees.edit': 'Add & edit staff, set PINs', 'attendance.punch': 'Check staff in/out, mark leave',
+  'requests.decide': 'Approve / decline requests', 'payroll.view': 'See salaries & statements', 'money.edit': 'Advances & security deposits',
+  'reports.view': 'Reports & exports', 'settings.edit': 'Change settings & rules', 'audit.view': 'See audit log', 'kiosk.setup': 'Set up kiosk phone',
+};
+
+export function Users() {
+  const app = useApp();
+  const st = useLoad(() => api.get('/api/admin/users'), []);
+  const [edit, setEdit] = useState(null);
+  const save = async () => {
+    try {
+      if (edit.id) await api.put(`/api/admin/users/${edit.id}`, edit);
+      else await api.post('/api/admin/users', edit);
+      toast(t('Saved'), 'ok');
+      setEdit(null);
+      st.reload(true);
+    } catch (e) { toastErr(e); }
+  };
+  const del = async (u) => {
+    if (!(await confirmBox({ title: t('Remove {name}?', { name: u.name }), yes: t('Remove'), danger: true }))) return;
+    try { await api.del(`/api/admin/users/${u.id}`); setEdit(null); st.reload(true); } catch (e) { toastErr(e); }
+  };
+  return (
+    <div class="screen">
+      <TopBar back title={t('Managers')} />
+      <div class="wrap">
+        <Loader st={st}>{(d) => (
+          <div class="list">
+            {d.users.map((u) => (
+              <button key={u.id} class="row" onClick={() => setEdit({ ...u, pin: '' })}>
+                <div class="avatar">{u.name.slice(0, 1)}</div>
+                <div class="main"><div class="title">{u.name} <span class="muted small ltr">{u.login}</span></div>
+                  <div class="sub">{u.role === 'owner' ? t('Owner / Admin — everything') : t('{n} permissions', { n: u.perms.length })}</div></div>
+                {!u.active && <Pill s="absent">{t('Inactive')}</Pill>}
+              </button>
+            ))}
+          </div>
+        )}</Loader>
+        <button class="btn block" onClick={() => setEdit({ name: '', login: '', pin: '', role: 'manager', perms: ['employees.view', 'attendance.punch', 'requests.decide', 'reports.view'], active: true })}><Icon n="plus" />{t('Add manager')}</button>
+      </div>
+      <Sheet open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? t('Edit manager') : t('Add manager')}>
+        {edit && (
+          <div>
+            <Field label={t('Name')}><input class="input" value={edit.name} onInput={(e) => setEdit({ ...edit, name: e.currentTarget.value })} /></Field>
+            <div class="two">
+              <Field label={t('Login name')}><input class="input ltr" style="width:100%" autocapitalize="off" value={edit.login} onInput={(e) => setEdit({ ...edit, login: e.currentTarget.value.toLowerCase() })} /></Field>
+              <Field label={edit.id ? t('New PIN (optional)') : t('PIN')}><input class="input ltr" style="width:100%" inputmode="numeric" maxLength={6} value={edit.pin} onInput={(e) => setEdit({ ...edit, pin: e.currentTarget.value.replace(/\D/g, '') })} /></Field>
+            </div>
+            {edit.role !== 'owner' && (
+              <div>
+                <div class="section-title">{t('Can do')}</div>
+                {Object.keys(PERM_LABELS).map((p) => (
+                  <Toggle key={p} checked={edit.perms.includes(p)} label={t(PERM_LABELS[p])}
+                    onChange={(v) => setEdit({ ...edit, perms: v ? [...edit.perms, p] : edit.perms.filter((x) => x !== p) })} />
+                ))}
+                <Toggle checked={edit.active} onChange={(v) => setEdit({ ...edit, active: v })} label={t('Active')} />
+              </div>
+            )}
+            <div class="btn-row">
+              {edit.id && edit.role !== 'owner' && edit.id !== app.me.id && <button class="btn soft" onClick={() => del(edit)}><Icon n="trash" /></button>}
+              <button class="btn" onClick={save}>{t('Save')}</button>
+            </div>
+          </div>
+        )}
+      </Sheet>
+    </div>
+  );
+}

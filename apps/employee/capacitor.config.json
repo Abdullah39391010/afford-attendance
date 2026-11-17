@@ -1,0 +1,7 @@
+{
+  "appId": "pk.afford.staff",
+  "appName": "Afford Staff",
+  "webDir": "../web/dist-employee",
+  "android": { "allowMixedContent": false, "captureInput": true, "webContentsDebuggingEnabled": false },
+  "server": { "androidScheme": "https" }
+}

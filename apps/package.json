@@ -1,0 +1,10 @@
+{
+  "name": "afford-apps",
+  "private": true,
+  "workspaces": ["web", "plugin", "admin", "employee"],
+  "scripts": {
+    "build:admin": "npm run build:admin -w web",
+    "build:employee": "npm run build:employee -w web",
+    "dev": "npm run dev -w web"
+  }
+}

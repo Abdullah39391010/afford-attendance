@@ -1214,6 +1214,7 @@ export class Store {
     return {
       serverTime: this.now(),
       storeName: this.settings.storeName,
+      photoRequired: !!this.settings.rules.kioskPhoto,
       employees: emps.map((e) => {
         const d = daySummary(e, this.settings, today, get(e.id, today), this.now());
         // an open session from yesterday's night shift still counts as "in"

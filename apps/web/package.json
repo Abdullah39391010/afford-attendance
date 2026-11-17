@@ -1,0 +1,22 @@
+{
+  "name": "afford-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:admin": "vite build --mode admin",
+    "build:employee": "vite build --mode employee",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.6.2",
+    "afford-device": "file:../plugin",
+    "html2canvas-pro": "^2.6.4",
+    "jspdf": "^4.2.1",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "vite": "^7.3.8"
+  }
+}
