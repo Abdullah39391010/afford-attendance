@@ -57,6 +57,9 @@ import com.google.android.gms.tasks.CancellationTokenSource;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.concurrent.Executor;
@@ -397,6 +400,110 @@ public class AffordDevicePlugin extends Plugin {
         getContext().getSharedPreferences(AffordNotifyWorker.PREFS, Context.MODE_PRIVATE).edit().clear().apply();
         WorkManager.getInstance(getContext()).cancelUniqueWork(AffordNotifyWorker.WORK);
         call.resolve();
+    }
+
+    // ------------------------------------------------------------------ in-app update: download the APK with progress, then install
+    private volatile boolean downloading = false;
+
+    @PluginMethod
+    public void downloadUpdate(PluginCall call) {
+        final String url = call.getString("url");
+        if (url == null || !url.startsWith("https://")) {
+            call.reject("Bad download link");
+            return;
+        }
+        if (downloading) {
+            call.reject("Already downloading", "BUSY");
+            return;
+        }
+        downloading = true;
+        new Thread(() -> {
+            HttpURLConnection c = null;
+            try {
+                File dir = new File(getContext().getCacheDir(), "updates");
+                if (!dir.exists() && !dir.mkdirs()) throw new Exception("cannot create folder");
+                File[] old = dir.listFiles();
+                if (old != null) for (File f : old) f.delete();
+                File out = new File(dir, "afford-update.apk");
+                String link = url;
+                int code = 0;
+                for (int hop = 0; hop < 6; hop++) { // GitHub sends the file from another address
+                    c = (HttpURLConnection) new URL(link).openConnection();
+                    c.setInstanceFollowRedirects(false);
+                    c.setConnectTimeout(20000);
+                    c.setReadTimeout(30000);
+                    code = c.getResponseCode();
+                    if (code >= 300 && code < 400 && c.getHeaderField("Location") != null) {
+                        link = new URL(new URL(link), c.getHeaderField("Location")).toString();
+                        c.disconnect();
+                        continue;
+                    }
+                    break;
+                }
+                if (code != 200) throw new Exception("server answered " + code);
+                long total = c.getContentLengthLong();
+                long loaded = 0;
+                long lastSent = 0;
+                byte[] buf = new byte[64 * 1024];
+                try (InputStream in = c.getInputStream(); FileOutputStream fo = new FileOutputStream(out)) {
+                    int n;
+                    while ((n = in.read(buf)) > 0) {
+                        fo.write(buf, 0, n);
+                        loaded += n;
+                        long now = System.currentTimeMillis();
+                        if (now - lastSent > 200) {
+                            lastSent = now;
+                            JSObject p = new JSObject();
+                            p.put("loaded", loaded);
+                            p.put("total", total);
+                            notifyListeners("updateProgress", p);
+                        }
+                    }
+                }
+                JSObject p = new JSObject();
+                p.put("loaded", loaded);
+                p.put("total", total > 0 ? total : loaded);
+                notifyListeners("updateProgress", p);
+                JSObject r = new JSObject();
+                r.put("path", out.getAbsolutePath());
+                call.resolve(r);
+            } catch (Exception e) {
+                call.reject("Download failed: " + e.getMessage(), "DOWNLOAD_FAILED");
+            } finally {
+                downloading = false;
+                if (c != null) c.disconnect();
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void installUpdate(PluginCall call) {
+        try {
+            File f = new File(getContext().getCacheDir(), "updates/afford-update.apk");
+            if (!f.exists()) {
+                call.reject("Download the update first", "NO_FILE");
+                return;
+            }
+            JSObject r = new JSObject();
+            if (Build.VERSION.SDK_INT >= 26 && !getContext().getPackageManager().canRequestPackageInstalls()) {
+                // Android asks once: "Allow from this source"
+                Intent s = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getContext().getPackageName()));
+                s.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(s);
+                r.put("needsPermission", true);
+                call.resolve(r);
+                return;
+            }
+            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", f);
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(uri, "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            r.put("needsPermission", false);
+            call.resolve(r);
+        } catch (Exception e) {
+            call.reject("Could not open the installer: " + e.getMessage());
+        }
     }
 
     // ------------------------------------------------------------------ app

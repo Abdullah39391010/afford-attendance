@@ -59,6 +59,8 @@ const web = {
   async pruneDownloads() { return { removed: 0 }; },
   async requestNotifications() { return { granted: true }; },
   async startBackgroundCheck() {},
+  async downloadUpdate({ url }) { window.open(url, '_blank'); return { path: null, web: true }; },
+  async installUpdate() { return { needsPermission: false }; },
   async stopBackgroundCheck() {},
   async addListener() { return { remove: async () => {} }; },
 };

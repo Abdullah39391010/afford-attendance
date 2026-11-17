@@ -318,4 +318,11 @@ export const UR = {
   "{n} staff": "{n} اسٹاف",
   "Your PIN": "آپ کا پن",
   "Data restored from backup": "بیک اپ سے ڈیٹا واپس لایا گیا",
+  "Downloaded": "ڈاؤن لوڈ ہو گیا",
+  "Downloading...": "ڈاؤن لوڈ ہو رہا ہے...",
+  "Download failed. Check the internet and try again.": "ڈاؤن لوڈ نہیں ہو سکا۔ انٹرنیٹ چیک کریں اور دوبارہ کوشش کریں۔",
+  "Install now": "ابھی انسٹال کریں",
+  "Please wait": "انتظار کریں",
+  "Allow \"Install unknown apps\" for this app, then come back and tap Install now.": "اس ایپ کے لیے \"نامعلوم ایپس انسٹال کریں\" کی اجازت دیں، پھر واپس آ کر ابھی انسٹال کریں دبائیں۔",
+  "Try again": "دوبارہ کوشش کریں",
 };

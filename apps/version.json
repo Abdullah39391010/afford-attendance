@@ -1,7 +1,7 @@
 {
-  "version": "0.4.1",
+  "version": "0.4.2",
   "notes": {
-    "en": "Phone notifications: admins and managers get a notification for new requests even when the app is closed (checked about every 15 minutes). Staff get a notification when their request is approved or refused. Plus everything in 0.4.0: back button, fingerprint fix, daily backup and restore, new opening animation.",
-    "ur": "فون نوٹیفکیشن: ایپ بند ہونے پر بھی ایڈمن اور مینیجر کو نئی درخواست کی اطلاع ملتی ہے (تقریباً ہر 15 منٹ)۔ اسٹاف کو درخواست منظور یا نامنظور ہونے پر اطلاع ملتی ہے۔ ساتھ میں 0.4.0 کی سب چیزیں: بیک بٹن، فنگر پرنٹ، روزانہ بیک اپ اور ریسٹور، نئی اینیمیشن۔"
+    "en": "Updates now download inside the app with a progress bar, then Android's install screen opens. Also: request notifications, back button, fingerprint fix, daily backup and restore.",
+    "ur": "اپڈیٹ اب ایپ کے اندر ہی ڈاؤن لوڈ ہوتی ہے، ساتھ میں پروگریس لائن، پھر انسٹال کی اسکرین کھلتی ہے۔ ساتھ میں: درخواستوں کی اطلاع، بیک بٹن، فنگر پرنٹ، روزانہ بیک اپ اور ریسٹور۔"
   }
 }
