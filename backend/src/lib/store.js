@@ -332,7 +332,9 @@ export class Store {
 
   async setup({ body }) {
     if (this.db.get('SELECT 1 AS x FROM admins LIMIT 1')) throw forbidden('ALREADY_SETUP', 'Store is already set up');
-    if (!this.env.SETUP_CODE || body.setupCode !== this.env.SETUP_CODE) throw forbidden('BAD_SETUP_CODE', 'Wrong setup code');
+    // forgiving compare: phones add capital letters and spaces on their own
+    const norm = (v) => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    if (!norm(this.env.SETUP_CODE) || norm(body.setupCode) !== norm(this.env.SETUP_CODE)) throw forbidden('BAD_SETUP_CODE', 'Wrong setup code');
     if (!validPin(body.pin)) throw bad('BAD_PIN', 'PIN must be 4 to 6 digits');
     const id = uid();
     const name = str(body.name, 60) || 'Owner';

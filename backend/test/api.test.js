@@ -6,7 +6,7 @@ test('setup needs the secret code and only works once', async () => {
   const t = await makeStore();
   assert.equal((await t.api('GET', '/api/info')).data.setupDone, false);
   assert.equal((await t.api('POST', '/api/setup', { setupCode: 'nope', pin: '1234' })).status, 403);
-  const ok = await t.api('POST', '/api/setup', { setupCode: 'setup123', name: 'Owner', login: 'owner', pin: '1234' });
+  const ok = await t.api('POST', '/api/setup', { setupCode: ' Setup123 ', name: 'Owner', login: 'owner', pin: '1234' });
   assert.equal(ok.status, 200);
   assert.match(ok.data.token, /^[a-f0-9]{64}$/);
   assert.equal((await t.api('POST', '/api/setup', { setupCode: 'setup123', pin: '9999' })).status, 403);
