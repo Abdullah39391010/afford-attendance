@@ -1,0 +1,223 @@
+// Staff app: Today screen with the big check-in / check-out button, break, leave and deposit.
+import { h } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
+import { AffordDevice } from 'afford-device';
+import { api, LS } from '../shared/api.js';
+import { t, nm, reqLabel, getLang } from '../shared/i18n.js';
+import { fmtTime, fmtDur, fmtDate, fmtMoney, todayStr } from '../shared/format.js';
+import { TopBar, Icon, Pill, Sheet, Field, toast, toastErr, confirmBox, Banner, Spinner, Chips, go, Avatar } from '../shared/ui.jsx';
+import { enqueue } from '../shared/offline.js';
+import { describe } from '../shared/describe.js';
+import { useEmp } from './app.jsx';
+
+/** distance in metres */
+function metres(a, b) {
+  const R = 6371000;
+  const r = (x) => (x * Math.PI) / 180;
+  const dLat = r(b.lat - a.lat);
+  const dLng = r(b.lng - a.lng);
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/** Ask for GPS (turn it on if needed) and get a fresh position. */
+export async function getLoc() {
+  try { await AffordDevice.ensureGps(); } catch (e) { throw Object.assign(new Error('GPS_OFF'), { code: 'GPS_OFF' }); }
+  try {
+    const l = await AffordDevice.getLocation({ timeoutMs: 20000 });
+    return { lat: l.lat, lng: l.lng, acc: l.acc, mock: !!l.mock };
+  } catch (e) {
+    const code = /PERMISSION/.test(e.message || e.code || '') ? 'PERMISSION_DENIED' : 'NO_FIX';
+    throw Object.assign(new Error(code), { code });
+  }
+}
+
+export function Home() {
+  const E = useEmp();
+  const { home } = E;
+  const [now, setNow] = useState(api.serverNow());
+  const [busy, setBusy] = useState(null);
+  const [breakSheet, setBreakSheet] = useState(false);
+  useEffect(() => { const iv = setInterval(() => setNow(api.serverNow()), 15000); return () => clearInterval(iv); }, []);
+
+  const emp = home.employee;
+  const d = home.today;
+  const store = home.store;
+  const cur = store.currency;
+  const isIn = !!d.isOpen;
+  const worked = d.checkIn ? (isIn ? Math.max(0, Math.floor((now - d.checkIn) / 60000) - (d.breakMin || 0)) : d.workedMin) : 0;
+  const onBreak = d.onBreak;
+
+  const punch = async () => {
+    const type = isIn ? 'out' : 'in';
+    if (type === 'out') {
+      const ok = await confirmBox({ title: t('Check out now?'), text: t('Your work time for today will end. If you are only going for a break, use "Take a break" instead.'), yes: t('Yes, check out'), danger: true });
+      if (!ok) return;
+    }
+    setBusy(type);
+    let loc = null;
+    try {
+      loc = await getLoc();
+      if (loc.mock) throw Object.assign(new Error('MOCK_LOCATION'), { code: 'MOCK_LOCATION' });
+      const res = await api.post('/api/emp/punch', { type, loc, clientId: `a-${Date.now()}` });
+      toast(type === 'in' ? `${t('Checked in')} ${fmtTime(res.ts)}` : `${t('Checked out')} ${fmtTime(res.ts)}`, 'ok');
+      if (res.today?.lateMin > 0) toast(t('Late {m} min', { m: res.today.lateMin }), 'err');
+      await E.loadHome();
+    } catch (e) {
+      if (e.code === 'NETWORK' && loc) {
+        // no internet: check the circle on the phone and save the punch for later
+        const anywhere = type === 'in' ? emp.fieldStaff || !store.rules.requireInRadiusCheckIn : emp.checkoutAnywhere;
+        const near = store.locations.some((L) => metres(loc, L) - Math.min(loc.acc || 0, 50) <= L.radius);
+        if (!anywhere && !near) { toast(t('You are outside the store circle.'), 'err'); return; }
+        const p = enqueue({ type, loc });
+        const today = { ...d, isOpen: type === 'in', checkIn: type === 'in' ? d.checkIn || p.offlineTs : d.checkIn, checkOut: type === 'out' ? p.offlineTs : null };
+        const next = { ...home, today };
+        LS.set('afford.home', JSON.stringify(next));
+        E.loadHome(); // keeps cached copy if offline
+        toast(t('No internet. Saved on the phone, it will be sent automatically.'), 'ok');
+        E.setOnline(false);
+        Object.assign(home, next);
+      } else toastErr(e);
+    } finally { setBusy(null); }
+  };
+
+  const endBreak = async () => {
+    setBusy('break');
+    try {
+      const r = await api.post('/api/emp/break/end');
+      toast(r.lateMin > 0 ? t('Break ended · {m} min late', { m: r.lateMin }) : t('Welcome back!'), r.lateMin > 0 ? 'err' : 'ok');
+      await E.loadHome();
+    } catch (e) { toastErr(e); } finally { setBusy(null); }
+  };
+
+  const pending = home.pendingRequests || [];
+  const breakPending = pending.find((r) => r.type === 'break');
+  const leave = home.leave || {};
+  const dueLeft = onBreak ? Math.ceil((onBreak.due - now) / 60000) : 0;
+  const hour = Number(new Date(now + store.tzOffsetMin * 60000).getUTCHours());
+  const greet = hour < 12 ? t('Good morning') : hour < 17 ? t('Good afternoon') : t('Good evening');
+
+  return (
+    <div class="screen">
+      <TopBar logo title={store.name || 'Afford Super Store'} />
+      <div class="wrap">
+        <div class="card gap" style="margin-top:12px">
+          <Avatar name={emp.name} src={emp.hasPhoto ? '/api/emp/photo' : null} ver={emp.photoVer} />
+          <div class="grow">
+            <div class="small muted">{greet}</div>
+            <b style="font-size:17px">{nm(emp)}</b>
+            <div class="small muted">{getLang() === 'ur' && emp.roleUr ? emp.roleUr : emp.role} · <span class="ltr">{emp.code}</span></div>
+          </div>
+        </div>
+
+        <div class={`today-card ${isIn ? (onBreak ? 'brk' : 'in') : d.checkOut ? 'done' : ''}`}>
+          <div class="small" style="opacity:.85">{fmtDate(d.date || todayStr(now))}</div>
+          <div class="tc-shift">{t('Shift')} {nm(emp.shift)} · <span class="ltr">{emp.shift.start}–{emp.shift.end}</span></div>
+          <div class="tc-status">
+            {onBreak ? t('On break') : isIn ? t('You are checked in') : d.checkOut ? t('Day finished') : t('Not checked in yet')}
+          </div>
+          {d.checkIn && (
+            <div class="tc-times">
+              <div><span>{t('In')}</span><b class="ltr">{fmtTime(d.checkIn)}</b></div>
+              <div><span>{t('Out')}</span><b class="ltr">{d.checkOut ? fmtTime(d.checkOut) : '—'}</b></div>
+              <div><span>{t('Worked')}</span><b>{fmtDur(worked)}</b></div>
+            </div>
+          )}
+          {d.lateMin > 0 && <div class="pill st-late" style="margin-top:8px">{t('Late {m} min', { m: d.lateMin })}</div>}
+          {!d.checkIn && store.rules.lateGraceMin > 0 && <div class="small" style="opacity:.85;margin-top:6px">{t('Check in before {t} to be on time.', { t: addMin(emp.shift.start, store.rules.lateGraceMin) })}</div>}
+        </div>
+
+        {onBreak ? (
+          <div class="card center">
+            <div class="small muted">{t('Break ends at')} <b class="ltr">{fmtTime(onBreak.due)}</b></div>
+            <div class={`brk-left ${dueLeft < 0 ? 'late' : ''}`}>{dueLeft >= 0 ? t('{m} min left', { m: dueLeft }) : t('{m} min late', { m: -dueLeft })}</div>
+            <button class="btn block green big" disabled={!!busy} onClick={endBreak}>{busy === 'break' ? <Spinner sm /> : <><Icon n="check" />{t("I'm back from break")}</>}</button>
+          </div>
+        ) : (
+          <div>
+            {!isIn && d.checkOut ? (
+              <button class="btn block ghost" style="margin-top:14px" disabled={!!busy} onClick={punch}>{busy ? <Spinner sm /> : <><Icon n="in" />{t('Check in again')}</>}</button>
+            ) : (
+              <button class={`punch-btn ${isIn ? 'out' : 'in'}`} disabled={!!busy} onClick={punch}>
+                {busy === 'in' || busy === 'out' ? <Spinner /> : <><Icon n={isIn ? 'out' : 'in'} /><span>{isIn ? t('Check out') : t('Check in')}</span></>}
+              </button>
+            )}
+            <p class="center small muted" style="margin:6px 0 0">
+              {isIn && emp.checkoutAnywhere ? t('You can check out from anywhere.') : isIn ? t('You must be inside the store to check out.') : emp.fieldStaff ? t('Field staff: you can check in from anywhere. Your location is saved.') : t('You must be inside the store to check in.')}
+            </p>
+            {isIn && (
+              breakPending
+                ? <Banner kind="info" icon="coffee">{t('Break request sent. Waiting for the manager.')}</Banner>
+                : <button class="btn block ghost" style="margin-top:12px" disabled={home.today.breakLeftMin <= 0} onClick={() => setBreakSheet(true)}>
+                  <Icon n="coffee" />{t('Take a break')} · {t('{m} min left today', { m: home.today.breakLeftMin })}
+                </button>
+            )}
+          </div>
+        )}
+
+        {emp.helperCount > 0 && (
+          <button class="btn block soft" style="margin-top:12px" onClick={() => go('helper')}><Icon n="users" />{t('Check in other staff ({n})', { n: emp.helperCount })}</button>
+        )}
+
+        <div class="two" style="margin-top:12px">
+          <div class="card mini">
+            <div class="small muted">{t('Leave left this month')}</div>
+            <b class="big-num">{leave.left ?? 0} <span class="small muted">/ {leave.quota ?? 0}</span></b>
+            <button class="link small" onClick={() => go('requests?new=leave')}>{t('Ask for leave')}</button>
+          </div>
+          <div class="card mini">
+            <div class="small muted">{t('Security deposit')}</div>
+            <b class="big-num">{fmtMoney(home.depositBalance || 0, cur)}</b>
+            <button class="link small" onClick={() => go('pay')}>{t('See salary')}</button>
+          </div>
+        </div>
+
+        {pending.length > 0 && (
+          <div>
+            <div class="section-title">{t('Waiting for approval')}</div>
+            <div class="list">
+              {pending.map((r) => (
+                <div key={r.id} class="row">
+                  <div class="main"><div class="title">{reqLabel(r.type)}</div><div class="sub">{describe(r, cur)}</div></div>
+                  <Pill s="pending">{t('Waiting')}</Pill>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      {breakSheet && <BreakSheet left={home.today.breakLeftMin} needsApproval={store.rules.breakNeedsApproval} onClose={() => setBreakSheet(false)} onDone={() => { setBreakSheet(false); E.loadHome(); }} />}
+    </div>
+  );
+}
+
+function addMin(hm, m) {
+  const [a, b] = hm.split(':').map(Number);
+  const x = (a * 60 + b + m) % 1440;
+  return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
+}
+
+function BreakSheet({ left, needsApproval, onClose, onDone }) {
+  const opts = [10, 15, 20, 30, 45, 60].filter((m) => m <= left);
+  const [min, setMin] = useState(String(opts.includes(15) ? 15 : opts[opts.length - 1] || left));
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    setBusy(true);
+    try {
+      const r = await api.post('/api/emp/requests', { type: 'break', minutes: Number(min), reason });
+      toast(r.started ? t('Break started. Come back on time.') : t('Break request sent. Waiting for the manager.'), 'ok');
+      onDone();
+    } catch (e) { toastErr(e); } finally { setBusy(false); }
+  };
+  return (
+    <Sheet open onClose={onClose} title={t('Take a break')}>
+      <p class="small muted" style="margin:0 0 10px">{t('You have {m} minutes of break left today. Coming back late is cut from salary.', { m: left })}</p>
+      <Field label={t('How long?')}>
+        <Chips value={min} onChange={setMin} options={(opts.length ? opts : [left]).map((m) => [String(m), t('{m} min', { m })])} />
+      </Field>
+      <Field label={t('Reason (optional)')}><input class="input" value={reason} onInput={(e) => setReason(e.currentTarget.value)} placeholder={t('e.g. Lunch, prayer')} /></Field>
+      <button class="btn block" disabled={busy} onClick={send}>{busy ? <Spinner sm /> : needsApproval ? t('Send to manager') : t('Start break')}</button>
+    </Sheet>
+  );
+}

@@ -73,6 +73,42 @@ export function resizePhoto(file, size = 360) {
   });
 }
 
+const VIS_LABEL = { always: 'Always (full month)', window: 'Last 2 days of month + 1st of next', last7: 'Last 7 days only' };
+const VIS_HINT = {
+  always: 'The employee can open their salary statement any time.',
+  window: 'The statement opens on the last 2 days of the month and on the 1st of the next month. Hidden on other days.',
+  last7: 'Only the last 7 days of records, without monthly totals.',
+};
+
+/** Pick co-workers (without a phone) that this employee can check in on their own phone. */
+function HelperPicker({ id, value, onChange }) {
+  const st = useLoad(() => api.get('/api/admin/employees'), []);
+  const [open, setOpen] = useState(value.length > 0);
+  const others = (st.data?.employees || []).filter((e) => e.id !== id && e.active);
+  const names = others.filter((e) => value.includes(e.id)).map((e) => nm(e)).join(', ');
+  return (
+    <div class="card">
+      <h2>{t('Check in other staff')}</h2>
+      <p class="small muted" style="margin:0 0 8px">{t('For staff without a phone. This employee can check in and out the people you tick, on their own phone. Each person types their own PIN, and the phone must be inside the store.')}</p>
+      <Toggle checked={open} onChange={(v) => { setOpen(v); if (!v) onChange([]); }} label={t('Allow on this phone')} sub={value.length ? `${t('{n} people', { n: value.length })}: ${names}` : t('Nobody yet')} />
+      {open && (
+        <div class="list" style="margin:8px 0 0;box-shadow:none;border:1px solid var(--line)">
+          {!others.length && <Empty icon="users" text={t('No staff yet')} />}
+          {others.map((e) => {
+            const on = value.includes(e.id);
+            return (
+              <label key={e.id} class="row" style="cursor:pointer">
+                <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== e.id) : [...value, e.id])} style="width:20px;height:20px;accent-color:var(--red)" />
+                <div class="main"><div class="title">{nm(e)} <span class="muted small ltr">{e.code}</span></div></div>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function StaffForm({ id }) {
   const app = useApp();
   const s = app.settings;
@@ -82,9 +118,9 @@ export function StaffForm({ id }) {
   useEffect(() => {
     if (!id) {
       setF({ name: '', nameUr: '', code: '', phone: '', cnic: '', roleId: s.roles[1]?.id || s.roles[0].id, shiftId: s.shifts[0].id, salary: '', weeklyOff: null,
-        fieldStaff: false, kioskAllowed: true, paidLeavePerMonth: '', salaryVisibility: 'always', joinDate: todayStr(api.serverNow()), notes: '', active: true, pin: '' });
+        fieldStaff: false, kioskAllowed: true, helperFor: [], paidLeavePerMonth: '', salaryVisibility: 'always', joinDate: todayStr(api.serverNow()), notes: '', active: true, pin: '' });
     } else {
-      api.get(`/api/admin/employees/${id}`).then((r) => setF({ ...r.employee, paidLeavePerMonth: r.employee.paidLeavePerMonth ?? '', pin: '' })).catch(toastErr);
+      api.get(`/api/admin/employees/${id}`).then((r) => setF({ ...r.employee, helperFor: r.employee.helperFor || [], paidLeavePerMonth: r.employee.paidLeavePerMonth ?? '', pin: '' })).catch(toastErr);
     }
   }, [id]);
   if (!f) return <div class="screen"><TopBar back title={t('Employee')} /><Spinner /></div>;
@@ -158,7 +194,6 @@ export function StaffForm({ id }) {
             )}
           </Field>
           <Toggle checked={f.fieldStaff} onChange={(v) => set('fieldStaff', v)} label={t('Field staff (works out of store)')} sub={t('Can check in and out from anywhere. Location is saved.')} />
-          <Toggle checked={f.kioskAllowed} onChange={(v) => set('kioskAllowed', v)} label={t('Can use the store kiosk phone')} sub={t('For staff without their own phone')} />
           <Toggle checked={f.active} onChange={(v) => set('active', v)} label={t('Active')} sub={t('Inactive staff cannot log in and are not counted')} />
         </div>
 
@@ -168,9 +203,12 @@ export function StaffForm({ id }) {
             <input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={f.paidLeavePerMonth} onInput={inp('paidLeavePerMonth')} />
           </Field>
           <Field label={t('Employee can see salary statement')}>
-            <Seg value={f.salaryVisibility} onChange={(v) => set('salaryVisibility', v)} options={[['always', t('Always (full month)')], ['last7', t('Last 7 days only')]]} />
+            <Seg value={f.salaryVisibility} onChange={(v) => set('salaryVisibility', v)} options={[['always', t('Always')], ['window', t('Month end only')], ['last7', t('Last 7 days')]]} />
           </Field>
+          <p class="small muted" style="margin:-4px 0 0">{VIS_HINT[f.salaryVisibility] && t(VIS_HINT[f.salaryVisibility])}</p>
         </div>
+
+        <HelperPicker id={id} value={f.helperFor} onChange={(v) => set('helperFor', v)} />
 
         <div class="card">
           <h2>{t('Login PIN')}</h2>
@@ -246,8 +284,8 @@ function Info({ e, reload }) {
         {app.can('payroll.view') && <div class="kv"><span class="k">{t('Security deposit')}</span><span class="v">{fmtMoney(e.depositBalance, s.currency)}</span></div>}
         <div class="kv"><span class="k">{t('Joined')}</span><span class="v">{e.joinDate ? fmtDate(e.joinDate) : '—'}</span></div>
         <div class="kv"><span class="k">{t('Paid leave / month')}</span><span class="v">{e.paidLeavePerMonth ?? `${s.rules.paidLeavePerMonth} (${t('store rule')})`}</span></div>
-        <div class="kv"><span class="k">{t('Salary statement')}</span><span class="v">{e.salaryVisibility === 'last7' ? t('Last 7 days only') : t('Always (full month)')}</span></div>
-        <div class="kv"><span class="k">{t('Kiosk')}</span><span class="v">{e.kioskAllowed === false ? t('Not allowed') : t('Allowed')}</span></div>
+        <div class="kv"><span class="k">{t('Salary statement')}</span><span class="v">{t(VIS_LABEL[e.salaryVisibility] || VIS_LABEL.always)}</span></div>
+        {e.helperFor?.length > 0 && <div class="kv"><span class="k">{t('Can check in others')}</span><span class="v">{t('{n} people', { n: e.helperFor.length })}</span></div>}
         <div class="kv"><span class="k">{t('Phone')}</span><span class="v">{e.deviceBound ? `${t('Linked')} ${e.deviceName ? `(${e.deviceName})` : ''}` : t('Not linked yet')}</span></div>
         {e.notes && <div class="kv"><span class="k">{t('Notes')}</span><span class="v">{e.notes}</span></div>}
       </div>

@@ -1,7 +1,7 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "notes": {
-    "en": "First test version of the admin app: live board, staff, requests, payroll PDF, reports, settings, kiosk mode.",
-    "ur": "ایڈمن ایپ کا پہلا ٹیسٹ ورژن: لائیو بورڈ، عملہ، درخواستیں، تنخواہ PDF، رپورٹس، سیٹنگز، کیوسک موڈ۔"
+    "en": "Staff app is here: check in/out with GPS, breaks, requests, calendar, salary, works without internet. Admin: rules per job, salary statement at month end only, let one employee check in co-workers without a phone, update popup.",
+    "ur": "اسٹاف ایپ آ گئی: GPS سے حاضری، وقفہ، درخواستیں، کیلنڈر، تنخواہ، انٹرنیٹ کے بغیر بھی کام کرتی ہے۔ ایڈمن: ہر عہدے کے اپنے اصول، تنخواہ کی تفصیل صرف مہینے کے آخر میں، ایک ملازم بغیر فون والے ساتھیوں کی حاضری لگا سکتا ہے، اپڈیٹ پاپ اپ۔"
   }
 }

@@ -13,8 +13,13 @@ export function empWeeklyOff(emp, s) {
 export function empRole(emp, s) {
   return s.roles.find((r) => r.id === emp.roleId) || null;
 }
+/** Store rules with the employee's job (role) rules on top. */
+export function empRules(emp, s) {
+  const role = empRole(emp, s);
+  return role?.rules ? { ...s.rules, ...role.rules } : s.rules;
+}
 export function paidLeaveQuota(emp, s) {
-  return emp.paidLeavePerMonth == null || emp.paidLeavePerMonth === '' ? s.rules.paidLeavePerMonth : Number(emp.paidLeavePerMonth);
+  return emp.paidLeavePerMonth == null || emp.paidLeavePerMonth === '' ? empRules(emp, s).paidLeavePerMonth : Number(emp.paidLeavePerMonth);
 }
 
 /**
@@ -27,7 +32,7 @@ export function paidLeaveQuota(emp, s) {
  */
 export function daySummary(emp, s, date, d, now) {
   const off = s.tzOffsetMin;
-  const r = s.rules;
+  const r = empRules(emp, s);
   const shift = empShift(emp, s);
   const sm = shiftMins(shift);
   const startTs = toTs(date, sm.start, off);
@@ -128,7 +133,7 @@ export function daySummary(emp, s, date, d, now) {
  * @param depositBalance total deposit balance up to and including this month
  */
 export function payroll(emp, s, month, days, money, depositBalance, now) {
-  const r = s.rules;
+  const r = empRules(emp, s);
   const today = local(now, s.tzOffsetMin).date;
   const dim = daysInMonth(month);
   const basis = r.daysBasis === 'actual' ? dim : Number(r.daysBasis);

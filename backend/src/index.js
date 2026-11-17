@@ -54,7 +54,7 @@ async function latestRelease(env, app, ctx) {
       if (rel) {
         const asset = rel.assets.find((a) => a.name.startsWith(`afford-${app}`) && a.name.endsWith('.apk'));
         out = {
-          version: rel.tag_name.replace(/^v/, ''),
+          version: (rel.tag_name.match(/\d+\.\d+\.\d+/) || [null])[0],
           notes: rel.body || '',
           url: asset?.browser_download_url || rel.html_url,
           published: rel.published_at,

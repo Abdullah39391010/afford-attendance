@@ -165,6 +165,40 @@ export function SettingsShifts() {
   );
 }
 
+const JOB_NUM = [['lateGraceMin', 'Late grace time (min)'], ['earlyLeaveGraceMin', 'Early leave grace (min)'], ['breakAllowanceMin', 'Break allowed per day (min)'], ['paidLeavePerMonth', 'Paid leave days per month']];
+const JOB_BOOL = [['lateCutOn', 'Cut salary for late minutes'], ['earlyLeaveCutOn', 'Cut salary for leaving early'], ['breakLateCutOn', 'Cut salary for late return from break'], ['requireInRadiusCheckIn', 'Check-in only inside the store circle']];
+
+/** Rules for one job. Empty = same as the store rule. */
+function JobRules({ role, store, onChange }) {
+  const r = role.rules || {};
+  const n = Object.keys(r).length;
+  const [open, setOpen] = useState(false);
+  const set = (k, v) => { const next = { ...r }; if (v === '' || v == null) delete next[k]; else next[k] = v; onChange(next); };
+  return (
+    <div style="margin-top:6px">
+      <button class="btn small ghost" onClick={() => setOpen(!open)}><Icon n="gear" />{t('Job rules')}{n ? ` (${n})` : ''}</button>
+      {open && (
+        <div style="margin-top:10px">
+          <p class="small muted" style="margin:0 0 8px">{t('Leave empty to use the store rule. Only staff in this job follow these.')}</p>
+          <div class="two">
+            {JOB_NUM.map(([k, label]) => (
+              <Field key={k} label={t(label)}>
+                <input class="input ltr" style="width:100%" type="number" inputmode="numeric" placeholder={`${store[k]}`} value={r[k] ?? ''} onInput={(e) => set(k, e.currentTarget.value === '' ? '' : Number(e.currentTarget.value))} />
+              </Field>
+            ))}
+          </div>
+          {JOB_BOOL.map(([k, label]) => (
+            <Field key={k} label={t(label)}>
+              <Seg value={r[k] == null ? '' : r[k] ? 'on' : 'off'} onChange={(v) => set(k, v === '' ? null : v === 'on')}
+                options={[['', `${t('Store rule')} (${store[k] ? t('On') : t('Off')})`], ['on', t('On')], ['off', t('Off')]]} />
+            </Field>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SettingsRoles() {
   const app = useApp();
   const [list, setList] = useState(app.settings.roles.map((x) => ({ ...x })));
@@ -181,10 +215,11 @@ export function SettingsRoles() {
               <Field label={t('Name in Urdu')}><input class="input" dir="rtl" value={x.nameUr} onInput={(e) => upd(i, 'nameUr', e.currentTarget.value)} /></Field>
             </div>
             <Toggle checked={x.checkoutAnywhere} onChange={(v) => upd(i, 'checkoutAnywhere', v)} label={t('Can check out anywhere')} sub={t('e.g. delivery boys finishing on the road')} />
+            <JobRules role={x} store={app.settings.rules} onChange={(r) => upd(i, 'rules', r)} />
             {list.length > 1 && <button class="btn small soft" style="margin-top:8px" onClick={() => setList(list.filter((_, j) => j !== i))}><Icon n="trash" />{t('Remove role')}</button>}
           </div>
         ))}
-        <button class="btn block ghost" onClick={() => setList([...list, { name: t('New role'), nameUr: '', checkoutAnywhere: false }])}><Icon n="plus" />{t('Add role')}</button>
+        <button class="btn block ghost" onClick={() => setList([...list, { name: t('New role'), nameUr: '', checkoutAnywhere: false, rules: {} }])}><Icon n="plus" />{t('Add role')}</button>
         <button class="btn block" style="margin-top:12px" disabled={busy} onClick={() => save({ roles: list })}>{t('Save roles')}</button>
       </div>
     </div>

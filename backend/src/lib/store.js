@@ -1,11 +1,11 @@
 // All store logic: one instance lives inside the store's Durable Object.
 import {
   HttpError, bad, forbidden, notFound, uid, MIN, local, toTs, hm, isDate, isMonth, addDays, dateRange,
-  monthDates, metres, clampInt, str, csv, fmtHM,
+  monthDates, metres, clampInt, str, csv, fmtHM, daysInMonth,
 } from './util.js';
 import { hashPin, checkPin, newToken, sha256, validPin } from './crypto.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
-import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota } from './attendance.js';
+import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
 const ADMIN_TTL = 30 * 24 * 3600 * 1000;
 const EMP_TTL = 365 * 24 * 3600 * 1000;
@@ -303,6 +303,9 @@ export class Store {
     add('GET', '/api/emp/statement', this.empStatement, { auth: 'emp' });
     add('GET', '/api/emp/photo', (c) => this.empPhoto({ ...c, params: { id: c.actor.id } }), { auth: 'emp' });
     add('POST', '/api/emp/logout', this.logout, { auth: 'emp' });
+    add('GET', '/api/emp/helper', this.helperList, { auth: 'emp' });
+    add('GET', '/api/emp/helper/:id/photo', this.helperPhoto, { auth: 'emp' });
+    add('POST', '/api/emp/helper/punch', this.helperPunch, { auth: 'emp' });
     // kiosk
     add('GET', '/api/kiosk/employees', this.kioskEmployees, { auth: 'kiosk' });
     add('GET', '/api/kiosk/employees/:id/photo', this.kioskEmpPhoto, { auth: 'kiosk' });
@@ -507,9 +510,11 @@ export class Store {
       fieldStaff: !!pick('fieldStaff', false),
       kioskAllowed: !!pick('kioskAllowed', true),
       paidLeavePerMonth: pick('paidLeavePerMonth', null) === null || pick('paidLeavePerMonth', null) === '' ? null : clampInt(pick('paidLeavePerMonth', null), 0, 31, null),
-      salaryVisibility: pick('salaryVisibility', 'always') === 'last7' ? 'last7' : 'always',
+      salaryVisibility: ['last7', 'window'].includes(pick('salaryVisibility', 'always')) ? pick('salaryVisibility', 'always') : 'always',
       joinDate: pick('joinDate', '') && isDate(pick('joinDate', '')) ? pick('joinDate', '') : null,
       notes: str(pick('notes', ''), 300),
+      // co-workers this employee may check in/out on their own phone (each one types their own PIN)
+      helperFor: (Array.isArray(pick('helperFor', [])) ? pick('helperFor', []) : []).map((x) => str(x, 40)).filter(Boolean).slice(0, 30),
     };
     if (!data.name) throw bad('MISSING', 'Name is required');
     if (!s.roles.some((r) => r.id === data.roleId)) throw bad('BAD_ROLE', 'Unknown role');
@@ -601,7 +606,7 @@ export class Store {
 
   geo(emp, type, loc, { kiosk = false } = {}) {
     const s = this.settings;
-    const r = s.rules;
+    const r = empRules(emp, s);
     const role = empRole(emp, s);
     const anywhere = type === 'in'
       ? !kiosk && (emp.fieldStaff || !r.requireInRadiusCheckIn)
@@ -711,7 +716,7 @@ export class Store {
     if (this.openBreak(emp.id)) throw bad('ON_BREAK', 'Already on a break');
     const used = this.db.all('SELECT start, end FROM breaks WHERE emp = ? AND day = ?', emp.id, open.day)
       .reduce((a, b) => a + Math.floor(((b.end ?? this.now()) - b.start) / MIN), 0);
-    const remaining = Math.max(0, this.settings.rules.breakAllowanceMin - used);
+    const remaining = Math.max(0, empRules(emp, this.settings).breakAllowanceMin - used);
     const allowed = allowedOverride != null ? clampInt(allowedOverride, 0, 480, minutes) : Math.min(minutes, remaining);
     const id = uid();
     this.db.run('INSERT INTO breaks (id, emp, day, start, end, allowed, request_id) VALUES (?, ?, ?, ?, NULL, ?, ?)', id, emp.id, open.day, this.now(), allowed, requestId || null);
@@ -1250,6 +1255,50 @@ export class Store {
     return { ok: true, type, name: emp.name, ts: res.punch.ts, today: pickDay(this.day(emp, res.punch.day)) };
   }
 
+  // ---------------------------------------------------------------- helper phone (staff without a phone)
+  helperIds(actor) {
+    const ids = (actor.helperFor || []).filter((id) => id !== actor.id);
+    return new Set(ids);
+  }
+  helperList({ actor }) {
+    const ids = this.helperIds(actor);
+    const today = this.today();
+    const emps = this.employees({ activeOnly: true }).filter((e) => ids.has(e.id));
+    const get = this.loadDays(null, today, today);
+    return {
+      serverTime: this.now(),
+      employees: emps.map((e) => {
+        const d = daySummary(e, this.settings, today, get(e.id, today), this.now());
+        const open = d.isOpen || !!this.openSession(e.id);
+        return { id: e.id, code: e.code, name: e.name, nameUr: e.nameUr, hasPhoto: e.hasPhoto, photoVer: e.photoVer, isIn: open, onBreak: !!d.onBreak, checkIn: d.checkIn, checkOut: d.checkOut };
+      }),
+    };
+  }
+  helperPhoto({ actor, params }) {
+    if (!this.helperIds(actor).has(params.id)) throw forbidden();
+    return this.empPhoto({ params });
+  }
+  async helperPunch({ actor, body, ip }) {
+    const id = str(body.employeeId, 40);
+    if (!this.helperIds(actor).has(id)) throw forbidden('NOT_HELPER', 'You are not allowed to check in this employee');
+    const emp = this.empRow(id);
+    const keys = [`e:${emp.code.toLowerCase()}`, `ip:${ip}`];
+    this.lockCheck(keys);
+    const row = this.db.get('SELECT pin FROM employees WHERE id = ?', emp.id);
+    if (!(await checkPin(String(body.pin || ''), row.pin, this.pepper))) {
+      this.lockFail(keys);
+      throw new HttpError(401, 'WRONG_PIN', 'Wrong PIN');
+    }
+    this.lockClear(keys[0]);
+    const photo = body.photo ? String(body.photo) : null;
+    if (photo && (!/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/.test(photo) || photo.length > 200_000)) throw bad('BAD_IMAGE', 'Bad photo');
+    const type = body.type || (this.openSession(emp.id) ? 'out' : 'in');
+    const res = this.punch(emp, { type, source: `helper:${actor.name}`, loc: body.loc, clientId: str(body.clientId, 60) || null, offlineTs: body.offlineTs });
+    if (photo && !res.duplicate) this.db.run('INSERT INTO photos (id, punch, data, ts) VALUES (?, ?, ?, ?)', uid(), res.punch.id, photo, this.now());
+    this.audit({ id: actor.id, name: actor.name }, type === 'in' ? 'attendance.helper_in' : 'attendance.helper_out', emp.id, { name: emp.name });
+    return { ok: true, type, name: emp.name, ts: res.punch.ts, today: pickDay(this.day(emp, res.punch.day)) };
+  }
+
   // ---------------------------------------------------------------- employee app
   empHome({ actor }) {
     const emp = actor;
@@ -1260,20 +1309,21 @@ export class Store {
     const month = this.month();
     const st = this.statement(emp, month);
     const role = empRole(emp, s);
+    const er = empRules(emp, s);
     return {
       serverTime: this.now(),
       store: {
         name: s.storeName, currency: s.currency, tzOffsetMin: s.tzOffsetMin, logoVer: this.db.kvGet('logoVer', 0),
         locations: s.locations.map((l) => ({ name: l.name, lat: l.lat, lng: l.lng, radius: l.radius })),
-        rules: { breakAllowanceMin: s.rules.breakAllowanceMin, breakNeedsApproval: s.rules.breakNeedsApproval, pastDayRequestDays: s.rules.pastDayRequestDays,
-          lateGraceMin: s.rules.lateGraceMin, maxOfflineHours: s.rules.maxOfflineHours, requireInRadiusCheckIn: s.rules.requireInRadiusCheckIn },
+        rules: { breakAllowanceMin: er.breakAllowanceMin, breakNeedsApproval: s.rules.breakNeedsApproval, pastDayRequestDays: s.rules.pastDayRequestDays,
+          lateGraceMin: er.lateGraceMin, maxOfflineHours: s.rules.maxOfflineHours, requireInRadiusCheckIn: er.requireInRadiusCheckIn },
       },
       employee: {
         id: emp.id, code: emp.code, name: emp.name, nameUr: emp.nameUr, role: role?.name, roleUr: role?.nameUr,
         shift: empShift(emp, s), fieldStaff: !!emp.fieldStaff, checkoutAnywhere: !!(emp.fieldStaff || role?.checkoutAnywhere),
-        salaryVisibility: emp.salaryVisibility, hasPhoto: emp.hasPhoto, photoVer: emp.photoVer,
+        salaryVisibility: emp.salaryVisibility, hasPhoto: emp.hasPhoto, photoVer: emp.photoVer, helperCount: this.helperIds(emp).size,
       },
-      today: { ...pickDay(today), breakUsedMin: today.breakMin, breakLeftMin: Math.max(0, s.rules.breakAllowanceMin - today.breakMin) },
+      today: { ...pickDay(today), breakUsedMin: today.breakMin, breakLeftMin: Math.max(0, er.breakAllowanceMin - today.breakMin) },
       leave: st.leave,
       depositBalance: this.depositBalance(emp.id),
       pendingRequests: this.db.all("SELECT * FROM requests WHERE emp = ? AND status = 'pending' ORDER BY created DESC", emp.id).map(reqOut),
@@ -1309,6 +1359,19 @@ export class Store {
   empStatement({ actor, q }) {
     const month = isMonth(q.get('month')) ? q.get('month') : this.month();
     if (month > this.month()) throw bad('BAD_MONTH', 'Future month');
+    if (actor.salaryVisibility === 'window') {
+      // full statement only on the last 2 days of a month (that month) and on the 1st (the month just ended)
+      const today = this.today();
+      const day = Number(today.slice(8));
+      const cur = this.month();
+      const dim = daysInMonth(cur);
+      const prev = addDays(`${cur}-01`, -1).slice(0, 7);
+      const open = day >= dim - 1 ? cur : day === 1 ? prev : null;
+      if (month !== open) {
+        return { hidden: true, month, openMonth: open, opensOn: `${cur}-${String(dim - 1).padStart(2, '0')}`, currency: this.settings.currency,
+          employee: { name: actor.name, nameUr: actor.nameUr, code: actor.code }, depositBalance: this.depositBalance(actor.id) };
+      }
+    }
     const st = this.statement(actor, month);
     if (actor.salaryVisibility === 'last7') {
       // only the last 7 days of records, no monthly totals

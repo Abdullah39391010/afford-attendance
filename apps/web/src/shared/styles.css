@@ -269,3 +269,33 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
 .kd-icon.out { background: #C62032; }
 .kd-icon svg { width: 60px; height: 60px; }
 @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ---------------------------------------------------------------- staff app */
+.st-none { background: var(--bg); color: var(--muted); }
+.link { background: none; border: 0; padding: 0; color: var(--red); font: inherit; font-weight: 600; cursor: pointer; margin-top: 6px; }
+.card.mini { margin: 0; }
+.big-num { font-size: 20px; display: block; margin-top: 2px; }
+.lg-ic { width: 44px; height: 44px; color: var(--muted); }
+.today-card { margin-top: 12px; border-radius: var(--radius); padding: 18px; color: #fff; background: linear-gradient(135deg, #5b6168, #3b4046); box-shadow: var(--shadow); }
+.today-card.in { background: linear-gradient(135deg, #1E9E5A, #137043); }
+.today-card.brk { background: linear-gradient(135deg, #2F6FDB, #1d4fae); }
+.today-card.done { background: linear-gradient(135deg, #C62032, #A3172A); }
+.today-card .tc-shift { font-size: 13px; opacity: .9; margin-top: 2px; }
+.today-card .tc-status { font-size: 22px; font-weight: 800; margin-top: 10px; }
+.today-card .tc-times { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.today-card .tc-times div { background: rgba(255,255,255,.16); border-radius: 12px; padding: 8px 10px; }
+.today-card .tc-times span { display: block; font-size: 12px; opacity: .85; }
+.today-card .tc-times b { font-size: 17px; }
+.today-card .pill { background: rgba(255,255,255,.95); }
+.punch-btn { width: 100%; margin-top: 14px; min-height: 92px; border: 0; border-radius: 22px; color: #fff; font-size: 24px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.15); cursor: pointer; }
+.punch-btn svg { width: 34px; height: 34px; }
+.punch-btn.in { background: var(--green); }
+.punch-btn.out { background: var(--red); }
+.punch-btn:active { transform: scale(.98); }
+.punch-btn:disabled { opacity: .7; }
+.punch-btn .spinner { border-color: rgba(255,255,255,.4); border-top-color: #fff; margin: 0; }
+.btn.big { min-height: 60px; font-size: 18px; }
+.brk-left { font-size: 30px; font-weight: 800; margin: 6px 0 12px; color: var(--blue); }
+.brk-left.late { color: var(--red); }
+.bio-btn { width: 96px; height: 96px; border-radius: 50%; border: 0; background: var(--red-soft); color: var(--red); display: inline-grid; place-items: center; cursor: pointer; }
+.bio-btn svg { width: 52px; height: 52px; }

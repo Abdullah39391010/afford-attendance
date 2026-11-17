@@ -107,6 +107,8 @@ export function mergeSettings(cur, patch) {
       name: str(r.name, 40) || 'Role',
       nameUr: str(r.nameUr, 40),
       checkoutAnywhere: !!r.checkoutAnywhere,
+      // optional job rules; null = use the store rule
+      rules: roleRules(r.rules),
     }));
   }
 
@@ -155,4 +157,24 @@ export function shiftMins(shift) {
   let end = hm(shift.end);
   if (end <= start) end += 1440;
   return { start, end, hours: (end - start) / 60 };
+}
+
+/** Store rules a job (role) may change for its own staff. */
+export const ROLE_RULE_KEYS = {
+  lateGraceMin: [0, 240], earlyLeaveGraceMin: [0, 240], breakAllowanceMin: [0, 480], paidLeavePerMonth: [0, 31],
+  lateCutOn: 'bool', earlyLeaveCutOn: 'bool', breakLateCutOn: 'bool', requireInRadiusCheckIn: 'bool',
+};
+function roleRules(src) {
+  const out = {};
+  if (!src || typeof src !== 'object') return out;
+  for (const [k, spec] of Object.entries(ROLE_RULE_KEYS)) {
+    const v = src[k];
+    if (v == null || v === '') continue;
+    if (spec === 'bool') out[k] = !!v;
+    else {
+      const n = Math.round(Number(v));
+      if (Number.isFinite(n)) out[k] = Math.min(spec[1], Math.max(spec[0], n));
+    }
+  }
+  return out;
 }

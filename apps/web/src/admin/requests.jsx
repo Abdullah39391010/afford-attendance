@@ -6,23 +6,11 @@ import { t, nm, reqLabel } from '../shared/i18n.js';
 import { fmtDate, fmtTime, fmtMoney, ago } from '../shared/format.js';
 import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Empty, Spinner, Toggle } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
+import { describe } from '../shared/describe.js';
 
 const ICON = { forgot_in: 'in', forgot_out: 'out', past_day: 'cal', leave: 'leave', advance: 'wallet', break: 'coffee', undo_checkout: 'undo', field_duty: 'map' };
 
-export function describe(r, currency) {
-  const d = r.data || {};
-  switch (r.type) {
-    case 'forgot_in': return `${fmtDate(d.date)} · ${t('check-in at')} ${d.approvedTime || d.time}`;
-    case 'forgot_out': return `${fmtDate(d.date)} · ${t('check-out at')} ${d.approvedTime || d.time}`;
-    case 'past_day': return `${fmtDate(d.date)} · ${d.approvedIn || d.inTime} – ${d.approvedOut || d.outTime}`;
-    case 'leave': return d.toDate && d.toDate !== d.date ? `${fmtDate(d.date)} → ${fmtDate(d.toDate)}` : fmtDate(d.date);
-    case 'field_duty': return d.toDate && d.toDate !== d.date ? `${fmtDate(d.date)} → ${fmtDate(d.toDate)}` : fmtDate(d.date);
-    case 'advance': return d.amount == null ? t('Amount hidden') : fmtMoney(d.approvedAmount || d.amount, currency);
-    case 'break': return t('{m} minutes', { m: d.minutes });
-    case 'undo_checkout': return `${t('Checked out at')} ${fmtTime(d.outTs)}`;
-    default: return '';
-  }
-}
+export { describe };
 
 export function Requests() {
   const app = useApp();

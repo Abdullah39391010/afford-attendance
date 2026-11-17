@@ -8,6 +8,7 @@ import { t, nm, errText } from '../shared/i18n.js';
 import { fmtTime, fmtDate, todayStr, fmtDateTime } from '../shared/format.js';
 import { TopBar, Icon, Loader, useLoad, toast, toastErr, PinPad, Avatar, Sheet, Dialog, Field, Spinner, Empty, Banner, confirmBox, LangSwitch } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
+import { PunchSheet } from '../shared/punchsheet.jsx';
 
 async function secureSet(key, value) { try { await AffordDevice.secureSet({ key, value }); } catch { /* ignore */ } }
 
@@ -164,71 +165,9 @@ export function KioskMode({ onExit }) {
 }
 
 function KioskPunch({ emp, photoRequired, onClose, onDone }) {
-  const video = useRef(null);
-  const stream = useRef(null);
-  const [cam, setCam] = useState('starting'); // starting | on | off
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
-
-  useEffect(() => {
-    let live = true;
-    (async () => {
-      try {
-        const p = await AffordDevice.requestCamera().catch(() => ({ granted: true }));
-        if (!p.granted) throw new Error('denied');
-        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 } }, audio: false });
-        if (!live) { s.getTracks().forEach((tr) => tr.stop()); return; }
-        stream.current = s;
-        if (video.current) { video.current.srcObject = s; await video.current.play().catch(() => {}); }
-        setCam('on');
-      } catch { if (live) setCam('off'); }
-    })();
-    return () => { live = false; stream.current?.getTracks().forEach((tr) => tr.stop()); };
-  }, []);
-
-  const snap = () => {
-    const v = video.current;
-    if (cam !== 'on' || !v || !v.videoWidth) return null;
-    const w = 320;
-    const hgt = Math.round((v.videoHeight / v.videoWidth) * w);
-    const c = document.createElement('canvas');
-    c.width = w; c.height = hgt;
-    const g = c.getContext('2d');
-    g.translate(w, 0); g.scale(-1, 1); // mirror like the preview
-    g.drawImage(v, 0, 0, w, hgt);
-    return c.toDataURL('image/jpeg', 0.6);
-  };
-
-  const submit = async (pin) => {
-    setBusy(true);
-    try {
-      const photo = snap();
-      const loc = await kioskLoc();
-      const type = emp.isIn ? 'out' : 'in';
-      const res = await api.post('/api/kiosk/punch', { employeeId: emp.id, pin, photo, type, loc, clientId: `k-${emp.id}-${Date.now()}` });
-      onDone({ ...res, name: nm(emp) });
-    } catch (e) {
-      setErr({ at: Date.now() });
-      toastErr(e);
-    } finally { setBusy(false); }
-  };
-
   return (
-    <Sheet open onClose={onClose} title={`${nm(emp)} · ${emp.isIn ? t('Check out') : t('Check in')}`}>
-      <div class="kiosk-cam">
-        <video ref={video} playsInline muted autoPlay style={cam === 'on' ? '' : 'display:none'} />
-        {cam === 'starting' && <Spinner />}
-        {cam === 'off' && <div class="small muted center"><Icon n="camera" /><br />{t('Camera not available')}</div>}
-      </div>
-      {cam === 'off' && photoRequired ? (
-        <Banner kind="err">{t('The camera is needed for kiosk check-in. Allow camera for this app in phone settings.')}</Banner>
-      ) : (
-        <div>
-          <div class="center muted small" style="margin-top:8px">{t('Look at the camera and enter your PIN')}</div>
-          <PinPad length={4} max={6} onDone={submit} error={err?.at} busy={busy} />
-        </div>
-      )}
-    </Sheet>
+    <PunchSheet emp={emp} photoRequired={photoRequired} onClose={onClose} onDone={onDone}
+      send={async ({ pin, photo, type }) => api.post('/api/kiosk/punch', { employeeId: emp.id, pin, photo, type, loc: await kioskLoc(), clientId: `k-${emp.id}-${Date.now()}` })} />
   );
 }
 

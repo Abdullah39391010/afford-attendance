@@ -320,3 +320,53 @@ test('settings validation', async () => {
   assert.equal(s.rules.lateGraceMin, 5);
   assert.equal(s.rules.paidLeavePerMonth, 1);
 });
+
+test('helper phone: a chosen employee checks in listed co-workers with their own PIN', async () => {
+  const t = await seeded('2026-11-16T07:58');
+  const g = (await t.api('POST', '/api/admin/employees', { name: 'Guard Khan', roleId: 'guard', salary: 20000, pin: '4321' }, t.owner)).data.employee;
+  // not allowed yet
+  assert.equal((await t.aliApi('POST', '/api/emp/helper/punch', { employeeId: g.id, pin: '4321', loc: t.inStore })).data.error, 'NOT_HELPER');
+  await t.api('PUT', `/api/admin/employees/${t.ali.id}`, { helperFor: [g.id] }, t.owner);
+  const home = (await t.aliApi('GET', '/api/emp/home')).data;
+  assert.equal(home.employee.helperCount, 1);
+  const list = (await t.aliApi('GET', '/api/emp/helper')).data.employees;
+  assert.deepEqual(list.map((e) => e.id), [g.id]);
+  assert.equal((await t.aliApi('POST', '/api/emp/helper/punch', { employeeId: g.id, pin: '0000', loc: t.inStore })).data.error, 'WRONG_PIN');
+  assert.equal((await t.aliApi('POST', '/api/emp/helper/punch', { employeeId: g.id, pin: '4321', loc: t.far })).data.error, 'OUTSIDE_RADIUS');
+  const r = (await t.aliApi('POST', '/api/emp/helper/punch', { employeeId: g.id, pin: '4321', loc: t.inStore })).data;
+  assert.equal(r.type, 'in');
+  // Bilal is not on the list
+  assert.equal((await t.aliApi('POST', '/api/emp/helper/punch', { employeeId: t.bilal.id, pin: '2222', loc: t.inStore })).data.error, 'NOT_HELPER');
+  // Bilal's own phone cannot use the helper list
+  assert.equal((await t.bilalApi('GET', '/api/emp/helper')).data.employees.length, 0);
+});
+
+test('job rules: a role can have its own grace time', async () => {
+  const t = await seeded('2026-11-16T08:20');
+  const s = (await t.api('GET', '/api/admin/settings', null, t.owner)).data;
+  const roles = s.roles.map((r) => (r.id === 'cashier' ? { ...r, rules: { lateGraceMin: 30 } } : r));
+  await t.api('PUT', '/api/admin/settings', { roles }, t.owner);
+  await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore }); // cashier, 20 min late but grace 30
+  await t.bilalApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore }); // delivery, store grace 15
+  const a = (await t.api('GET', `/api/admin/employees/${t.ali.id}/day/2026-11-16`, null, t.owner)).data.day;
+  const b = (await t.api('GET', `/api/admin/employees/${t.bilal.id}/day/2026-11-16`, null, t.owner)).data.day;
+  assert.equal(a.lateMin, 0);
+  assert.equal(b.lateMin, 20);
+});
+
+test('salary statement visibility: last 2 days of the month and the 1st', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  await t.api('PUT', `/api/admin/employees/${t.ali.id}`, { salaryVisibility: 'window' }, t.owner);
+  let r = (await t.aliApi('GET', '/api/emp/statement?month=2026-11')).data;
+  assert.equal(r.hidden, true);
+  assert.equal(r.opensOn, '2026-11-29');
+  t.setTime('2026-11-29T09:00');
+  r = (await t.aliApi('GET', '/api/emp/statement?month=2026-11')).data;
+  assert.ok(r.statement);
+  t.setTime('2026-12-01T09:00');
+  r = (await t.aliApi('GET', '/api/emp/statement?month=2026-11')).data;
+  assert.ok(r.statement);
+  t.setTime('2026-12-02T09:00');
+  r = (await t.aliApi('GET', '/api/emp/statement?month=2026-11')).data;
+  assert.equal(r.hidden, true);
+});
