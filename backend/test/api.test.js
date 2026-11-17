@@ -427,3 +427,22 @@ test('background notifications: admin hears about new requests, staff about deci
   assert.equal(e1.items.length, 1);
   assert.equal(e1.items[0].title, 'Request approved');
 });
+
+test('instant push: phones register, admins get new requests, staff get answers', async () => {
+  const t = await seeded();
+  const sent = [];
+  t.store.pushSender = async (msgs) => { sent.push(...msgs); return ['admin-phone-token-dead-000000000']; };
+  assert.equal((await t.api('POST', '/api/admin/push-token', { token: 'admin-phone-token-1234567890', lang: 'en' }, t.owner)).status, 200);
+  await t.api('POST', '/api/admin/push-token', { token: 'admin-phone-token-dead-000000000' }, t.owner);
+  assert.equal((await t.aliApi('POST', '/api/emp/push-token', { token: 'ali-phone-token-123456789012', lang: 'ur' })).status, 200);
+  const req = (await t.aliApi('POST', '/api/emp/requests', { type: 'leave', date: '2026-11-20', toDate: '2026-11-20', reason: 'x' })).data.request;
+  assert.equal(sent.length, 2); // both admin tokens
+  assert.match(sent[0].title, /New request: Leave/);
+  // dead token removed
+  assert.equal(t.store.db.all("SELECT * FROM push_tokens WHERE kind = 'admin'").length, 1);
+  sent.length = 0;
+  await t.api('POST', `/api/admin/requests/${req.id}/decide`, { approve: true }, t.owner);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].token, 'ali-phone-token-123456789012');
+  assert.equal(sent[0].title, 'درخواست منظور ہو گئی');
+});

@@ -1,5 +1,5 @@
 # Deploys the Cloudflare Worker. Runs ONLY when started by hand from the Actions tab.
-# Needs repository secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SETUP_CODE (PIN_PEPPER optional).
+# Needs repository secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SETUP_CODE (PIN_PEPPER, FIREBASE_SERVICE_ACCOUNT optional).
 name: Deploy backend (manual)
 on:
   workflow_dispatch:
@@ -25,7 +25,9 @@ jobs:
         run: |
           if [ -n "$SETUP_CODE" ]; then printf '%s' "$SETUP_CODE" | npx wrangler secret put SETUP_CODE; else echo "SETUP_CODE secret missing"; exit 1; fi
           if [ -n "$PIN_PEPPER" ]; then printf '%s' "$PIN_PEPPER" | npx wrangler secret put PIN_PEPPER; fi
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | npx wrangler secret put FIREBASE_SERVICE_ACCOUNT; else echo "No FIREBASE_SERVICE_ACCOUNT: instant push is off"; fi
         env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           SETUP_CODE: ${{ secrets.SETUP_CODE }}
           PIN_PEPPER: ${{ secrets.PIN_PEPPER }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -42,6 +42,17 @@ jobs:
         run: |
           echo "version=$(node -p "require('./apps/version.json').version")" >> "$GITHUB_OUTPUT"
           node -e "const v=require('./apps/version.json'); console.log(v.notes.en + '\n\nUR: ' + v.notes.ur)" > release-notes.md
+      - name: Firebase config (instant alerts)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > apps/admin/android/app/google-services.json
+            printf '%s' "$GOOGLE_SERVICES_JSON" > apps/employee/android/app/google-services.json
+            echo "Firebase on"
+          else
+            echo "No GOOGLE_SERVICES_JSON secret: apps use the 15-minute check only"
+          fi
       - name: Build admin app
         if: inputs.app != 'employee'
         run: |

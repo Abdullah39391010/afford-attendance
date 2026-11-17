@@ -418,6 +418,32 @@ public class AffordDevicePlugin extends Plugin {
         call.resolve();
     }
 
+    /** Runs the server check right now (used while the app is open), sharing the background cursor. */
+    @PluginMethod
+    public void checkNow(PluginCall call) {
+        WorkManager.getInstance(getContext()).enqueueUniqueWork("afford-notify-now", androidx.work.ExistingWorkPolicy.KEEP,
+            new androidx.work.OneTimeWorkRequest.Builder(AffordNotifyWorker.class).build());
+        call.resolve();
+    }
+
+    /** Firebase push token of this phone (null when Firebase is not set up in this build). */
+    @PluginMethod
+    public void getPushToken(PluginCall call) {
+        try {
+            com.google.firebase.FirebaseApp.getInstance();
+        } catch (Exception e) {
+            JSObject r = new JSObject();
+            r.put("token", null);
+            call.resolve(r);
+            return;
+        }
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            JSObject r = new JSObject();
+            r.put("token", task.isSuccessful() ? task.getResult() : null);
+            call.resolve(r);
+        });
+    }
+
     @PluginMethod
     public void stopBackgroundCheck(PluginCall call) {
         getContext().getSharedPreferences(AffordNotifyWorker.PREFS, Context.MODE_PRIVATE).edit().clear().apply();

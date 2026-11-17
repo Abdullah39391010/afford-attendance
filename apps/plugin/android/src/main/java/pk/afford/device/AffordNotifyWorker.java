@@ -33,7 +33,7 @@ public class AffordNotifyWorker extends Worker {
 
     static final String PREFS = "afford_notify";
     static final String WORK = "afford-notify";
-    static final String CHANNEL = "afford_requests";
+    static final String CHANNEL = "afford_alerts";
 
     public AffordNotifyWorker(@NonNull Context ctx, @NonNull WorkerParameters params) {
         super(ctx, params);
@@ -92,12 +92,20 @@ public class AffordNotifyWorker extends Worker {
             if (nm.getNotificationChannel(CHANNEL) == null) {
                 NotificationChannel ch = new NotificationChannel(CHANNEL, "Requests", NotificationManager.IMPORTANCE_HIGH);
                 ch.setDescription("New requests and answers to requests");
+                ch.enableVibration(true);
+                ch.enableLights(true);
+                ch.setLightColor(0xFFC62032);
+                ch.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+                ch.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION),
+                    new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
                 nm.createNotificationChannel(ch);
+                if (nm.getNotificationChannel("afford_requests") != null) nm.deleteNotificationChannel("afford_requests");
             }
         }
     }
 
-    private static void show(Context ctx, String id, String title, String body) {
+    static void show(Context ctx, String id, String title, String body) {
         ensureChannel(ctx);
         Intent open = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
         if (open == null) open = new Intent();
@@ -110,7 +118,11 @@ public class AffordNotifyWorker extends Worker {
             .setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
             .setContentIntent(pi);
         try {
             NotificationManagerCompat.from(ctx).notify(id.hashCode(), b.build());

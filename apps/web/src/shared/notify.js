@@ -1,11 +1,23 @@
-// Phone notifications while the app is closed: a background check every ~15 minutes
-// (admins: new requests; staff: answers to their requests).
+// Phone alerts for requests.
+// 1) Instant push (Firebase) when this build has it: the phone registers its push token with the server.
+// 2) A background check about every 15 minutes (backup when push is not set up or is blocked).
+// 3) While the app is open: a quick check every 20 seconds, so the tone plays right away.
 import { AffordDevice } from 'afford-device';
-import { api, deviceInfo } from './api.js';
+import { api, LS, deviceInfo } from './api.js';
 import { getLang, onLang } from './i18n.js';
 
 let current = null;
 let langHooked = false;
+let timer = null;
+
+async function registerPush(kind) {
+  try {
+    const { token } = await AffordDevice.getPushToken();
+    if (!token) return;
+    await api.post(`/api/${kind}/push-token`, { token, lang: getLang() });
+    LS.set('afford.pushToken', token);
+  } catch { /* push not set up */ }
+}
 
 export async function startNotify(kind) {
   if (!api.base || !api.token) return;
@@ -14,10 +26,19 @@ export async function startNotify(kind) {
     const dev = await deviceInfo();
     await AffordDevice.startBackgroundCheck({ base: api.base, token: api.token, deviceId: dev.deviceId, kind, lang: getLang() });
   } catch { /* not available on this phone */ }
+  registerPush(kind);
+  if (!timer) {
+    timer = setInterval(() => { if (current && document.visibilityState === 'visible') AffordDevice.checkNow().catch(() => {}); }, 20000);
+    document.addEventListener('visibilitychange', () => { if (current && document.visibilityState === 'visible') registerPush(current); });
+  }
   if (!langHooked) { langHooked = true; onLang(() => current && startNotify(current)); }
 }
 
 export async function stopNotify() {
+  const kind = current;
   current = null;
+  const tk = LS.get('afford.pushToken');
+  if (tk && kind && api.token) { try { await api.post(`/api/${kind}/push-token`, { token: tk, remove: true }); } catch { /* ignore */ } }
+  LS.set('afford.pushToken', null);
   try { await AffordDevice.stopBackgroundCheck(); } catch { /* ignore */ }
 }

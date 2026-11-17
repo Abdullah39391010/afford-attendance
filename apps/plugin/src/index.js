@@ -73,6 +73,8 @@ const web = {
     return Object.fromEntries(permissions.map((p) => [p, 'granted']));
   },
   async openInstallSettings() {},
+  async checkNow() {},
+  async getPushToken() { return { token: null }; },
   async stopBackgroundCheck() {},
   async addListener() { return { remove: async () => {} }; },
 };

@@ -5,6 +5,7 @@ import {
 } from './util.js';
 import { hashPin, checkPin, newToken, sha256, validPin } from './crypto.js';
 import { makeBackup, checkBackup, applyBackup } from './backup.js';
+import { sendPushes } from './push.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -41,6 +42,8 @@ export class Store {
       db.kvSet('pepper', this.pepper);
     }
     this.routes = this.buildRoutes();
+    this.outbox = [];
+    this.pushSender = (msgs) => sendPushes(this.env.FIREBASE_SERVICE_ACCOUNT, msgs);
   }
 
   // ---------------------------------------------------------------- settings / helpers
@@ -233,6 +236,7 @@ export class Store {
       }
       const out = await route.fn(ctx);
       if (req.method !== 'GET') this.bump();
+      if (this.outbox.length) await this.flushPush();
       if (out instanceof Response) return out;
       return json(out ?? { ok: true });
     } catch (e) {
@@ -291,6 +295,7 @@ export class Store {
     add('POST', '/api/admin/break/end', this.adminEndBreak, A('attendance.punch'));
     add('GET', '/api/admin/requests', this.listRequests, A());
     add('GET', '/api/admin/notify', this.adminNotify, A());
+    add('POST', '/api/admin/push-token', (c) => this.pushToken(c, 'admin'), A());
     add('POST', '/api/admin/requests/:id/decide', this.decide, A('requests.decide'));
     add('POST', '/api/admin/money', this.addMoney, A('money.edit'));
     add('POST', '/api/admin/money/:id/void', this.voidMoney, A('money.edit'));
@@ -307,6 +312,7 @@ export class Store {
     add('POST', '/api/emp/break/end', this.empEndBreak, { auth: 'emp' });
     add('GET', '/api/emp/requests', this.empRequests, { auth: 'emp' });
     add('GET', '/api/emp/notify', this.empNotify, { auth: 'emp' });
+    add('POST', '/api/emp/push-token', (c) => this.pushToken(c, 'emp'), { auth: 'emp' });
     add('POST', '/api/emp/requests', this.empNewRequest, { auth: 'emp' });
     add('POST', '/api/emp/requests/:id/cancel', this.empCancelRequest, { auth: 'emp' });
     add('GET', '/api/emp/calendar', this.empCalendar, { auth: 'emp' });
@@ -1028,6 +1034,7 @@ export class Store {
     const id = uid();
     data.source = source;
     this.db.run("INSERT INTO requests (id, emp, type, data, status, created) VALUES (?, ?, ?, ?, 'pending', ?)", id, emp.id, type, JSON.stringify(data), this.now());
+    this.pushNewRequest({ id, emp: emp.id, type });
     return { request: reqOut(this.db.get('SELECT * FROM requests WHERE id = ?', id)) };
   }
 
@@ -1050,6 +1057,53 @@ export class Store {
         return o;
       }),
     };
+  }
+
+  // ---------------------------------------------------------------- instant push (Firebase)
+  pushToken({ actor, body }, kind) {
+    const token = str(body.token, 400);
+    if (!token || token.length < 20) throw bad('BAD_TOKEN', 'Push token missing');
+    if (body.remove) { this.db.run('DELETE FROM push_tokens WHERE token = ?', token); return { ok: true }; }
+    this.db.run(`INSERT INTO push_tokens (token, kind, sub, lang, updated) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(token) DO UPDATE SET kind = excluded.kind, sub = excluded.sub, lang = excluded.lang, updated = excluded.updated`,
+    token, kind, actor.id, body.lang === 'ur' ? 'ur' : 'en', this.now());
+    return { ok: true, push: !!this.env.FIREBASE_SERVICE_ACCOUNT };
+  }
+
+  /** Queue an alert for some phones; text is made per phone language. */
+  queuePush(kind, subs, id, make) {
+    if (!subs.length) return;
+    const rows = this.db.all(`SELECT token, lang FROM push_tokens WHERE kind = ? AND sub IN (${subs.map(() => '?').join(',')})`, kind, ...subs);
+    for (const r of rows) this.outbox.push({ token: r.token, id, ...make(r.lang === 'ur') });
+  }
+
+  async flushPush() {
+    const msgs = this.outbox;
+    this.outbox = [];
+    try {
+      const dead = await this.pushSender(msgs);
+      for (const tk of dead || []) this.db.run('DELETE FROM push_tokens WHERE token = ?', tk);
+    } catch (e) {
+      console.warn('push failed', e?.message);
+    }
+  }
+
+  pushNewRequest(r) {
+    const e = this.db.get('SELECT data FROM employees WHERE id = ?', r.emp);
+    const d = e ? JSON.parse(e.data) : {};
+    const admins = this.db.all('SELECT id, role, perms FROM admins WHERE active = 1')
+      .filter((a) => a.role === 'owner' || JSON.parse(a.perms || '[]').includes('requests.decide')).map((a) => a.id);
+    this.queuePush('admin', admins, r.id, (ur) => ({
+      title: ur ? `نئی درخواست: ${REQ_UR[r.type] || r.type}` : `New request: ${REQ_EN[r.type] || r.type}`,
+      body: ur ? `${d.nameUr || d.name || '?'} نے درخواست بھیجی ہے۔` : `${d.name || '?'} sent a request. Tap to review.`,
+    }));
+  }
+
+  pushDecided(r, approved, note) {
+    this.queuePush('emp', [r.emp], `${r.id}-d`, (ur) => ({
+      title: ur ? (approved ? 'درخواست منظور ہو گئی' : 'درخواست نامنظور') : (approved ? 'Request approved' : 'Request refused'),
+      body: `${ur ? REQ_UR[r.type] || r.type : REQ_EN[r.type] || r.type}${note ? ` · ${note}` : ''}`,
+    }));
   }
 
   // ---------------------------------------------------------------- phone notifications (background check)
@@ -1085,7 +1139,7 @@ export class Store {
       const ok = r.status === 'approved';
       const what = ur ? REQ_UR[r.type] || r.type : REQ_EN[r.type] || r.type;
       return {
-        id: r.id,
+        id: `${r.id}-d`,
         title: ur ? (ok ? 'درخواست منظور ہو گئی' : 'درخواست نامنظور') : (ok ? 'Request approved' : 'Request refused'),
         body: `${what}${r.note ? ` · ${r.note}` : ''}`,
       };
@@ -1176,6 +1230,7 @@ export class Store {
     const status = body.approve ? 'approved' : 'declined';
     this.db.run('UPDATE requests SET status = ?, note = ?, decided = ?, decided_by = ?, data = ? WHERE id = ?', status, note, this.now(), actor.id, JSON.stringify(data), r.id);
     this.audit(actor, `request.${status}`, emp.id, { name: emp.name, type: r.type, data, note });
+    this.pushDecided(r, status === 'approved', note);
     return { request: reqOut(this.db.get('SELECT * FROM requests WHERE id = ?', r.id)), ...result };
   }
 
