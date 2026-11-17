@@ -60,6 +60,13 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+
+import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -74,7 +81,8 @@ import javax.crypto.spec.GCMParameterSpec;
     name = "AffordDevice",
     permissions = {
         @Permission(alias = "location", strings = { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION }),
-        @Permission(alias = "camera", strings = { Manifest.permission.CAMERA })
+        @Permission(alias = "camera", strings = { Manifest.permission.CAMERA }),
+        @Permission(alias = "notifications", strings = { Manifest.permission.POST_NOTIFICATIONS })
     }
 )
 public class AffordDevicePlugin extends Plugin {
@@ -334,6 +342,61 @@ public class AffordDevicePlugin extends Plugin {
         r.put("code", code);
         r.put("error", error);
         call.resolve(r);
+    }
+
+    // ------------------------------------------------------------------ background check + notifications
+    @PluginMethod
+    public void requestNotifications(PluginCall call) {
+        if (Build.VERSION.SDK_INT < 33 || getPermissionState("notifications") == PermissionState.GRANTED) {
+            JSObject r = new JSObject();
+            r.put("granted", true);
+            call.resolve(r);
+        } else {
+            requestPermissionForAlias("notifications", call, "notifyPermsCallback");
+        }
+    }
+
+    @PermissionCallback
+    private void notifyPermsCallback(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("granted", getPermissionState("notifications") == PermissionState.GRANTED);
+        call.resolve(r);
+    }
+
+    /** Starts (or updates) the 15-minute background check for this login. */
+    @PluginMethod
+    public void startBackgroundCheck(PluginCall call) {
+        String base = call.getString("base");
+        String token = call.getString("token");
+        if (base == null || token == null) {
+            call.reject("base and token are required");
+            return;
+        }
+        SharedPreferences p = getContext().getSharedPreferences(AffordNotifyWorker.PREFS, Context.MODE_PRIVATE);
+        String kind = call.getString("kind", "admin");
+        boolean same = token.equals(p.getString("token", null)) && kind.equals(p.getString("kind", null));
+        SharedPreferences.Editor ed = p.edit()
+            .putString("base", base.replaceAll("/+$", ""))
+            .putString("token", token)
+            .putString("kind", kind)
+            .putString("lang", call.getString("lang", "en"))
+            .putString("deviceId", call.getString("deviceId", ""));
+        if (!same) ed.putLong("since", 0); // new login: start from now
+        ed.apply();
+        AffordNotifyWorker.ensureChannel(getContext());
+        PeriodicWorkRequest req = new PeriodicWorkRequest.Builder(AffordNotifyWorker.class, 15, TimeUnit.MINUTES)
+            .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build();
+        WorkManager.getInstance(getContext()).enqueueUniquePeriodicWork(AffordNotifyWorker.WORK,
+            same ? ExistingPeriodicWorkPolicy.KEEP : ExistingPeriodicWorkPolicy.UPDATE, req);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void stopBackgroundCheck(PluginCall call) {
+        getContext().getSharedPreferences(AffordNotifyWorker.PREFS, Context.MODE_PRIVATE).edit().clear().apply();
+        WorkManager.getInstance(getContext()).cancelUniqueWork(AffordNotifyWorker.WORK);
+        call.resolve();
     }
 
     // ------------------------------------------------------------------ app

@@ -1,7 +1,7 @@
 {
-  "version": "0.4.0",
+  "version": "0.4.1",
   "notes": {
-    "en": "Back button now goes back instead of closing the app. Fingerprint unlock fixed and can be switched on in More. Admin: daily backup saved on the owner's phone after closing time (last 7 days kept), restore from a backup file. New opening animation.",
-    "ur": "بیک بٹن اب ایپ بند کرنے کے بجائے پیچھے جاتا ہے۔ فنگر پرنٹ ٹھیک کر دیا گیا، مزید میں آن کر سکتے ہیں۔ ایڈمن: بندش کے بعد مالک کے فون میں روزانہ بیک اپ (آخری 7 دن)، بیک اپ فائل سے ریسٹور۔ نئی شروعاتی اینیمیشن۔"
+    "en": "Phone notifications: admins and managers get a notification for new requests even when the app is closed (checked about every 15 minutes). Staff get a notification when their request is approved or refused. Plus everything in 0.4.0: back button, fingerprint fix, daily backup and restore, new opening animation.",
+    "ur": "فون نوٹیفکیشن: ایپ بند ہونے پر بھی ایڈمن اور مینیجر کو نئی درخواست کی اطلاع ملتی ہے (تقریباً ہر 15 منٹ)۔ اسٹاف کو درخواست منظور یا نامنظور ہونے پر اطلاع ملتی ہے۔ ساتھ میں 0.4.0 کی سب چیزیں: بیک بٹن، فنگر پرنٹ، روزانہ بیک اپ اور ریسٹور، نئی اینیمیشن۔"
   }
 }

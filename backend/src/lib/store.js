@@ -15,6 +15,10 @@ const OPEN_MAX_MS = 20 * 3600 * 1000; // a check-in older than this no longer co
 const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'advance', 'break', 'undo_checkout', 'field_duty'];
 const MONEY_KINDS = ['advance', 'deposit', 'deposit_cut', 'deposit_return', 'bonus'];
 const MAX_BODY = 1_500_000;
+const REQ_EN = { forgot_in: 'Forgot check-in', forgot_out: 'Forgot check-out', past_day: 'Fix a past day', leave: 'Leave', advance: 'Advance salary',
+  break: 'Extra break', undo_checkout: 'Undo check-out', field_duty: 'Out-of-town duty' };
+const REQ_UR = { forgot_in: 'چیک اِن بھول گئے', forgot_out: 'چیک آؤٹ بھول گئے', past_day: 'پچھلے دن کی درستی', leave: 'چھٹی', advance: 'ایڈوانس تنخواہ',
+  break: 'اضافی وقفہ', undo_checkout: 'چیک آؤٹ واپس', field_duty: 'شہر سے باہر ڈیوٹی' };
 
 const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
@@ -286,6 +290,7 @@ export class Store {
     add('POST', '/api/admin/mark', this.adminMark, A('attendance.punch'));
     add('POST', '/api/admin/break/end', this.adminEndBreak, A('attendance.punch'));
     add('GET', '/api/admin/requests', this.listRequests, A());
+    add('GET', '/api/admin/notify', this.adminNotify, A());
     add('POST', '/api/admin/requests/:id/decide', this.decide, A('requests.decide'));
     add('POST', '/api/admin/money', this.addMoney, A('money.edit'));
     add('POST', '/api/admin/money/:id/void', this.voidMoney, A('money.edit'));
@@ -301,6 +306,7 @@ export class Store {
     add('POST', '/api/emp/punch', this.empPunch, { auth: 'emp' });
     add('POST', '/api/emp/break/end', this.empEndBreak, { auth: 'emp' });
     add('GET', '/api/emp/requests', this.empRequests, { auth: 'emp' });
+    add('GET', '/api/emp/notify', this.empNotify, { auth: 'emp' });
     add('POST', '/api/emp/requests', this.empNewRequest, { auth: 'emp' });
     add('POST', '/api/emp/requests/:id/cancel', this.empCancelRequest, { auth: 'emp' });
     add('GET', '/api/emp/calendar', this.empCalendar, { auth: 'emp' });
@@ -1044,6 +1050,47 @@ export class Store {
         return o;
       }),
     };
+  }
+
+  // ---------------------------------------------------------------- phone notifications (background check)
+  // The app's background worker asks "anything new since <since>?" every 15 minutes.
+  // First call (no since): nothing is returned, only the cursor, so old items are not shown.
+  adminNotify({ actor, q }) {
+    const now = this.now();
+    const since = Number(q.get('since') || 0);
+    if (!since || !this.can(actor, 'requests.decide')) return { since: now, items: [] };
+    const ur = q.get('lang') === 'ur';
+    const rows = this.db.all("SELECT * FROM requests WHERE status = 'pending' AND created > ? ORDER BY created LIMIT 20", since);
+    const items = rows.map((r) => {
+      const e = this.db.get('SELECT data FROM employees WHERE id = ?', r.emp);
+      const d = e ? JSON.parse(e.data) : {};
+      const name = (ur && d.nameUr) || d.name || '?';
+      return {
+        id: r.id,
+        title: ur ? `نئی درخواست: ${REQ_UR[r.type] || r.type}` : `New request: ${REQ_EN[r.type] || r.type}`,
+        body: ur ? `${name} نے درخواست بھیجی ہے۔ دیکھنے کے لیے کھولیں۔` : `${name} sent a request. Tap to review.`,
+      };
+    });
+    const pending = this.db.get("SELECT COUNT(*) AS n FROM requests WHERE status = 'pending'").n;
+    return { since: rows.length ? rows[rows.length - 1].created : since, items, pending };
+  }
+
+  empNotify({ actor, q }) {
+    const now = this.now();
+    const since = Number(q.get('since') || 0);
+    if (!since) return { since: now, items: [] };
+    const ur = q.get('lang') === 'ur';
+    const rows = this.db.all("SELECT * FROM requests WHERE emp = ? AND status != 'pending' AND decided > ? ORDER BY decided LIMIT 20", actor.id, since);
+    const items = rows.map((r) => {
+      const ok = r.status === 'approved';
+      const what = ur ? REQ_UR[r.type] || r.type : REQ_EN[r.type] || r.type;
+      return {
+        id: r.id,
+        title: ur ? (ok ? 'درخواست منظور ہو گئی' : 'درخواست نامنظور') : (ok ? 'Request approved' : 'Request refused'),
+        body: `${what}${r.note ? ` · ${r.note}` : ''}`,
+      };
+    });
+    return { since: rows.length ? rows[rows.length - 1].decided : since, items };
   }
 
   decide({ actor, params, body }) {

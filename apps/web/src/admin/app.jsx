@@ -9,6 +9,7 @@ import {
   Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, Credit, askFinger,
 } from '../shared/ui.jsx';
 import { BackupScreen, autoBackupTick } from './backup.jsx';
+import { startNotify, stopNotify } from '../shared/notify.js';
 import { UpdatePopup } from '../shared/update.jsx';
 import { Board } from './board.jsx';
 import { Requests } from './requests.jsx';
@@ -82,6 +83,7 @@ export function App() {
   };
 
   const logout = async () => {
+    await stopNotify();
     try { await api.post('/api/admin/logout'); } catch { /* ignore */ }
     await secureRemove(SECURE_TOKEN);
     LS.set('afford.bio', null);
@@ -279,6 +281,8 @@ function Shell({ me, logout, toKiosk }) {
     } catch (e) { toastErr(e); }
   };
   useEffect(() => { loadSettings(); }, []);
+  // notifications on this phone when the app is closed (only for people who can answer requests)
+  useEffect(() => { if (can('requests.decide')) startNotify('admin'); else stopNotify(); }, []);
   useEffect(() => {
     let alive = true;
     const poll = async () => {

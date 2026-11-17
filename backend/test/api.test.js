@@ -404,3 +404,26 @@ test('backup and restore: owner only, needs PIN, brings data back', async () => 
   assert.equal((await t.aliApi('GET', '/api/emp/home')).status, 200);
   assert.equal((await t.aliApi('GET', '/api/emp/home')).data.today.isOpen, true);
 });
+
+test('background notifications: admin hears about new requests, staff about decisions', async () => {
+  const t = await seeded();
+  const first = (await t.api('GET', '/api/admin/notify', null, t.owner)).data;
+  assert.equal(first.items.length, 0);
+  t.advance(1);
+  const req = (await t.aliApi('POST', '/api/emp/requests', { type: 'leave', date: '2026-11-20', toDate: '2026-11-20', reason: 'wedding' })).data.request;
+  const n = (await t.api('GET', `/api/admin/notify?since=${first.since}`, null, t.owner)).data;
+  assert.equal(n.items.length, 1);
+  assert.match(n.items[0].title, /Leave/);
+  assert.match(n.items[0].body, /Ali/);
+  // nothing new next time
+  assert.equal((await t.api('GET', `/api/admin/notify?since=${n.since}`, null, t.owner)).data.items.length, 0);
+  // Urdu
+  assert.match((await t.api('GET', `/api/admin/notify?since=${first.since}&lang=ur`, null, t.owner)).data.items[0].title, /چھٹی/);
+  // staff side
+  const e0 = (await t.aliApi('GET', '/api/emp/notify')).data;
+  t.advance(1);
+  await t.api('POST', `/api/admin/requests/${req.id}/decide`, { approve: true }, t.owner);
+  const e1 = (await t.aliApi('GET', `/api/emp/notify?since=${e0.since}`)).data;
+  assert.equal(e1.items.length, 1);
+  assert.equal(e1.items[0].title, 'Request approved');
+});

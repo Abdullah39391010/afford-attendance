@@ -57,6 +57,9 @@ const web = {
     return { path: `Downloads/${filename}` };
   },
   async pruneDownloads() { return { removed: 0 }; },
+  async requestNotifications() { return { granted: true }; },
+  async startBackgroundCheck() {},
+  async stopBackgroundCheck() {},
   async addListener() { return { remove: async () => {} }; },
 };
 

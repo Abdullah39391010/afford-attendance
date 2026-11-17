@@ -8,6 +8,7 @@ import { setTz } from '../shared/format.js';
 import { Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, askFinger, Credit } from '../shared/ui.jsx';
 import { UpdatePopup } from '../shared/update.jsx';
 import { flush, onQueue, queued } from '../shared/offline.js';
+import { startNotify, stopNotify } from '../shared/notify.js';
 import { Home } from './home.jsx';
 import { MyCalendar, MyRequests, MyPay, MyMore, Helper } from './screens.jsx';
 
@@ -31,6 +32,7 @@ export function App() {
     api.onAuthLost(async (e) => {
       await secureRemove(SECURE_TOKEN);
       api.setToken(null);
+      stopNotify();
       if (e.code === 'DEVICE_RESET') toast(errText(e), 'err');
       setPhase('login');
     });
@@ -61,6 +63,7 @@ export function App() {
   };
 
   const logout = async () => {
+    await stopNotify();
     try { await api.post('/api/emp/logout'); } catch { /* ignore */ }
     await secureRemove(SECURE_TOKEN);
     api.setToken(null);
@@ -209,6 +212,7 @@ function Shell({ logout }) {
     if (r.sent || r.failed.length) loadHome();
   };
 
+  useEffect(() => { startNotify('emp'); }, []);
   useEffect(() => {
     sync().then(loadHome);
     const iv = setInterval(() => { sync(); loadHome(); }, 60000);
