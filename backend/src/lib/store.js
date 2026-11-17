@@ -725,11 +725,8 @@ export class Store {
 
   // ---------------------------------------------------------------- admin: attendance
   changes() {
-    return {
-      ver: this.db.kvGet('ver', 0),
-      pending: this.db.get("SELECT COUNT(*) AS n FROM requests WHERE status = 'pending'").n,
-      serverTime: this.now(),
-    };
+    const p = this.db.get("SELECT COUNT(*) AS n, MAX(created) AS latest FROM requests WHERE status = 'pending'");
+    return { ver: this.db.kvGet('ver', 0), pending: p.n, latestPending: p.latest || 0, serverTime: this.now() };
   }
 
   board({ q }) {
