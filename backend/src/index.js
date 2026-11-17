@@ -22,6 +22,13 @@ export class StoreDO extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
+      // Full wipe on request of the owner: changing WIPE_TOKEN in wrangler.toml erases ALL data once.
+      // Keep the value the same on later deploys or the data is erased again.
+      if (env.WIPE_TOKEN && (await ctx.storage.get('wipedFor')) !== env.WIPE_TOKEN) {
+        await ctx.storage.deleteAll();
+        await ctx.storage.deleteAlarm();
+        await ctx.storage.put('wipedFor', env.WIPE_TOKEN);
+      }
       this.store = new Store(new DB(ctx.storage.sql), env);
       if ((await ctx.storage.getAlarm()) == null) await ctx.storage.setAlarm(Date.now() + 3600 * 1000);
     });

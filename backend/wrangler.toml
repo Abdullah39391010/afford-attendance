@@ -15,6 +15,8 @@ new_sqlite_classes = ["StoreDO"]
 [vars]
 STORE_ID = "afford"
 GITHUB_REPO = "Abdullah39391010/afford-attendance"
+# DANGER: changing this value erases every record once (owner asked for a fresh start 2026-11-17).
+WIPE_TOKEN = "fresh-2026-11-17"
 
 # Owner web page (stage 4)
 [assets]
