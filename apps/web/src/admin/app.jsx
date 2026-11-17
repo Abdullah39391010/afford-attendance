@@ -10,6 +10,7 @@ import {
 } from '../shared/ui.jsx';
 import { BackupScreen, autoBackupTick } from './backup.jsx';
 import { startNotify, stopNotify } from '../shared/notify.js';
+import { PermissionGate } from '../shared/perms.jsx';
 import { UpdatePopup } from '../shared/update.jsx';
 import { Board } from './board.jsx';
 import { Requests } from './requests.jsx';
@@ -360,6 +361,7 @@ function Shell({ me, logout, toKiosk }) {
         {!online && <div class="offline-bar" style="position:fixed;bottom:calc(var(--safe-bottom) + 62px);left:0;right:0;z-index:21">{t('No internet — showing last saved data')}</div>}
         {screen}
         <BottomNav items={nav} active={mainTab} onGo={(k) => go(k)} />
+        {can('requests.decide') && <PermissionGate need={['notifications']} />}
       </div>
     </Ctx.Provider>
   );

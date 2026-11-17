@@ -11,7 +11,6 @@ export async function startNotify(kind) {
   if (!api.base || !api.token) return;
   current = kind;
   try {
-    await AffordDevice.requestNotifications();
     const dev = await deviceInfo();
     await AffordDevice.startBackgroundCheck({ base: api.base, token: api.token, deviceId: dev.deviceId, kind, lang: getLang() });
   } catch { /* not available on this phone */ }

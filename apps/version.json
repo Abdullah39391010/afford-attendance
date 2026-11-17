@@ -1,7 +1,7 @@
 {
   "version": "0.4.2",
   "notes": {
-    "en": "Updates now download inside the app with a progress bar, then Android's install screen opens. Also: request notifications, back button, fingerprint fix, daily backup and restore.",
-    "ur": "اپڈیٹ اب ایپ کے اندر ہی ڈاؤن لوڈ ہوتی ہے، ساتھ میں پروگریس لائن، پھر انسٹال کی اسکرین کھلتی ہے۔ ساتھ میں: درخواستوں کی اطلاع، بیک بٹن، فنگر پرنٹ، روزانہ بیک اپ اور ریسٹور۔"
+    "en": "Updates now download inside the app with a progress bar, then Android's install screen opens. A popup asks for any permission the app needs (location, camera, notifications), and opens the phone settings if it was refused before. Also: request notifications, back button, fingerprint fix, daily backup and restore.",
+    "ur": "اپڈیٹ اب ایپ کے اندر ہی ڈاؤن لوڈ ہوتی ہے، ساتھ میں پروگریس لائن، پھر انسٹال کی اسکرین کھلتی ہے۔ ضروری اجازت (لوکیشن، کیمرہ، نوٹیفکیشن) بند ہو تو پاپ اپ آتا ہے اور ضرورت ہو تو فون کی سیٹنگز کھولتا ہے۔ ساتھ میں: درخواستوں کی اطلاع، بیک بٹن، فنگر پرنٹ، روزانہ بیک اپ اور ریسٹور۔"
   }
 }

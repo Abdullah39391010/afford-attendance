@@ -366,6 +366,29 @@ public class AffordDevicePlugin extends Plugin {
         call.resolve(r);
     }
 
+    /** What this app may use right now (for the "Allow permissions" popup). */
+    @PluginMethod
+    public void permissionStatus(PluginCall call) {
+        JSObject r = new JSObject();
+        boolean notifOn = androidx.core.app.NotificationManagerCompat.from(getContext()).areNotificationsEnabled();
+        r.put("location", getPermissionState("location") == PermissionState.GRANTED);
+        r.put("camera", getPermissionState("camera") == PermissionState.GRANTED);
+        r.put("notifications", notifOn && (Build.VERSION.SDK_INT < 33 || getPermissionState("notifications") == PermissionState.GRANTED));
+        r.put("installs", Build.VERSION.SDK_INT < 26 || getContext().getPackageManager().canRequestPackageInstalls());
+        call.resolve(r);
+    }
+
+    /** Opens Android's screen for "Install unknown apps" for this app. */
+    @PluginMethod
+    public void openInstallSettings(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= 26) {
+            Intent s = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getContext().getPackageName()));
+            s.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(s);
+        }
+        call.resolve();
+    }
+
     /** Starts (or updates) the 15-minute background check for this login. */
     @PluginMethod
     public void startBackgroundCheck(PluginCall call) {

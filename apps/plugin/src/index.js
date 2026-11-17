@@ -61,6 +61,18 @@ const web = {
   async startBackgroundCheck() {},
   async downloadUpdate({ url }) { window.open(url, '_blank'); return { path: null, web: true }; },
   async installUpdate() { return { needsPermission: false }; },
+  async permissionStatus() {
+    const fake = localStorage.getItem('afford.fakePerms');
+    if (fake) return JSON.parse(fake);
+    return { location: true, camera: true, notifications: true, installs: true };
+  },
+  async checkPermissions() { return { location: 'granted', camera: 'granted', notifications: 'granted' }; },
+  async requestPermissions({ permissions = [] } = {}) {
+    const fake = JSON.parse(localStorage.getItem('afford.fakePerms') || 'null');
+    if (fake) { for (const p of permissions) fake[p] = true; localStorage.setItem('afford.fakePerms', JSON.stringify(fake)); }
+    return Object.fromEntries(permissions.map((p) => [p, 'granted']));
+  },
+  async openInstallSettings() {},
   async stopBackgroundCheck() {},
   async addListener() { return { remove: async () => {} }; },
 };

@@ -9,6 +9,7 @@ import { Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, I
 import { UpdatePopup } from '../shared/update.jsx';
 import { flush, onQueue, queued } from '../shared/offline.js';
 import { startNotify, stopNotify } from '../shared/notify.js';
+import { PermissionGate } from '../shared/perms.jsx';
 import { Home } from './home.jsx';
 import { MyCalendar, MyRequests, MyPay, MyMore, Helper } from './screens.jsx';
 
@@ -253,6 +254,7 @@ function Shell({ logout }) {
       )}
       {!home ? <div class="auth"><Spinner /></div> : screen}
       <BottomNav items={nav} active={['home', 'calendar', 'requests', 'pay'].includes(tab) ? tab : 'more'} onGo={(k) => go(k)} />
+      <PermissionGate need={['location', 'camera', 'notifications']} />
     </ECtx.Provider>
   );
 }
