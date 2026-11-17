@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+.dev.vars
+dist/
+*.keystore
+*.jks
+android/app/build/
+.gradle/
+local.properties
