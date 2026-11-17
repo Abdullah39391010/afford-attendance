@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Afford Staff Attendance & Payroll — Master Guide</title>
+<style>
+@font-face { font-family: 'Naskh'; src: url('{{FONT400}}') format('woff2'); font-weight: 400; }
+@font-face { font-family: 'Naskh'; src: url('{{FONT700}}') format('woff2'); font-weight: 700; }
+:root { --red:#C62032; --red-soft:#FCE9EB; --ink:#222326; --muted:#5f6368; --line:#E3E3E6; --bg:#F7F7F8;
+  --present:#1E9E5A; --late:#F08C00; --absent:#D7262E; --leave:#2F6FDB; --unpaid:#7B4FD0; --off:#9AA0A6;
+  --holiday:#0F9D9A; --duty:#3949AB; --pending:#F5C518; }
+@page { size: A4; margin: 16mm 15mm 18mm; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: var(--ink); font-size: 10.3pt; line-height: 1.5; margin: 0; }
+.ur { font-family: 'Naskh', serif; direction: rtl; unicode-bidi: isolate; }
+h1, h2, h3 { line-height: 1.2; margin: 0; }
+h2 { font-size: 16pt; color: var(--red); margin: 0 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--red-soft); }
+h3 { font-size: 11.5pt; margin: 14px 0 6px; }
+p { margin: 0 0 8px; }
+section { break-before: page; }
+section.flow { break-before: auto; margin-top: 18px; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 9.4pt; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--bg); font-weight: 600; color: #3c3d40; }
+tr { break-inside: avoid; }
+ul { margin: 0 0 8px; padding-left: 18px; } li { margin: 2px 0; }
+code { font-family: Consolas, 'Courier New', monospace; font-size: 9pt; background: var(--bg); padding: 1px 4px; border-radius: 3px; }
+.box { background: var(--bg); border-radius: 8px; padding: 10px 14px; margin: 8px 0 12px; break-inside: avoid; }
+.box.red { background: var(--red-soft); }
+.formula { font-family: Consolas, 'Courier New', monospace; font-size: 9.6pt; white-space: pre; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 6px 0 10px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; break-inside: avoid; }
+.card h3 { margin-top: 0; }
+.tag { display: inline-block; font-size: 8pt; padding: 1px 7px; border-radius: 10px; background: var(--red-soft); color: var(--red); font-weight: 600; }
+.tag.done { background: #E3F4EA; color: #1E7B49; }
+.tag.next { background: #FFF4D6; color: #8a6100; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+
+/* cover */
+.cover { height: 255mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.cover .logo { width: 150px; height: 150px; border-radius: 50%; box-shadow: 0 0 0 6px #fff, 0 0 0 8px var(--red); overflow: hidden; margin-bottom: 30px; }
+.cover .logo img { width: 100%; height: 100%; object-fit: cover; }
+.cover h1 { font-size: 28pt; letter-spacing: -0.3px; }
+.cover .sub { font-size: 13pt; color: var(--muted); margin-top: 8px; }
+.cover .ur { font-size: 18pt; margin-top: 16px; color: var(--red); }
+.cover .meta { margin-top: 48px; font-size: 9.5pt; color: var(--muted); }
+.cover .bar { width: 64px; height: 4px; background: var(--red); border-radius: 2px; margin: 20px auto; }
+
+.toc { columns: 2; column-gap: 24px; padding-left: 18px; }
+.toc li { margin: 4px 0; }
+.legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 14px; font-size: 9.4pt; }
+.note { font-size: 9pt; color: var(--muted); }
+svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="logo"><img src="{{LOGO}}" alt="Afford logo"></div>
+  <h1>Staff Attendance &amp; Payroll</h1>
+  <div class="sub">Master Guide · Afford Super Store</div>
+  <div class="ur">حاضری اور تنخواہ کا نظام</div>
+  <div class="bar"></div>
+  <div class="meta">Version 1.0 · 17 November 2026<br>Admin app · Employee app · Kiosk · Owner page · Cloud backend</div>
+</div>
+
+<section>
+  <h2>Contents</h2>
+  <ol class="toc">
+    <li>What the system does</li>
+    <li>How it fits together</li>
+    <li>Admin / Manager app</li>
+    <li>Employee app</li>
+    <li>Staff without a phone (Kiosk)</li>
+    <li>Out-of-town staff (Field staff)</li>
+    <li>Owner web page</li>
+    <li>Rules and default settings</li>
+    <li>Payroll formulas and worked example</li>
+    <li>Requests and what approval does</li>
+    <li>Calendar colours</li>
+    <li>Security and privacy</li>
+    <li>Weak internet (offline punches)</li>
+    <li>Setup and going live</li>
+    <li>Daily use, step by step</li>
+    <li>Free plan limits</li>
+    <li>Build stages and test checklist</li>
+  </ol>
+
+  <section class="flow">
+    <h2>1. What the system does</h2>
+    <p>A complete attendance and payroll system for about 70 staff at Afford Super Store, in English and Urdu, that costs nothing to run.</p>
+    <ul>
+      <li><b>Employees</b> check in and out from their own phone, but only when they are inside the store's GPS circle.</li>
+      <li><b>Admin and managers</b> see a live board of who is in, late, on break, absent or on leave. They approve requests and run the monthly salary statements.</li>
+      <li><b>Salary</b> is worked out automatically from attendance. That includes late cuts, early-leave cuts, late return from break, absences, unpaid leave, advances and security deposit.</li>
+      <li><b>Staff without a phone</b> use a shared kiosk phone at the counter, or a manager checks them in.</li>
+      <li><b>The owner</b> gets a private web page to see today's attendance and approve requests from anywhere.</li>
+      <li><b>Every admin action</b> is written to an audit log.</li>
+    </ul>
+  </section>
+
+  <section class="flow">
+    <h2>2. How it fits together</h2>
+    <svg viewBox="0 0 680 250" width="100%" role="img" aria-label="System diagram">
+      <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#888"/></marker></defs>
+      <g font-size="12">
+        <rect x="10" y="20" width="170" height="52" rx="10" fill="#fff" stroke="#C62032" stroke-width="1.5"/>
+        <text x="95" y="42" text-anchor="middle" font-weight="600">Admin / Manager app</text>
+        <text x="95" y="60" text-anchor="middle" fill="#5f6368" font-size="10.5">Android · PIN · live board</text>
+        <rect x="10" y="98" width="170" height="52" rx="10" fill="#fff" stroke="#C62032" stroke-width="1.5"/>
+        <text x="95" y="120" text-anchor="middle" font-weight="600">Employee app</text>
+        <text x="95" y="138" text-anchor="middle" fill="#5f6368" font-size="10.5">Android · GPS · fingerprint</text>
+        <rect x="10" y="176" width="170" height="52" rx="10" fill="#fff" stroke="#C62032" stroke-width="1.5"/>
+        <text x="95" y="198" text-anchor="middle" font-weight="600">Kiosk phone + Owner page</text>
+        <text x="95" y="216" text-anchor="middle" fill="#5f6368" font-size="10.5">PIN + photo · web browser</text>
+
+        <rect x="260" y="80" width="170" height="90" rx="12" fill="#FCE9EB" stroke="#C62032" stroke-width="1.5"/>
+        <text x="345" y="112" text-anchor="middle" font-weight="700">Cloudflare Worker</text>
+        <text x="345" y="130" text-anchor="middle" fill="#5f6368" font-size="10.5">security · rate limit</text>
+        <text x="345" y="146" text-anchor="middle" fill="#5f6368" font-size="10.5">server time is the truth</text>
+
+        <rect x="500" y="80" width="170" height="90" rx="12" fill="#fff" stroke="#222" stroke-width="1.5"/>
+        <text x="585" y="108" text-anchor="middle" font-weight="700">Store database</text>
+        <text x="585" y="126" text-anchor="middle" fill="#5f6368" font-size="10.5">Durable Object (SQLite)</text>
+        <text x="585" y="142" text-anchor="middle" fill="#5f6368" font-size="10.5">one per store · audit log</text>
+
+        <path d="M180 46 L258 108" stroke="#888" fill="none" marker-end="url(#a)"/>
+        <path d="M180 124 L258 124" stroke="#888" fill="none" marker-end="url(#a)"/>
+        <path d="M180 202 L258 142" stroke="#888" fill="none" marker-end="url(#a)"/>
+        <path d="M430 125 L498 125" stroke="#888" fill="none" marker-end="url(#a)"/>
+        <rect x="260" y="200" width="170" height="40" rx="10" fill="#F7F7F8" stroke="#ccc"/>
+        <text x="345" y="224" text-anchor="middle" font-size="10.5">GitHub: code, APK releases</text>
+      </g>
+    </svg>
+    <p>All data lives in one place, the store's database on Cloudflare. The admin app is the master copy that admins edit, and employee phones, the kiosk and the owner page all read from and write to the same database through the Worker. Nothing goes to any other company.</p>
+  </section>
+</section>
+
+<section class="admin">
+  <h2>3. Admin / Manager app</h2><style>.admin td,.admin th{padding:4px 7px;font-size:9pt}</style>
+  <p>Log in with a short name and a 4 to 6 digit PIN. There are two roles: <b>Owner/Admin</b>, who can do everything, and <b>Manager</b>, who can only do what the owner allows.</p>
+  <table>
+    <tr><th style="width:26%">Screen</th><th>What it does</th></tr>
+    <tr><td>Live board</td><td>Counts at the top for In, Late, On break, Absent, On leave, Not yet in, Off and Out-of-town. Below that is a list with photo, check-in time and late minutes. It refreshes by itself.</td></tr>
+    <tr><td>Pending line</td><td>A thin bar at the top shows how many requests are waiting. It hides once the inbox is opened.</td></tr>
+    <tr><td>Requests inbox</td><td>Forgot check-in, forgot check-out, past-day attendance, leave, advance salary, break, "checked out by mistake" and out-of-town duty. Approve or decline with a note, and change the time or amount before approving if needed.</td></tr>
+    <tr><td>Employees</td><td>Add, edit and delete employees, with photo, phone, CNIC, role, salary, shift, weekly off, joining date, active/inactive and PIN. Also set per employee: field staff, kiosk allowed, paid leave override and salary visibility.</td></tr>
+    <tr><td>Check in / out for staff</td><td>Check any employee in or out now or at a given time. A reason is required and it is written to the audit log.</td></tr>
+    <tr><td>Calendar</td><td>Per employee, one solid colour per day (see section 11). Tap a day to see the punches, GPS distance, kiosk photo and requests.</td></tr>
+    <tr><td>Payroll</td><td>Monthly salary statement per employee. It shows present, late minutes, absent, leave, every cut, advances, security deposit and net pay. Print it or share it as a PDF with the logo, and export all staff to CSV.</td></tr>
+    <tr><td>Money</td><td>Advances, security deposit (added, cut from salary, returned) and bonus.</td></tr>
+    <tr><td>Reports</td><td>Daily, weekly and monthly attendance, plus a late list and an absent list. Export to CSV and PDF.</td></tr>
+    <tr><td>Settings</td><td>Store location with "use my current location" (asks to turn on GPS), radius, shifts, roles, rules, holidays, logo and language.</td></tr>
+    <tr><td>Managers</td><td>Owner only: add managers and tick their permissions.</td></tr>
+    <tr><td>Phone reset</td><td>Owner only: unlink an employee's phone so they can log in on a new one.</td></tr>
+    <tr><td>Kiosk mode</td><td>Turns this phone into the shared check-in phone at the counter.</td></tr>
+    <tr><td>Audit log</td><td>Every admin action, with who did it, when, and what changed.</td></tr>
+  </table>
+  <h3>Manager permissions (owner ticks what each manager may do)</h3>
+  <table>
+    <tr><th>Permission</th><th>Allows</th><th>Permission</th><th>Allows</th></tr>
+    <tr><td>View employees</td><td>Employee list and details (no salary)</td><td>View payroll</td><td>Salaries and statements</td></tr>
+    <tr><td>Edit employees</td><td>Add, edit, deactivate, set PINs</td><td>Advances &amp; deposits</td><td>Add or remove money entries</td></tr>
+    <tr><td>Punch staff</td><td>Check in/out, mark leave, absent or duty</td><td>Reports</td><td>Reports and exports</td></tr>
+    <tr><td>Decide requests</td><td>Approve or decline requests</td><td>Settings</td><td>Location, shifts, rules</td></tr>
+    <tr><td>Audit log</td><td>See the audit log</td><td>Kiosk setup</td><td>Turn a phone into the kiosk</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>4. Employee app</h2>
+  <ul>
+    <li><b>First login:</b> employee code (or phone number) and PIN given by admin. The phone is then <b>locked to that employee</b>. No one else can log in on it, and the employee can't log in on another phone until the owner resets it. Both the server and the app enforce this.</li>
+    <li><b>Next time:</b> fingerprint or face unlock.</li>
+    <li><b>Big Check In / Check Out buttons.</b> Check-in works only inside the store circle. Check-out asks "Are you sure?" first. Delivery boys, purchasers and field staff can check out from anywhere.</li>
+    <li><b>Today card:</b> in and out time, hours worked, late minutes and break status.</li>
+    <li><b>Break:</b> ask for a break with minutes, then tap Resume when back. Coming back late is counted and cut.</li>
+    <li><b>Requests:</b> forgot check-in or check-out, past day, leave, advance, "checked out by mistake" and out-of-town duty.</li>
+    <li><b>Calendar</b> with coloured days and a legend, a leave balance line, the salary statement (as allowed by admin) and a security deposit card.</li>
+    <li><b>English or Urdu</b>, chosen at login. Urdu screens are right-to-left. The layout uses large, clear buttons for non-technical staff.</li>
+    <li><b>Update popup</b> showing the new version number and what's new.</li>
+  </ul>
+  <div class="box"><b>Salary visibility (set per employee):</b> "Always" shows the full monthly statement. "Last 7 days" shows only the last 7 days of attendance and cuts, with no monthly total.</div>
+
+  <section class="flow">
+    <h2>5. Staff without a phone (Kiosk)</h2>
+    <p>Some staff, such as guards and cleaners, don't have a smartphone. There are two ways to handle them, and both can be used.</p>
+    <div class="grid2">
+      <div class="card"><h3>A. Shared kiosk phone</h3>
+        <ul><li>One phone stays at the counter in <b>Kiosk mode</b>.</li><li>The employee taps their photo or name and types their own PIN.</li><li>The front camera takes a photo, kept for 90 days, so admin can check it was really them.</li><li>It works only inside the store circle.</li></ul></div>
+      <div class="card"><h3>B. Manager checks them in</h3>
+        <ul><li>From the live board, tap the employee and choose Check in or Check out.</li><li>A reason is required, for example "No phone".</li><li>It is written to the audit log.</li></ul></div>
+    </div>
+    <p class="note">A fingerprint sensor can't be used on a shared phone, because Android only checks the phone owner's fingerprint and can't tell 70 people apart. That's why the kiosk uses PIN plus photo.</p>
+  </section>
+
+  <section class="flow">
+    <h2>6. Out-of-town staff (Field staff)</h2>
+    <ul>
+      <li>Tick <b>Field staff</b> on the employee, for example purchasers who travel. They can check in and out from <b>anywhere</b>.</li>
+      <li>The GPS point of every punch is saved, so admin can see how far from the store they were and open it on a map.</li>
+      <li>For a full day away, the employee sends an <b>Out-of-town duty</b> request, or admin marks the day as duty. It counts as present, with no late or early cuts.</li>
+    </ul>
+  </section>
+
+  <section class="flow">
+    <h2>7. Owner web page</h2>
+    <p>A private web page that opens in any browser and is protected by the owner PIN, in English or Urdu. It shows today's attendance, late and absent lists, pending requests (which can be approved from the page) and monthly totals.</p>
+  </section>
+</section>
+
+<section>
+  <h2>8. Rules and default settings</h2>
+  <p>Every value below can be changed by the admin in <b>Settings</b>, and most rules can be switched off.</p>
+  <table>
+    <tr><th style="width:36%">Setting</th><th style="width:26%">Default</th><th>Notes</th></tr>
+    <tr><td>Shifts</td><td>Morning 08:00–16:00<br>Evening 16:00–24:00</td><td>Add as many as needed. A shift that passes midnight stays on the day it started.</td></tr>
+    <tr><td>Roles</td><td>Manager, Cashier, Shelf stocker, Guard, Cleaner, Delivery boy, Purchaser</td><td>Each role can be allowed to check out anywhere (on by default for Delivery boy and Purchaser).</td></tr>
+    <tr><td>Weekly off</td><td>Friday</td><td>Can be changed per employee.</td></tr>
+    <tr><td>Days basis for salary</td><td>26</td><td>26, 30, or the actual days in that month.</td></tr>
+    <tr><td>Late grace</td><td>15 minutes</td><td>Once the grace is passed, lateness counts from shift start. It can also be set to count only the minutes after the grace.</td></tr>
+    <tr><td>Late cut</td><td>On</td><td>Late minutes × per-minute rate.</td></tr>
+    <tr><td>Early-leave cut</td><td>On, 10 minutes grace</td><td>Leaving before shift end.</td></tr>
+    <tr><td>Break allowance</td><td>30 minutes a day</td><td>Break needs approval (can be switched off). Late return is cut.</td></tr>
+    <tr><td>Absent cut</td><td>On</td><td>One day's pay per absent day.</td></tr>
+    <tr><td>Paid leave</td><td>1 day a month</td><td>Can be overridden per employee. Extra leave days are unpaid.</td></tr>
+    <tr><td>Past-day requests</td><td>Last 3 days</td><td>Current month only.</td></tr>
+    <tr><td>Store location and radius</td><td>Not set (suggest 100 m)</td><td>Set with "use my current location" while standing in the store. More than one branch is supported.</td></tr>
+    <tr><td>Fake GPS blocked</td><td>On</td><td>Refuses mock-location apps.</td></tr>
+    <tr><td>Offline punches</td><td>Up to 72 hours</td><td>Older ones must be sent as a "forgot" request.</td></tr>
+    <tr><td>Kiosk photo</td><td>On</td><td>The kiosk takes a photo with every punch.</td></tr>
+    <tr><td>Holidays</td><td>None</td><td>Paid off days for everyone, for example Eid.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>9. Payroll formulas and worked example</h2>
+  <div class="formula">daily rate     = monthly salary ÷ days basis (26, 30 or days in month)
+hourly rate    = daily rate ÷ shift hours
+per-minute     = hourly rate ÷ 60
+
+late cut       = late minutes        × per-minute
+early cut      = early-leave minutes × per-minute
+break cut      = late-return minutes × per-minute
+absent cut     = absent days         × daily rate
+unpaid leave   = unpaid leave days   × daily rate
+before joining = working days before joining date × daily rate
+
+net pay = salary − all cuts − advances − deposit cut + bonus</div>
+  <p>Weekly offs, holidays, paid leave and out-of-town duty are <b>paid</b>. The statement for the current month shows the figures so far.</p>
+
+  <h3>Worked example</h3>
+  <div class="box red">Ali, Cashier, Morning shift (8 hours), salary <b>Rs. 26,000</b>, days basis <b>26</b>.</div>
+  <table>
+    <tr><th>Item</th><th>Working</th><th style="text-align:right">Amount (Rs.)</th></tr>
+    <tr><td>Daily rate</td><td>26,000 ÷ 26</td><td style="text-align:right">1,000.00</td></tr>
+    <tr><td>Hourly rate</td><td>1,000 ÷ 8</td><td style="text-align:right">125.00</td></tr>
+    <tr><td>Per-minute</td><td>125 ÷ 60</td><td style="text-align:right">2.08</td></tr>
+    <tr><td>Late: came at 08:40 (grace 15 min, so 40 min counted)</td><td>40 × 2.0833</td><td style="text-align:right">− 83.33</td></tr>
+    <tr><td>Early leave: left at 15:30</td><td>30 × 2.0833</td><td style="text-align:right">− 62.50</td></tr>
+    <tr><td>Break: took 35 min of an approved 20</td><td>15 × 2.0833</td><td style="text-align:right">− 31.25</td></tr>
+    <tr><td>Absent 2 days</td><td>2 × 1,000</td><td style="text-align:right">− 2,000.00</td></tr>
+    <tr><td>Leave 2 days (1 paid, 1 unpaid)</td><td>1 × 1,000</td><td style="text-align:right">− 1,000.00</td></tr>
+    <tr><td>Advance taken</td><td></td><td style="text-align:right">− 4,000.00</td></tr>
+    <tr><th>Net pay</th><th>26,000 − 7,177.08</th><th style="text-align:right">Rs. 18,823</th></tr>
+  </table>
+  <p class="note">The security deposit balance is shown on the statement. It is deducted from pay only when admin records a "deposit cut".</p>
+</section>
+
+<section>
+  <h2>10. Requests and what approval does</h2>
+  <table>
+    <tr><th style="width:24%">Request</th><th style="width:30%">Employee sends</th><th>When approved</th></tr>
+    <tr><td>Forgot check-in</td><td>Date and time</td><td>The check-in is set to that time. Admin can change the time before approving.</td></tr>
+    <tr><td>Forgot check-out</td><td>Date and time</td><td>The check-out is set to that time.</td></tr>
+    <tr><td>Past-day attendance</td><td>Date, in time, out time</td><td>The whole day is recorded. Only the last 3 days of the current month are allowed.</td></tr>
+    <tr><td>Leave</td><td>From and to dates, reason</td><td>The days are marked as leave. Paid up to the monthly quota, then unpaid. Admin can approve it as unpaid.</td></tr>
+    <tr><td>Advance salary</td><td>Amount, reason</td><td>The advance is recorded and cut from this month's pay. Admin can change the amount.</td></tr>
+    <tr><td>Break</td><td>Minutes</td><td>The break starts. The employee taps Resume when back, and late return is cut.</td></tr>
+    <tr><td>Checked out by mistake</td><td>(one tap)</td><td>The last check-out is removed and the employee is "in" again.</td></tr>
+    <tr><td>Out-of-town duty</td><td>Dates, reason</td><td>The days count as present, with no time cuts.</td></tr>
+  </table>
+  <p>Declined requests change nothing. The employee sees the admin's note. Every decision goes into the audit log.</p>
+
+  <section class="flow">
+    <h2>11. Calendar colours</h2>
+    <div class="legend">
+      <div><span class="sw" style="background:var(--present)"></span>Present</div>
+      <div><span class="sw" style="background:var(--late)"></span>Late</div>
+      <div><span class="sw" style="background:var(--absent)"></span>Absent</div>
+      <div><span class="sw" style="background:var(--leave)"></span>Leave (paid)</div>
+      <div><span class="sw" style="background:var(--unpaid)"></span>Leave (unpaid)</div>
+      <div><span class="sw" style="background:var(--off)"></span>Weekly off</div>
+      <div><span class="sw" style="background:var(--holiday)"></span>Holiday</div>
+      <div><span class="sw" style="background:var(--duty)"></span>Out-of-town duty</div>
+      <div><span class="sw" style="background:var(--pending)"></span>Request pending</div>
+      <div><span class="sw" style="background:#fff;border:2px solid var(--present)"></span>Request approved (✓ mark)</div>
+    </div>
+  </section>
+</section>
+
+<section>
+  <h2>12. Security and privacy</h2>
+  <ul>
+    <li><b>PINs are never stored.</b> Only a one-way hash is kept, mixed with a secret held by the server.</li>
+    <li><b>Wrong PINs:</b> after 5 wrong tries the login is locked for 5 minutes, then 10, 20 and up to 60 minutes.</li>
+    <li><b>One phone = one employee</b>, enforced by both the server and the app. Only the owner can reset it.</li>
+    <li><b>Fake GPS apps</b> are detected and refused.</li>
+    <li><b>Setup code:</b> the owner account can only be created once, with a secret code.</li>
+    <li><b>Audit log</b> of every admin action, which can't be edited from the apps.</li>
+    <li><b>No third parties:</b> data stays in your own Cloudflare account. The apps contain no ads, analytics or trackers.</li>
+    <li>Kiosk photos are deleted automatically after 90 days.</li>
+  </ul>
+
+  <section class="flow">
+    <h2>13. Weak internet (offline punches)</h2>
+    <ul>
+      <li>If there's no internet when an employee taps Check In, the punch is <b>saved on the phone</b> and sent as soon as the internet is back.</li>
+      <li>The phone remembers the difference between its clock and the <b>server's clock</b>, so a wrong phone clock can't change the time. The server makes the final decision.</li>
+      <li>GPS is still checked. Punches synced later are marked <b>offline</b> so admin can see them, and a punch is never counted twice.</li>
+    </ul>
+  </section>
+
+  <section class="flow">
+    <h2>14. Setup and going live</h2>
+    <ol>
+      <li><b>Cloudflare (free):</b> create an account and an API token with the "Edit Cloudflare Workers" template.</li>
+      <li><b>GitHub secrets:</b> add <code>CLOUDFLARE_API_TOKEN</code>, <code>CLOUDFLARE_ACCOUNT_ID</code>, <code>SETUP_CODE</code> and <code>PIN_PEPPER</code>. Never change <code>PIN_PEPPER</code> later.</li>
+      <li><b>Deploy:</b> done only with the owner's OK, from the GitHub Actions tab ("Deploy backend").</li>
+      <li><b>Install the admin app</b> from the GitHub Release link. On first open, enter the setup code and choose your owner PIN.</li>
+      <li><b>Settings:</b> stand inside the store, tap "Use my current location", set the radius, and check the shifts, rules and holidays.</li>
+      <li><b>Add employees</b> with their salary, shift and a PIN, or use the bulk add.</li>
+      <li><b>Install the employee app</b> on each employee's phone and log in once. The phone is then locked to them.</li>
+      <li><b>Kiosk:</b> on the counter phone, open the admin app and choose Kiosk mode.</li>
+    </ol>
+  </section>
+</section>
+
+<section>
+  <h2>15. Daily use, step by step</h2>
+  <div class="grid2">
+    <div class="card"><h3>Employee</h3>
+      <ol><li>Open the app and unlock with your fingerprint.</li><li>At the store, tap <b>Check In</b>.</li><li>For a break, tap <b>Break</b>, choose minutes and wait for approval. Tap <b>Resume</b> when back.</li><li>Forgot something? Open <b>Requests</b>.</li><li>Tap <b>Check Out</b> and confirm.</li></ol>
+      <p class="ur" style="font-size:11pt; margin-top:6px">اسٹور پر پہنچ کر "چیک اِن" دبائیں، جاتے وقت "چیک آؤٹ" دبائیں۔</p>
+    </div>
+    <div class="card"><h3>Manager</h3>
+      <ol><li>Open the <b>Live board</b> in the morning.</li><li>When the pending line appears, open <b>Requests</b> and approve or decline.</li><li>Check in staff without a phone, with a reason.</li><li>Check the late and absent lists at the end of the day.</li></ol>
+    </div>
+    <div class="card"><h3>Owner, month end</h3>
+      <ol><li>Open <b>Payroll</b> and choose the month.</li><li>Check each statement: cuts, advances and deposit.</li><li>Print or share each PDF, or export the CSV for everyone.</li></ol>
+    </div>
+    <div class="card"><h3>New phone or lost phone</h3>
+      <ol><li>Owner opens the employee and taps <b>Reset phone</b>.</li><li>The employee logs in on the new phone.</li><li>The old phone stops working at once.</li></ol>
+    </div>
+  </div>
+
+  <section class="flow">
+    <h2>16. Free plan limits</h2>
+    <table>
+      <tr><th>Service</th><th>Free allowance</th><th>Expected use (70 staff)</th></tr>
+      <tr><td>Cloudflare Workers + Durable Objects</td><td>100,000 requests a day</td><td>About 3,000–6,000 a day</td></tr>
+      <tr><td>Durable Object storage (SQLite)</td><td>5 GB</td><td>Under 50 MB a year, plus kiosk photos (deleted after 90 days)</td></tr>
+      <tr><td>GitHub Actions</td><td>Unlimited on a public repo, 2,000 minutes a month on a private one</td><td>About 10 minutes per release</td></tr>
+      <tr><td>GitHub Releases</td><td>Free hosting of the APK files</td><td>Two APKs per version</td></tr>
+    </table>
+  </section>
+</section>
+
+<section>
+  <h2>17. Build stages and test checklist</h2>
+  <table>
+    <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
+    <tr><td>1. Backend</td><td><span class="tag done">Done</span></td><td>Already tested: 20 automated tests and a full run on Cloudflare's own runtime. Waiting for the owner's OK to deploy.</td></tr>
+    <tr><td>2. Admin app</td><td><span class="tag next">In progress</span></td><td>First setup and PIN login. Set the store location. Add employees and a manager. Live board. Check staff in and out. Approve requests. Payroll PDF. Reports CSV. Kiosk mode. Urdu.</td></tr>
+    <tr><td>3. Employee app</td><td><span class="tag">Next</span></td><td>Phone locking. Fingerprint. Check-in inside and outside the circle. Break. Requests. Offline punch in airplane mode. Calendar. Statement. Urdu.</td></tr>
+    <tr><td>4. Owner page</td><td><span class="tag">Next</span></td><td>PIN login. Today's view. Approve a request. Monthly totals. Urdu.</td></tr>
+  </table>
+  <h3>Before each release</h3>
+  <ul>
+    <li>Automated tests pass on GitHub.</li>
+    <li>Screens are checked in a browser on the real backend, and screenshots are shared.</li>
+    <li>The APK is built by GitHub Actions and published as a Release with "what's new" text.</li>
+    <li>The in-app update popup shows the new version.</li>
+  </ul>
+  <div class="box"><b>Repository:</b> github.com/Abdullah39391010/afford-attendance<br><b>Technical details:</b> <code>docs/backend.md</code> in the repository.</div>
+</section>
+
+</body>
+</html>
