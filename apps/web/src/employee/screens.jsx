@@ -5,7 +5,7 @@ import { AffordDevice } from 'afford-device';
 import { api, LS } from '../shared/api.js';
 import { t, nm, statusLabel, reqLabel, getLang } from '../shared/i18n.js';
 import { fmtTime, fmtDur, fmtDate, fmtMoney, fmtMoney2, todayStr, addDays, ago } from '../shared/format.js';
-import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, confirmBox, Banner, Spinner, Seg, Empty, go, replace, Avatar, LangSwitch, Toggle } from '../shared/ui.jsx';
+import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, confirmBox, Banner, Spinner, Seg, Empty, go, replace, Avatar, LangSwitch, Toggle, FingerToggle, Credit } from '../shared/ui.jsx';
 import { Calendar, MonthNav } from '../shared/calendar.jsx';
 import { Statement } from '../shared/statement.jsx';
 import { statementDoc, printDoc, shareDocPdf } from '../shared/printdoc.js';
@@ -244,9 +244,6 @@ export function MyPay() {
 export function MyMore() {
   const E = useEmp();
   const emp = E.home.employee;
-  const [bio, setBio] = useState(LS.get('afford.bio') === '1');
-  const [bioOk, setBioOk] = useState(false);
-  useEffect(() => { AffordDevice.biometricAvailable().then((r) => setBioOk(!!r.available)).catch(() => {}); }, []);
   return (
     <div class="screen">
       <TopBar logo title={t('More')} />
@@ -266,11 +263,11 @@ export function MyMore() {
         </div>
         <div class="card">
           <div class="gap" style="justify-content:space-between"><span><Icon n="lang" /> {t('Language')}</span><LangSwitch /></div>
-          {bioOk && <div style="margin-top:10px"><Toggle checked={bio} onChange={(v) => { setBio(v); LS.set('afford.bio', v ? '1' : '0'); }} label={t('Open with fingerprint')} /></div>}
+          <FingerToggle title={t('Unlock Afford Staff')} />
         </div>
         <Banner kind="info" icon="phone">{t('This app is linked to this phone. If you change your phone, ask the owner to reset it.')}</Banner>
         <button class="btn block ghost" onClick={async () => { if (await confirmBox({ title: t('Log out?'), text: t('You will need your PIN to log in again.'), yes: t('Log out'), danger: true })) E.logout(); }}><Icon n="logout" />{t('Log out')}</button>
-        <p class="center small muted">Afford Staff v{__APP_VERSION__}</p>
+        <Credit app="Afford Staff" />
       </div>
     </div>
   );

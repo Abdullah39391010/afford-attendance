@@ -2,7 +2,8 @@
 import { h, Fragment } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { t, getLang, setLang, errText, statusLabel } from './i18n.js';
-import { api } from './api.js';
+import { api, LS } from './api.js';
+import { AffordDevice } from 'afford-device';
 
 // ---------------------------------------------------------------- icons (inline SVG, no third party)
 const P = {
@@ -80,7 +81,7 @@ export function TopBar({ title, back, right, logo }) {
     <header class="topbar">
       <div class="in">
         {back && (
-          <button class="iconbtn" onClick={back === true ? () => history.back() : back} aria-label={t('Back')}>
+          <button class="iconbtn" onClick={back === true ? goBack : back} aria-label={t('Back')}>
             <Icon n="back" cls="flip" />
           </button>
         )}
@@ -109,6 +110,7 @@ export function BottomNav({ items, active, onGo }) {
 }
 
 export function Sheet({ open, onClose, title, children }) {
+  useBackClose(open, onClose);
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -128,6 +130,7 @@ export function Sheet({ open, onClose, title, children }) {
 }
 
 export function Dialog({ open, title, children, onClose }) {
+  useBackClose(open, onClose);
   if (!open) return null;
   return (
     <div class="backdrop center" onClick={(e) => e.target === e.currentTarget && onClose && onClose()}>
@@ -168,6 +171,33 @@ export function Field({ label, hint, children }) {
       {hint && <div class="hint">{hint}</div>}
     </div>
   );
+}
+
+// ---------------------------------------------------------------- fingerprint
+const BIO_CANCEL = [5, 10, 13]; // cancelled by the user or the "Use PIN" button
+/** Shows the fingerprint prompt. Returns true if it worked; shows why if it failed. */
+export async function askFinger(title) {
+  const r = await AffordDevice.biometricAuth({ title, cancel: t('Use PIN') }).catch((e) => ({ ok: false, code: -1, error: e?.message }));
+  if (!r.ok && !BIO_CANCEL.includes(r.code)) toast(`${t('Fingerprint did not work')}${r.error ? `: ${r.error}` : ''}`, 'err');
+  return !!r.ok;
+}
+
+/** Settings switch: "Open with fingerprint". Tests the sensor when switched on. */
+export function FingerToggle({ title }) {
+  const [state, setState] = useState(null); // null = checking
+  const [on, setOn] = useState(LS.get('afford.bio') === '1');
+  useEffect(() => { AffordDevice.biometricAvailable().then((r) => setState(r)).catch(() => setState({ available: false })); }, []);
+  if (!state) return null;
+  if (!state.available) {
+    return <p class="small muted" style="margin:10px 0 0"><Icon n="finger" /> {t('Fingerprint is not set up on this phone. Add a fingerprint in the phone Settings > Security, then open this page again.')}</p>;
+  }
+  const change = async (v) => {
+    if (v && !(await askFinger(title))) return;
+    setOn(v);
+    LS.set('afford.bio', v ? '1' : '0');
+    if (v) toast(t('Fingerprint is on'), 'ok');
+  };
+  return <div style="margin-top:10px"><Toggle checked={on} onChange={change} label={t('Open with fingerprint')} sub={t('Instead of typing your PIN')} /></div>;
 }
 
 export function Toggle({ checked, onChange, label, sub }) {
@@ -279,24 +309,58 @@ export function LangSwitch({ onChange }) {
   );
 }
 
+// ---------------------------------------------------------------- version + developer credit
+export const BUILD_TEXT = `v${__APP_VERSION__}${__APP_BUILD__ ? ` · build ${__APP_BUILD__}` : ''}`;
+export function Credit({ app }) {
+  return (
+    <p class="credit">
+      {app && <span>{app} </span>}<span class="ltr">{BUILD_TEXT}</span>
+      <span class="by">by <b>Innovative Layyah</b></span>
+    </p>
+  );
+}
+
 // ---------------------------------------------------------------- splash
-export function Splash({ title, sub, onDone, minMs = 2100 }) {
+export function Splash({ title, sub, onDone, minMs = 2700 }) {
   const [out, setOut] = useState(false);
   useEffect(() => {
     const t1 = setTimeout(() => setOut(true), minMs);
-    const t2 = setTimeout(() => onDone && onDone(), minMs + 450);
+    const t2 = setTimeout(() => onDone && onDone(), minMs + 500);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
   return (
     <div class={`splash ${out ? 'out' : ''}`}>
-      <div class="ring">
-        <svg viewBox="0 0 168 168"><circle cx="84" cy="84" r="80" /></svg>
-        <div class="pulse" />
-        <img src="./logo.png" alt="Afford" />
+      <div class="sp-glow" />
+      <div class="sp-stage">
+        <svg class="sp-orbit" viewBox="0 0 220 220" aria-hidden="true">
+          <circle cx="110" cy="110" r="104" />
+        </svg>
+        <svg class="sp-ring" viewBox="0 0 220 220" aria-hidden="true">
+          <defs>
+            <linearGradient id="spg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#e23b4e" />
+              <stop offset="1" stop-color="#8f0f1f" />
+            </linearGradient>
+          </defs>
+          <circle class="track" cx="110" cy="110" r="92" />
+          <circle class="draw" cx="110" cy="110" r="92" />
+        </svg>
+        <div class="sp-spark"><i /></div>
+        <div class="sp-ripple" /><div class="sp-ripple r2" />
+        <div class="sp-disc">
+          <img src="./logo.png" alt="Afford" />
+          <div class="sp-shine" />
+        </div>
       </div>
-      <h1>{title}</h1>
-      <p>{sub}</p>
-      <div class="bar"><i /></div>
+      <h1 class="sp-title" aria-label={title}>
+        {[...title].map((ch, i) => <span key={i} style={`animation-delay:${(1.05 + i * 0.035).toFixed(3)}s`}>{ch === ' ' ? '\u00a0' : ch}</span>)}
+      </h1>
+      <p class="sp-sub">{sub}</p>
+      <div class="sp-bar"><i style={`animation-duration:${minMs - 300}ms`} /></div>
+      <div class="sp-foot">
+        <span class="ltr">{BUILD_TEXT}</span>
+        <span>by <b>Innovative Layyah</b></span>
+      </div>
     </div>
   );
 }
@@ -317,8 +381,47 @@ export function useRoute() {
   }, []);
   return r;
 }
-export const go = (path) => { location.hash = `#/${path}`; };
-export const replace = (path) => { history.replaceState(null, '', `#/${path}`); dispatchEvent(new HashChangeEvent('hashchange')); };
+// Each in-app page change keeps a depth number in the history entry, so "back" knows
+// whether there is an app page to go back to.
+const depth = () => (history.state && history.state.d) || 0;
+export const go = (path) => {
+  if (location.hash === `#/${path}`) return;
+  history.pushState({ d: depth() + 1 }, '', `#/${path}`);
+  dispatchEvent(new HashChangeEvent('hashchange'));
+};
+export const replace = (path) => { history.replaceState({ d: depth() }, '', `#/${path}`); dispatchEvent(new HashChangeEvent('hashchange')); };
+
+// ---------------------------------------------------------------- back button (Android and the top bar)
+const backStack = []; // close handlers of open sheets/dialogs, last = on top
+let homeRoute = 'home';
+let inApp = false;
+let lastBackAt = 0;
+export function setBackHome(route, appOpen) { homeRoute = route; inApp = appOpen; }
+
+/** Closes a sheet/dialog with the back button while it is open. */
+export function useBackClose(open, onClose) {
+  const ref = useRef(onClose);
+  ref.current = onClose;
+  useEffect(() => {
+    if (!open) return undefined;
+    const h = () => ref.current && ref.current();
+    backStack.push(h);
+    return () => { const i = backStack.lastIndexOf(h); if (i >= 0) backStack.splice(i, 1); };
+  }, [open]);
+}
+
+/** Back one step: close the top sheet, else the previous app page, else the home page, else leave the app. */
+export function goBack() {
+  if (backStack.length) { backStack[backStack.length - 1](); return; }
+  const cur = location.hash.replace(/^#\/?/, '').split('?')[0];
+  if (inApp && depth() > 0) { history.back(); return; }
+  if (inApp && cur && cur !== homeRoute) { replace(homeRoute); return; }
+  if (Date.now() - lastBackAt < 2000) { lastBackAt = 0; AffordDevice.minimize().catch(() => {}); return; }
+  lastBackAt = Date.now();
+  toast(t('Press back again to close'));
+}
+AffordDevice.addListener('backButton', goBack);
+addEventListener('afford:back', goBack); // used by browser tests
 
 /** Simple async loader hook */
 export function useLoad(fn, deps = []) {

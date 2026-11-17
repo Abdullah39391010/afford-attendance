@@ -5,7 +5,7 @@ import { AffordDevice } from 'afford-device';
 import { api, LS, deviceInfo } from '../shared/api.js';
 import { t, applyDir, errText, onLang } from '../shared/i18n.js';
 import { setTz } from '../shared/format.js';
-import { Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, Banner } from '../shared/ui.jsx';
+import { Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, askFinger, Credit } from '../shared/ui.jsx';
 import { UpdatePopup } from '../shared/update.jsx';
 import { flush, onQueue, queued } from '../shared/offline.js';
 import { Home } from './home.jsx';
@@ -56,7 +56,7 @@ export function App() {
     api.setToken(res.token);
     await secureSet(SECURE_TOKEN, res.token);
     LS.set('afford.empCode', res.employee.code);
-    go('home');
+    replace('home');
     setPhase('app');
   };
 
@@ -68,6 +68,7 @@ export function App() {
     setPhase('login');
   };
 
+  setBackHome('home', phase === 'app');
   return (
     <div>
       {phase === 'splash' && <Splash title="Afford Super Store" sub={t('Staff attendance')} onDone={() => { splashDone.current = true; setPhase(next.current || 'login'); }} />}
@@ -126,7 +127,7 @@ function Login({ onDone }) {
         <h1>{t('Use fingerprint next time?')}</h1>
         <p class="sub">{t('Unlock the app with your fingerprint instead of typing your PIN.')}</p>
         <div class="box">
-          <button class="btn block" onClick={() => { LS.set('afford.bio', '1'); onDone(askBio); }}><Icon n="finger" />{t('Yes, use fingerprint')}</button>
+          <button class="btn block" onClick={async () => { if (await askFinger(t('Unlock Afford Staff'))) { LS.set('afford.bio', '1'); onDone(askBio); } }}><Icon n="finger" />{t('Yes, use fingerprint')}</button>
           <button class="btn block ghost" style="margin-top:10px" onClick={() => { LS.set('afford.bio', '0'); onDone(askBio); }}>{t('No, keep PIN')}</button>
         </div>
       </div>
@@ -156,14 +157,14 @@ function Login({ onDone }) {
           </div>
         )}
       </div>
+      <div class="auth-credit"><Credit /></div>
     </div>
   );
 }
 
 function Unlock({ onDone, onPin }) {
   const tryBio = async () => {
-    const r = await AffordDevice.biometricAuth({ title: t('Unlock Afford Staff'), cancel: t('Use PIN') }).catch(() => ({ ok: false }));
-    if (r.ok) onDone();
+    if (await askFinger(t('Unlock Afford Staff'))) onDone();
   };
   useEffect(() => { tryBio(); }, []);
   return (

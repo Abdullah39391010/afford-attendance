@@ -99,7 +99,7 @@ export const AUDIT = {
   'attendance.mark': 'Day marked', 'attendance.punch_removed': 'Punch removed',
   'employee.added': 'Employee added', 'employee.updated': 'Employee updated', 'employee.deleted': 'Employee deleted',
   'employee.phone_linked': 'Phone linked', 'employee.phone_reset': 'Phone reset', 'employee.photo': 'Photo changed', 'employee.pin_set': 'PIN set',
-  'attendance.helper_in': 'Helper check-in', 'attendance.helper_out': 'Helper check-out', 'kiosk.added': 'Kiosk added', 'kiosk.removed': 'Kiosk removed',
+  'attendance.helper_in': 'Helper check-in', 'attendance.helper_out': 'Helper check-out', 'kiosk.added': 'Kiosk added', 'kiosk.removed': 'Kiosk removed', 'data.restore': 'Data restored from backup',
   'money.advance': 'Advance given', 'money.deposit': 'Deposit received', 'money.deposit_cut': 'Deposit cut', 'money.deposit_return': 'Deposit returned',
   'money.bonus': 'Bonus given', 'money.removed': 'Money entry removed',
   'request.approved': 'Request approved', 'request.declined': 'Request declined',

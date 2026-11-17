@@ -1,7 +1,7 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "notes": {
-    "en": "Staff app is here: check in/out with GPS, breaks, requests, calendar, salary, works without internet. Admin: rules per job, salary statement at month end only, let one employee check in co-workers without a phone, update popup.",
-    "ur": "اسٹاف ایپ آ گئی: GPS سے حاضری، وقفہ، درخواستیں، کیلنڈر، تنخواہ، انٹرنیٹ کے بغیر بھی کام کرتی ہے۔ ایڈمن: ہر عہدے کے اپنے اصول، تنخواہ کی تفصیل صرف مہینے کے آخر میں، ایک ملازم بغیر فون والے ساتھیوں کی حاضری لگا سکتا ہے، اپڈیٹ پاپ اپ۔"
+    "en": "Back button now goes back instead of closing the app. Fingerprint unlock fixed and can be switched on in More. Admin: daily backup saved on the owner's phone after closing time (last 7 days kept), restore from a backup file. New opening animation.",
+    "ur": "بیک بٹن اب ایپ بند کرنے کے بجائے پیچھے جاتا ہے۔ فنگر پرنٹ ٹھیک کر دیا گیا، مزید میں آن کر سکتے ہیں۔ ایڈمن: بندش کے بعد مالک کے فون میں روزانہ بیک اپ (آخری 7 دن)، بیک اپ فائل سے ریسٹور۔ نئی شروعاتی اینیمیشن۔"
   }
 }

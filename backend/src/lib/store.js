@@ -4,6 +4,7 @@ import {
   monthDates, metres, clampInt, str, csv, fmtHM, daysInMonth,
 } from './util.js';
 import { hashPin, checkPin, newToken, sha256, validPin } from './crypto.js';
+import { makeBackup, checkBackup, applyBackup } from './backup.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -211,9 +212,10 @@ export class Store {
       let body = {};
       if (req.method !== 'GET' && req.method !== 'DELETE') {
         const len = Number(req.headers.get('content-length') || 0);
-        if (len > MAX_BODY) throw new HttpError(413, 'TOO_LARGE', 'Request too large');
+        const max = route.maxBody || MAX_BODY;
+        if (len > max) throw new HttpError(413, 'TOO_LARGE', 'Request too large');
         const text = await req.text();
-        if (text.length > MAX_BODY) throw new HttpError(413, 'TOO_LARGE', 'Request too large');
+        if (text.length > max) throw new HttpError(413, 'TOO_LARGE', 'Request too large');
         if (text) {
           try { body = JSON.parse(text); } catch { throw bad('BAD_JSON', 'Body must be JSON'); }
         }
@@ -240,7 +242,7 @@ export class Store {
     const R = [];
     const add = (method, path, fn, opts = {}) => {
       const re = new RegExp(`^${path.replace(/:(\w+)/g, '(?<$1>[A-Za-z0-9_-]+)')}$`);
-      R.push({ method, re, fn: fn.bind(this), auth: opts.auth || 'none', perm: opts.perm, owner: opts.owner });
+      R.push({ method, re, fn: fn.bind(this), auth: opts.auth || 'none', perm: opts.perm, owner: opts.owner, maxBody: opts.maxBody });
     };
     const A = (perm, extra = {}) => ({ auth: 'admin', perm, ...extra });
     // public
@@ -260,6 +262,8 @@ export class Store {
     add('GET', '/api/admin/settings', () => this.settings, A());
     add('PUT', '/api/admin/settings', this.putSettings, A('settings.edit'));
     add('PUT', '/api/admin/logo', this.putLogo, A('settings.edit'));
+    add('GET', '/api/admin/backup', this.backup, A(null, { owner: true }));
+    add('POST', '/api/admin/restore', this.restore, A(null, { owner: true, maxBody: 40_000_000 }));
     add('GET', '/api/admin/users', this.listUsers, A(null, { owner: true }));
     add('POST', '/api/admin/users', this.saveUser, A(null, { owner: true }));
     add('PUT', '/api/admin/users/:id', this.saveUser, A(null, { owner: true }));
@@ -1385,6 +1389,36 @@ export class Store {
   }
 
   // ---------------------------------------------------------------- housekeeping (daily alarm)
+  // ---------------------------------------------------------------- backup / restore (owner only)
+  backup({ actor }) {
+    const s = this.settings;
+    const b = makeBackup(this.db, { created: this.now(), storeName: s.storeName, by: actor.name });
+    const day = new Date(this.now() + (s.tzOffsetMin || 0) * 60000).toISOString().slice(0, 10);
+    return new Response(JSON.stringify(b), {
+      headers: { 'content-type': 'application/json', 'content-disposition': `attachment; filename="afford-backup-${day}.json"`, 'cache-control': 'no-store' },
+    });
+  }
+
+  async restore({ actor, body, ip }) {
+    const a = this.db.get('SELECT * FROM admins WHERE id = ?', actor.id);
+    const keys = [`a:${a.login}`, `ip:${ip}`];
+    this.lockCheck(keys);
+    if (!(await checkPin(String(body.pin || ''), a.pin, this.pepper))) {
+      this.lockFail(keys);
+      throw new HttpError(401, 'WRONG_PIN', 'Wrong PIN');
+    }
+    let info;
+    try { info = checkBackup(body.backup); } catch (e) { throw bad('BAD_BACKUP', e.message); }
+    if (body.check) return { ok: true, info };
+    // everything below is synchronous: the Durable Object saves it as one unit
+    applyBackup(this.db, body.backup);
+    this.pepper = this.env.PIN_PEPPER || this.db.kvGet('pepper', null) || this.pepper;
+    if (!this.env.PIN_PEPPER) this.db.kvSet('pepper', this.pepper);
+    this._settings = null;
+    this.audit(actor, 'data.restore', null, { from: info.created, employees: info.employees });
+    return { ok: true, info };
+  }
+
   cleanup() {
     const now = this.now();
     this.db.run('DELETE FROM sessions WHERE expires < ?', now);

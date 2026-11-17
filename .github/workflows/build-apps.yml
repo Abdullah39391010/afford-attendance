@@ -15,6 +15,7 @@ permissions:
 env:
   API_URL: https://afford-attendance.abdullah6763939.workers.dev
   AFFORD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+  BUILD_NUMBER: ${{ github.run_number }}
 jobs:
   build:
     runs-on: ubuntu-latest

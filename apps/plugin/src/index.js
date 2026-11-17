@@ -47,6 +47,17 @@ const web = {
   async keepAwake() {},
   async requestCamera() { return { granted: true }; },
   async openAppSettings() {},
+  async minimize() {},
+  async saveDownload({ filename, text, mime = 'application/json' }) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    return { path: `Downloads/${filename}` };
+  },
+  async pruneDownloads() { return { removed: 0 }; },
+  async addListener() { return { remove: async () => {} }; },
 };
 
 export const AffordDevice = registerPlugin('AffordDevice', { web: () => web });

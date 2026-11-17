@@ -4,7 +4,7 @@ import { useState } from 'preact/hooks';
 import { api } from '../shared/api.js';
 import { t, nm, statusLabel, getLang, setLang } from '../shared/i18n.js';
 import { fmtTime, fmtDur, fmtDate, todayStr, addDays } from '../shared/format.js';
-import { TopBar, Icon, Loader, useLoad, toast, toastErr, go, Seg, Chips, Field, Spinner, Empty, Pill, LangSwitch } from '../shared/ui.jsx';
+import { TopBar, Icon, Loader, useLoad, toast, toastErr, go, goBack, Seg, Chips, Field, Spinner, Empty, Pill, LangSwitch, FingerToggle, Credit } from '../shared/ui.jsx';
 import { tableDoc, printDoc, shareDocPdf, shareCsv } from '../shared/printdoc.js';
 import { AuditList } from './staff.jsx';
 import { useApp } from './app.jsx';
@@ -15,6 +15,7 @@ export function More() {
     app.can('reports.view') && ['reports', 'report', 'Reports', 'Daily, weekly, monthly · late & absent lists'],
     app.can('settings.edit') && ['settings', 'gear', 'Settings', 'Location, shifts, rules, holidays, logo'],
     app.me.role === 'owner' && ['users', 'key', 'Managers', 'Add managers and set what they can do'],
+    app.me.role === 'owner' && ['backup', 'download', 'Backup & restore', 'Daily backup on this phone, restore from a file'],
     app.can('audit.view') && ['audit', 'log', 'Audit log', 'Every admin action'],
     ['pin', 'shield', 'Change my PIN', ''],
   ].filter(Boolean);
@@ -35,9 +36,12 @@ export function More() {
             </button>
           ))}
         </div>
-        <div class="card gap" style="justify-content:space-between"><span><Icon n="lang" /> {t('Language')}</span><LangSwitch /></div>
+        <div class="card">
+          <div class="gap" style="justify-content:space-between"><span><Icon n="lang" /> {t('Language')}</span><LangSwitch /></div>
+          <FingerToggle title={t('Unlock Afford Admin')} />
+        </div>
         <button class="btn block ghost" onClick={app.logout}><Icon n="logout" />{t('Log out')}</button>
-        <p class="center small muted">Afford Admin v{__APP_VERSION__}</p>
+        <Credit app="Afford Admin" />
       </div>
     </div>
   );
@@ -162,7 +166,7 @@ export function ChangePin() {
   const [f, setF] = useState({ oldPin: '', newPin: '', newPin2: '' });
   const save = async () => {
     if (f.newPin !== f.newPin2) return toast(t('The two PINs do not match.'), 'err');
-    try { await api.post('/api/admin/me/pin', { oldPin: f.oldPin, newPin: f.newPin }); toast(t('PIN changed'), 'ok'); history.back(); } catch (e) { toastErr(e); }
+    try { await api.post('/api/admin/me/pin', { oldPin: f.oldPin, newPin: f.newPin }); toast(t('PIN changed'), 'ok'); goBack(); } catch (e) { toastErr(e); }
   };
   const inp = (k) => (e) => setF({ ...f, [k]: e.currentTarget.value.replace(/\D/g, '') });
   return (

@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_KIND__: JSON.stringify(app),
       __APP_VERSION__: JSON.stringify(version.version),
+      __APP_BUILD__: JSON.stringify(process.env.BUILD_NUMBER || ''),
       __API_URL__: JSON.stringify(process.env.API_URL || ''),
     },
     server: { fs: { allow: [resolve(__dirname, '..')] }, port: app === 'admin' ? 5173 : 5174 },

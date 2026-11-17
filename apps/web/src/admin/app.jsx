@@ -6,8 +6,9 @@ import { api, LS, deviceInfo } from '../shared/api.js';
 import { t, applyDir, errText, onLang } from '../shared/i18n.js';
 import { setTz } from '../shared/format.js';
 import {
-  Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, Banner,
+  Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, Credit, askFinger,
 } from '../shared/ui.jsx';
+import { BackupScreen, autoBackupTick } from './backup.jsx';
 import { UpdatePopup } from '../shared/update.jsx';
 import { Board } from './board.jsx';
 import { Requests } from './requests.jsx';
@@ -76,7 +77,7 @@ export function App() {
     LS.set('afford.lastLogin', res.me.login);
     LS.set('afford.setupDone', '1');
     if (remember) await secureSet(SECURE_TOKEN, res.token);
-    if (!location.hash || location.hash === '#/') go('board');
+    if (!location.hash || location.hash === '#/') replace('board');
     setPhase('app');
   };
 
@@ -89,6 +90,7 @@ export function App() {
     setPhase('login');
   };
 
+  setBackHome('board', phase === 'app');
   return (
     <div>
       {phase === 'splash' && <Splash title="Afford Super Store" sub={t('Attendance & Payroll · Admin')} onDone={onSplashDone} />}
@@ -101,6 +103,22 @@ export function App() {
       <ToastHost />
       <ConfirmHost />
       {phase !== 'splash' && <UpdatePopup />}
+    </div>
+  );
+}
+
+/** "Use fingerprint next time?" — tests the sensor before switching it on. */
+function BioAsk({ title, onDone }) {
+  const yes = async () => { if (await askFinger(title)) onDone(true); };
+  return (
+    <div class="auth">
+      <img class="logo" src="./logo.png" alt="" />
+      <h1>{t('Use fingerprint next time?')}</h1>
+      <p class="sub">{t('Unlock the app with your fingerprint instead of typing your PIN.')}</p>
+      <div class="box">
+        <button class="btn block" onClick={yes}><Icon n="finger" />{t('Yes, use fingerprint')}</button>
+        <button class="btn block ghost" style="margin-top:10px" onClick={() => onDone(false)}>{t('No, keep PIN')}</button>
+      </div>
     </div>
   );
 }
@@ -127,6 +145,7 @@ function ServerSetup({ err, onSaved }) {
 function OwnerSetup({ onDone }) {
   const [f, setF] = useState({ setupCode: '', name: '', login: 'owner', pin: '', pin2: '', storeName: 'Afford Super Store' });
   const [busy, setBusy] = useState(false);
+  const [askBio, setAskBio] = useState(null);
   const set = (k) => (e) => setF({ ...f, [k]: e.currentTarget.value });
   const submit = async () => {
     if (!/^\d{4,6}$/.test(f.pin)) return toast(t('PIN must be 4 to 6 digits.'), 'err');
@@ -135,9 +154,11 @@ function OwnerSetup({ onDone }) {
     try {
       const res = await api.post('/api/setup', { setupCode: f.setupCode.trim(), name: f.name, login: f.login, pin: f.pin, storeName: f.storeName });
       toast(t('Welcome! Your owner account is ready.'), 'ok');
-      onDone(res);
+      const avail = (await AffordDevice.biometricAvailable().catch(() => ({}))).available;
+      if (avail) setAskBio(res); else onDone(res);
     } catch (e) { toastErr(e); } finally { setBusy(false); }
   };
+  if (askBio) return <BioAsk title={t('Unlock Afford Admin')} onDone={(on) => { LS.set('afford.bio', on ? '1' : '0'); onDone(askBio); }} />;
   return (
     <div class="auth">
       <div class="lang-switch"><LangSwitch /></div>
@@ -180,8 +201,8 @@ function Login({ info, onDone }) {
   }, []);
 
   async function tryBio(saved) {
-    const r = await AffordDevice.biometricAuth({ title: t('Unlock Afford Admin'), cancel: t('Use PIN') }).catch(() => ({ ok: false }));
-    if (!r.ok) return;
+    if (!saved) { setBio(false); return; }
+    if (!(await askFinger(t('Unlock Afford Admin')))) return;
     api.setToken(saved);
     try {
       const me = await api.get('/api/admin/me');
@@ -208,19 +229,7 @@ function Login({ info, onDone }) {
     } finally { setBusy(false); }
   };
 
-  if (askBio) {
-    return (
-      <div class="auth">
-        <img class="logo" src="./logo.png" alt="" />
-        <h1>{t('Use fingerprint next time?')}</h1>
-        <p class="sub">{t('Unlock the app with your fingerprint instead of typing your PIN.')}</p>
-        <div class="box">
-          <button class="btn block" onClick={() => { LS.set('afford.bio', '1'); onDone(askBio); }}><Icon n="finger" />{t('Yes, use fingerprint')}</button>
-          <button class="btn block ghost" style="margin-top:10px" onClick={() => { LS.set('afford.bio', '0'); onDone(askBio); }}>{t('No, keep PIN')}</button>
-        </div>
-      </div>
-    );
-  }
+  if (askBio) return <BioAsk title={t('Unlock Afford Admin')} onDone={(on) => { LS.set('afford.bio', on ? '1' : '0'); onDone(askBio); }} />;
 
   return (
     <div class="auth">
@@ -248,6 +257,7 @@ function Login({ info, onDone }) {
           </div>
         )}
       </div>
+      <div class="auth-credit"><Credit /></div>
     </div>
   );
 }
@@ -283,6 +293,18 @@ function Shell({ me, logout, toKiosk }) {
     document.addEventListener('visibilitychange', onVis);
     return () => { alive = false; clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   }, []);
+
+  // daily auto backup (owner's phone): checked every minute and when the app comes back
+  const bref = useRef(null);
+  bref.current = { me, settings };
+  useEffect(() => {
+    const tick = () => autoBackupTick(bref.current);
+    const iv = setInterval(tick, 60000);
+    const onVis = () => document.visibilityState === 'visible' && tick();
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
+  }, []);
+  useEffect(() => { if (settings) autoBackupTick(bref.current); }, [settings]);
 
   const tab = route.parts[0] || 'board';
   useEffect(() => {
@@ -320,6 +342,7 @@ function Shell({ me, logout, toKiosk }) {
     case 'pin': screen = <ChangePin />; break;
     case 'users': screen = <Users />; break;
     case 'kiosk': screen = <KioskSetup />; break;
+    case 'backup': screen = <BackupScreen />; break;
     case 'settings':
       screen = { location: <SettingsLocation />, shifts: <SettingsShifts />, roles: <SettingsRoles />, rules: <SettingsRules />, holidays: <SettingsHolidays />, store: <SettingsStore /> }[p[1]] || <SettingsHome />;
       break;

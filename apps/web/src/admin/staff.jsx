@@ -5,7 +5,7 @@ import { api } from '../shared/api.js';
 import { t, nm, statusLabel, getLang, reqLabel, auditLabel, moneyLabel } from '../shared/i18n.js';
 import { fmtTime, fmtDur, fmtDate, fmtMoney, fmtDateTime, todayStr, fmtMonth, dayShort } from '../shared/format.js';
 import {
-  TopBar, Icon, Avatar, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, go, Seg, Toggle, Spinner, Empty, confirmBox, Banner, Chips,
+  TopBar, Icon, Avatar, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, go, goBack, replace, Seg, Toggle, Spinner, Empty, confirmBox, Banner, Chips,
 } from '../shared/ui.jsx';
 import { Calendar, MonthNav } from '../shared/calendar.jsx';
 import { useApp } from './app.jsx';
@@ -142,7 +142,7 @@ export function StaffForm({ id }) {
       if (photo !== undefined) body.photo = photo;
       const r = id ? await api.put(`/api/admin/employees/${id}`, body) : await api.post('/api/admin/employees', body);
       toast(t('Saved'), 'ok');
-      if (id) history.back(); else go(`staff/${r.employee.id}`);
+      if (id) goBack(); else go(`staff/${r.employee.id}`);
     } catch (e) { toastErr(e); } finally { setBusy(false); }
   };
   return (
@@ -247,7 +247,7 @@ export function StaffDetail({ id, tab, q }) {
                 </div>
               </div>
             </div>
-            <div class="tabs">{tabs.map(([k, l]) => <button key={k} class={`chip ${tab === k ? 'on' : ''}`} onClick={() => history.replaceState(null, '', `#/staff/${id}/${k}`) || dispatchEvent(new HashChangeEvent('hashchange'))}>{l}</button>)}</div>
+            <div class="tabs">{tabs.map(([k, l]) => <button key={k} class={`chip ${tab === k ? 'on' : ''}`} onClick={() => replace(`staff/${id}/${k}`)}>{l}</button>)}</div>
             {tab === 'info' && <Info e={e} reload={() => st.reload(true)} />}
             {tab === 'cal' && <EmpCalendar e={e} />}
             {tab === 'money' && <Money e={e} />}

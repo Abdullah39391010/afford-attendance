@@ -5,7 +5,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.pm.PackageInfo;
+import android.os.CancellationSignal;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
@@ -21,6 +26,7 @@ import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -50,6 +56,7 @@ import com.google.android.gms.tasks.CancellationTokenSource;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.concurrent.Executor;
@@ -83,6 +90,14 @@ public class AffordDevicePlugin extends Plugin {
 
     @Override
     public void load() {
+        // Android back button: the web app decides (close a sheet, go back a page, or go home).
+        getActivity().runOnUiThread(() -> getActivity().getOnBackPressedDispatcher().addCallback(getActivity(), new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (hasListeners("backButton")) notifyListeners("backButton", new JSObject());
+                else getActivity().moveTaskToBack(true);
+            }
+        }));
         fused = LocationServices.getFusedLocationProviderClient(getContext());
         gpsLauncher = getActivity().registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
             PluginCall call = pendingGpsCall;
@@ -264,32 +279,146 @@ public class AffordDevicePlugin extends Plugin {
         final String title = call.getString("title", "Unlock");
         final String subtitle = call.getString("subtitle", "");
         final String cancel = call.getString("cancel", "Use PIN");
+        final boolean[] done = { false };
         getActivity().runOnUiThread(() -> {
-            Executor ex = ContextCompat.getMainExecutor(getContext());
-            BiometricPrompt prompt = new BiometricPrompt((FragmentActivity) getActivity(), ex, new BiometricPrompt.AuthenticationCallback() {
-                @Override
-                public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
-                    JSObject r = new JSObject();
-                    r.put("ok", true);
-                    call.resolve(r);
-                }
+            try {
+                Executor ex = ContextCompat.getMainExecutor(getContext());
+                if (Build.VERSION.SDK_INT >= 28) {
+                    // Android's own fingerprint dialog (no fragments, works from any screen)
+                    android.hardware.biometrics.BiometricPrompt.Builder b = new android.hardware.biometrics.BiometricPrompt.Builder(getContext())
+                        .setTitle(title)
+                        .setNegativeButton(cancel, ex, (d, w) -> bioResult(call, done, false, 13, "cancel"));
+                    if (!subtitle.isEmpty()) b.setSubtitle(subtitle);
+                    if (Build.VERSION.SDK_INT >= 30) b.setAllowedAuthenticators(android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK);
+                    b.build().authenticate(new CancellationSignal(), ex, new android.hardware.biometrics.BiometricPrompt.AuthenticationCallback() {
+                        @Override
+                        public void onAuthenticationSucceeded(android.hardware.biometrics.BiometricPrompt.AuthenticationResult result) {
+                            bioResult(call, done, true, 0, "");
+                        }
 
-                @Override
-                public void onAuthenticationError(int errorCode, CharSequence errString) {
-                    JSObject r = new JSObject();
-                    r.put("ok", false);
-                    r.put("code", errorCode);
-                    r.put("error", errString == null ? "" : errString.toString());
-                    call.resolve(r);
+                        @Override
+                        public void onAuthenticationError(int code, CharSequence err) {
+                            bioResult(call, done, false, code, err == null ? "" : err.toString());
+                        }
+                    });
+                } else {
+                    BiometricPrompt prompt = new BiometricPrompt((FragmentActivity) getActivity(), ex, new BiometricPrompt.AuthenticationCallback() {
+                        @Override
+                        public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                            bioResult(call, done, true, 0, "");
+                        }
+
+                        @Override
+                        public void onAuthenticationError(int code, CharSequence err) {
+                            bioResult(call, done, false, code, err == null ? "" : err.toString());
+                        }
+                    });
+                    BiometricPrompt.PromptInfo.Builder b = new BiometricPrompt.PromptInfo.Builder()
+                        .setTitle(title)
+                        .setNegativeButtonText(cancel)
+                        .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK);
+                    if (!subtitle.isEmpty()) b.setSubtitle(subtitle);
+                    prompt.authenticate(b.build());
                 }
-            });
-            BiometricPrompt.PromptInfo.Builder b = new BiometricPrompt.PromptInfo.Builder()
-                .setTitle(title)
-                .setNegativeButtonText(cancel)
-                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK);
-            if (!subtitle.isEmpty()) b.setSubtitle(subtitle);
-            prompt.authenticate(b.build());
+            } catch (Exception e) {
+                bioResult(call, done, false, -1, String.valueOf(e.getMessage()));
+            }
         });
+    }
+
+    private void bioResult(PluginCall call, boolean[] done, boolean ok, int code, String error) {
+        if (done[0]) return;
+        done[0] = true;
+        JSObject r = new JSObject();
+        r.put("ok", ok);
+        r.put("code", code);
+        r.put("error", error);
+        call.resolve(r);
+    }
+
+    // ------------------------------------------------------------------ app
+    @PluginMethod
+    public void minimize(PluginCall call) {
+        getActivity().runOnUiThread(() -> getActivity().moveTaskToBack(true));
+        call.resolve();
+    }
+
+    // ------------------------------------------------------------------ files in the phone's Downloads folder
+    // Android 10+: Downloads/<folder>. Older phones: the app's own Downloads folder.
+    @PluginMethod
+    public void saveDownload(PluginCall call) {
+        String folder = call.getString("folder", "Afford").replaceAll("[^A-Za-z0-9 _-]", "_");
+        String filename = call.getString("filename", "file.txt").replaceAll("[^A-Za-z0-9._-]", "_");
+        String mime = call.getString("mime", "application/json");
+        String text = call.getString("text", "");
+        try {
+            String where;
+            if (Build.VERSION.SDK_INT >= 29) {
+                ContentResolver cr = getContext().getContentResolver();
+                String rel = Environment.DIRECTORY_DOWNLOADS + "/" + folder + "/";
+                // replace a file with the same name made by this app
+                try {
+                    cr.delete(MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                        MediaStore.MediaColumns.RELATIVE_PATH + "=? AND " + MediaStore.MediaColumns.DISPLAY_NAME + "=?", new String[] { rel, filename });
+                } catch (Exception ignored) {
+                    // a file left by an older install: Android adds (1) to the new name
+                }
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
+                v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, rel);
+                v.put(MediaStore.MediaColumns.IS_PENDING, 1);
+                Uri uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                if (uri == null) throw new Exception("cannot create file");
+                try (OutputStream out = cr.openOutputStream(uri)) {
+                    if (out == null) throw new Exception("cannot write file");
+                    out.write(text.getBytes(StandardCharsets.UTF_8));
+                }
+                v.clear();
+                v.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                cr.update(uri, v, null, null);
+                where = "Download/" + folder + "/" + filename;
+            } else {
+                File dir = new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), folder);
+                if (!dir.exists() && !dir.mkdirs()) throw new Exception("cannot create folder");
+                File f = new File(dir, filename);
+                try (FileOutputStream out = new FileOutputStream(f)) {
+                    out.write(text.getBytes(StandardCharsets.UTF_8));
+                }
+                where = f.getAbsolutePath();
+            }
+            JSObject r = new JSObject();
+            r.put("path", where);
+            call.resolve(r);
+        } catch (Exception e) {
+            call.reject("Could not save the file: " + e.getMessage());
+        }
+    }
+
+    /** Deletes files this app saved in Downloads/<folder> that are older than keepDays. */
+    @PluginMethod
+    public void pruneDownloads(PluginCall call) {
+        String folder = call.getString("folder", "Afford").replaceAll("[^A-Za-z0-9 _-]", "_");
+        int keepDays = call.getInt("keepDays", 7);
+        long cutoffMs = System.currentTimeMillis() - keepDays * 24L * 3600 * 1000;
+        int removed = 0;
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                ContentResolver cr = getContext().getContentResolver();
+                String rel = Environment.DIRECTORY_DOWNLOADS + "/" + folder + "/";
+                removed = cr.delete(MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    MediaStore.MediaColumns.RELATIVE_PATH + "=? AND " + MediaStore.MediaColumns.DATE_ADDED + "<?",
+                    new String[] { rel, String.valueOf(cutoffMs / 1000) });
+            } else {
+                File dir = new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), folder);
+                File[] files = dir.listFiles();
+                if (files != null) for (File f : files) if (f.lastModified() < cutoffMs && f.delete()) removed++;
+            }
+        } catch (Exception ignored) {
+        }
+        JSObject r = new JSObject();
+        r.put("removed", removed);
+        call.resolve(r);
     }
 
     // ------------------------------------------------------------------ encrypted storage (Android Keystore AES-GCM)

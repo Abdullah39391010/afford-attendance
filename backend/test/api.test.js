@@ -370,3 +370,37 @@ test('salary statement visibility: last 2 days of the month and the 1st', async 
   r = (await t.aliApi('GET', '/api/emp/statement?month=2026-11')).data;
   assert.equal(r.hidden, true);
 });
+
+test('backup and restore: owner only, needs PIN, brings data back', async () => {
+  const t = await seeded();
+  await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore, clientId: 'b1' });
+  // manager cannot back up
+  await t.api('POST', '/api/admin/users', { name: 'Mgr', login: 'mgr', pin: '5555', role: 'manager' }, t.owner);
+  const mgr = (await t.api('POST', '/api/admin/login', { login: 'mgr', pin: '5555' })).data.token;
+  assert.equal((await t.api('GET', '/api/admin/backup', null, mgr)).status, 403);
+  const b = (await t.api('GET', '/api/admin/backup', null, t.owner)).data;
+  const backup = typeof b === 'string' ? JSON.parse(b) : b;
+  assert.equal(backup.format, 'afford-backup');
+  assert.equal(backup.counts.employees, 2);
+  assert.equal(backup.counts.punches, 1);
+  // change things after the backup
+  await t.api('POST', '/api/admin/employees', { name: 'Late joiner', salary: 1, pin: '7777' }, t.owner);
+  assert.equal((await t.api('GET', '/api/admin/employees', null, t.owner)).data.employees.length, 3);
+  // wrong PIN / bad file are refused
+  assert.equal((await t.api('POST', '/api/admin/restore', { pin: '0000', backup }, t.owner)).status, 401);
+  assert.equal((await t.api('POST', '/api/admin/restore', { pin: '1234', backup: { format: 'x' } }, t.owner)).data.error, 'BAD_BACKUP');
+  const bad = structuredClone(backup); bad.columns.admins[0] = 'id); DROP TABLE kv; --';
+  assert.equal((await t.api('POST', '/api/admin/restore', { pin: '1234', backup: bad }, t.owner)).data.error, 'BAD_BACKUP');
+  // check only
+  const chk = await t.api('POST', '/api/admin/restore', { pin: '1234', backup, check: true }, t.owner);
+  assert.equal(chk.data.info.employees, 2);
+  assert.equal((await t.api('GET', '/api/admin/employees', null, t.owner)).data.employees.length, 3);
+  // real restore
+  const r = await t.api('POST', '/api/admin/restore', { pin: '1234', backup }, t.owner);
+  assert.equal(r.status, 200);
+  assert.equal((await t.api('GET', '/api/admin/employees', null, t.owner)).data.employees.length, 2);
+  // PINs still work after restore, phone links kept
+  assert.equal((await t.api('POST', '/api/admin/login', { login: 'owner', pin: '1234' })).status, 200);
+  assert.equal((await t.aliApi('GET', '/api/emp/home')).status, 200);
+  assert.equal((await t.aliApi('GET', '/api/emp/home')).data.today.isOpen, true);
+});
