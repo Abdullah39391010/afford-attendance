@@ -14,6 +14,7 @@ permissions:
   contents: write
 env:
   API_URL: https://afford-attendance.abdullah6763939.workers.dev
+  AFFORD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,6 +28,11 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v5
+      - name: Check signing key
+        run: |
+          if [ ! -f apps/signing/afford-release.p12 ] || [ -z "$AFFORD_KEYSTORE_PASSWORD" ]; then
+            echo "::error::Signing key missing. Add the ANDROID_KEY_PASSWORD secret and run 'Create signing key (once)' first."; exit 1
+          fi
       - name: Install
         working-directory: apps
         run: npm ci

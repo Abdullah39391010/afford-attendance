@@ -107,16 +107,16 @@ import groovy.json.JsonSlurper
 def affordVersion = new JsonSlurper().parse(file('../../../version.json'))
 def affordParts = affordVersion.version.tokenize('.').collect { it as int }
 def affordCode = affordParts[0] * 10000 + affordParts[1] * 100 + affordParts[2]
-def affordKeystore = System.getenv('AFFORD_KEYSTORE') ?: '../../../signing/afford-release.jks'
+def affordKeystore = System.getenv('AFFORD_KEYSTORE') ?: '../../../signing/afford-release.p12'
 """)
         g = re.sub(r'versionCode \d+', 'versionCode affordCode', g)
         g = re.sub(r'versionName "[^"]*"', 'versionName affordVersion.version', g)
         g = g.replace("    buildTypes {\n        release {\n", """    signingConfigs {
         release {
             storeFile file(affordKeystore)
-            storePassword System.getenv('AFFORD_KEYSTORE_PASSWORD') ?: 'afford-store-2026'
+            storePassword System.getenv('AFFORD_KEYSTORE_PASSWORD')
             keyAlias System.getenv('AFFORD_KEY_ALIAS') ?: 'afford'
-            keyPassword System.getenv('AFFORD_KEY_PASSWORD') ?: 'afford-store-2026'
+            keyPassword System.getenv('AFFORD_KEYSTORE_PASSWORD')
         }
     }
     buildTypes {

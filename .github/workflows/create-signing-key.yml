@@ -1,0 +1,38 @@
+# Creates the app signing key ONCE and saves it in the repo, locked by the
+# ANDROID_KEY_PASSWORD repository secret (the file is useless without that password).
+# Needs: repository secret ANDROID_KEY_PASSWORD (at least 16 characters).
+# WARNING: making a new key later means every installed app must be uninstalled
+# and every employee phone must be reset by the owner.
+name: Create signing key (once)
+on:
+  workflow_dispatch:
+    inputs:
+      replace:
+        description: Replace an existing key (only if you are sure)
+        type: boolean
+        default: false
+permissions:
+  contents: write
+jobs:
+  key:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Create key
+        env:
+          PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          REPLACE: ${{ inputs.replace }}
+        run: |
+          if [ ${#PW} -lt 16 ]; then echo "::error::Add the ANDROID_KEY_PASSWORD secret first (at least 16 characters)."; exit 1; fi
+          F=apps/signing/afford-release.p12
+          if [ -f "$F" ] && [ "$REPLACE" != "true" ]; then echo "::error::A key already exists. Not replacing it."; exit 1; fi
+          mkdir -p apps/signing && rm -f "$F"
+          keytool -genkeypair -storetype PKCS12 -keystore "$F" -alias afford -keyalg RSA -keysize 3072 -validity 10000 \
+            -storepass "$PW" -keypass "$PW" -dname "CN=Afford Super Store, O=Afford, C=PK"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$F" && git commit -m "Add app signing key (locked by ANDROID_KEY_PASSWORD secret)" && git push
