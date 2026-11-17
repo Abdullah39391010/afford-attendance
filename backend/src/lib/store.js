@@ -28,8 +28,13 @@ export class Store {
     this.db = db;
     this.env = env;
     this.now = clock;
-    this.pepper = env.PIN_PEPPER || 'dev-pepper';
     db.migrate();
+    // Pepper mixed into every PIN hash: the PIN_PEPPER secret if set, otherwise a random one made once and kept.
+    this.pepper = env.PIN_PEPPER || db.kvGet('pepper', null);
+    if (!this.pepper) {
+      this.pepper = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, '0')).join('');
+      db.kvSet('pepper', this.pepper);
+    }
     this.routes = this.buildRoutes();
   }
 
