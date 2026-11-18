@@ -1,7 +1,7 @@
 {
-  "version": "0.6.1",
+  "version": "0.6.2",
   "notes": {
-    "en": "Alerts are now shown by Android itself, so they arrive even when the app is closed or the phone is asleep. New \"Test alerts on this phone\" button in More. Requests now say they go to the admin and managers. Cleaner date bar on the Live board.",
-    "ur": "اطلاعات اب اینڈرائیڈ خود دکھاتا ہے، اس لیے ایپ بند ہو یا فون سویا ہو تب بھی آتی ہیں۔ \"مزید\" میں نیا بٹن: \"اس فون پر اطلاع ٹیسٹ کریں\"۔ درخواستیں اب ایڈمن اور مینیجر دونوں کو جانے کا بتاتی ہیں۔ لائیو بورڈ پر بہتر تاریخ۔"
+    "en": "New app icon: white shopping bag with the red Afford A. Instant alerts are now switched on.",
+    "ur": "نیا ایپ آئیکن: سفید شاپنگ بیگ پر سرخ Afford کا A۔ فوری اطلاعات اب آن ہیں۔"
   }
 }
