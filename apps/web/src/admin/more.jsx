@@ -11,6 +11,8 @@ import { useApp } from './app.jsx';
 import { TestAlert } from '../shared/perms.jsx';
 import { CheckUpdateButton } from '../shared/update.jsx';
 
+const IS_WEB = typeof __WEB_APP__ !== 'undefined' && __WEB_APP__;
+
 export function More() {
   const app = useApp();
   const items = [
@@ -42,10 +44,10 @@ export function More() {
         </div>
         <div class="card">
           <div class="gap" style="justify-content:space-between"><span><Icon n="lang" /> {t('Language')}</span><LangSwitch /></div>
-          <FingerToggle title={t('Unlock Afford Admin')} />
+          {!IS_WEB && <FingerToggle title={t('Unlock Afford Admin')} />}
         </div>
-        {app.can('requests.decide') && <TestAlert kind="admin" />}
-        <CheckUpdateButton />
+        {!IS_WEB && app.can('requests.decide') && <TestAlert kind="admin" />}
+        {!IS_WEB && <CheckUpdateButton />}
         <button class="btn block ghost" onClick={app.logout}><Icon n="logout" />{t('Log out')}</button>
         <Credit app="Afford Admin" />
       </div>

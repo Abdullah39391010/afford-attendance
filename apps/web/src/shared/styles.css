@@ -397,3 +397,5 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
 .badge-n { background: var(--red); color: #fff; border-radius: 99px; min-width: 22px; height: 22px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 6px; }
 .muted-av { background: var(--bg); color: var(--ink2); }
 label.btn.disabled { opacity: .6; pointer-events: none; }
+/* ---------- owner web page on a laptop */
+@media (min-width: 900px) { html.web .wrap { max-width: 980px; } }

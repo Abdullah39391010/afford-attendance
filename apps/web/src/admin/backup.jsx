@@ -100,7 +100,7 @@ export function BackupScreen() {
     <div class="screen no-nav">
       <TopBar back title={t('Backup & restore')} />
       <div class="wrap">
-        <div class="card">
+        {!(typeof __WEB_APP__ !== 'undefined' && __WEB_APP__) && <div class="card">
           <h2>{t('Backup')}</h2>
           <p class="small muted" style="margin:0 0 10px">{t('A backup has all staff, attendance, requests, salary records and settings. Check-in selfies are not included.')}</p>
           <Toggle checked={auto} onChange={(v) => { setAuto(v); LS.set('afford.autoBackup', v ? '1' : '0'); }}
@@ -110,7 +110,8 @@ export function BackupScreen() {
             : <p class="small muted" style="margin:10px 0">{t('No backup on this phone yet.')}</p>}
           <button class="btn block" disabled={busy} onClick={now}>{busy ? <Spinner sm /> : <><Icon n="download" />{t('Back up now')}</>}</button>
           <p class="small muted" style="margin:8px 0 0">{t('The app must be opened at least once after closing time for the daily backup. If the phone was off, it is saved the next time you open the app.')}</p>
-        </div>
+        </div>}
+        <DriveCopy />
         <CloudBackups />
         <div class="card">
           <h2>{t('Restore')}</h2>
@@ -121,6 +122,35 @@ export function BackupScreen() {
       </div>
       <div class="wrap"><ServerHealth /></div>
       {file && <RestoreDialog file={file} onClose={() => setFile(null)} />}
+    </div>
+  );
+}
+
+/** A copy outside Cloudflare: the phone's share sheet sends the backup file to the Google Drive app. */
+function DriveCopy() {
+  const [busy, setBusy] = useState(false);
+  const [last, setLast] = useState(() => Number(LS.get('afford.driveBackup') || 0));
+  const web = typeof __WEB_APP__ !== 'undefined' && __WEB_APP__;
+  const save = async () => {
+    setBusy(true);
+    try {
+      const data = await api.get('/api/admin/backup', { timeoutMs: 60000 });
+      const d = new Date(api.serverNow() + 5 * 3600e3).toISOString().slice(0, 10);
+      await AffordDevice.shareFile({ filename: `afford-backup-${d}.json`, text: JSON.stringify(data), mime: 'application/json', title: t('Save to Google Drive') });
+      LS.set('afford.driveBackup', String(Date.now()));
+      setLast(Date.now());
+    } catch (e) { toastErr(e); } finally { setBusy(false); }
+  };
+  const old = !last || Date.now() - last > 31 * DAY;
+  return (
+    <div class="card">
+      <h2>{t('Google Drive copy')}</h2>
+      <p class="small muted" style="margin:0 0 10px">{web
+        ? t('Downloads the backup file. Then upload it to drive.google.com. Do this once a month.')
+        : t('Keeps a copy outside Cloudflare, in your own Google Drive. Tap the button, then pick "Drive" in the list and tap Save. Do this once a month; you get a reminder on the 1st.')}</p>
+      {last ? <p class="small" style={`margin:0 0 10px;color:${old ? 'var(--orange)' : 'inherit'}`}><Icon n={old ? 'clock' : 'check'} /> {t('Last copy')}: <b>{fmtDateTime(last)}</b></p>
+        : <p class="small" style="margin:0 0 10px;color:var(--orange)">{t('No Google Drive copy yet.')}</p>}
+      <button class="btn block" disabled={busy} onClick={save}>{busy ? <Spinner sm /> : <><Icon n={web ? "download" : "share"} />{web ? t('Download backup file') : t('Save to Google Drive')}</>}</button>
     </div>
   );
 }

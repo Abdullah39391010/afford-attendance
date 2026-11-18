@@ -37,6 +37,7 @@ export function installOps(Store) {
       if (r.remindersOn) this.reminders();
       if (r.dailySummaryOn) this.dailySummary();
       if (r.greetingsOn) this.greetings();
+      this.driveReminder();
     } catch (e) {
       this.logError('reminders', e);
     }

@@ -5,7 +5,7 @@ import { AffordDevice } from 'afford-device';
 import { api, LS, deviceInfo } from '../shared/api.js';
 import { t, applyDir, errText, onLang } from '../shared/i18n.js';
 import { setTz } from '../shared/format.js';
-import { Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, askFinger, Credit, WhoCard } from '../shared/ui.jsx';
+import { Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, askFinger, Credit, WhoCard, Sheet } from '../shared/ui.jsx';
 import { UpdatePopup } from '../shared/update.jsx';
 import { flush, onQueue, queued } from '../shared/offline.js';
 import { startNotify, stopNotify } from '../shared/notify.js';
@@ -76,7 +76,7 @@ export function App() {
   setBackHome('home', phase === 'app');
   return (
     <div>
-      {phase === 'splash' && <Splash title="Afford Super Store" sub={t('Staff attendance')} onDone={() => { splashDone.current = true; setPhase(next.current || 'login'); }} />}
+      {phase === 'splash' && <Splash title="Afford Super Store" sub={t('Staff attendance')} minMs={(typeof __WEB_APP__ !== 'undefined' && __WEB_APP__) ? 1200 : undefined} onDone={() => { splashDone.current = true; setPhase(next.current || 'login'); }} />}
       {phase === 'server' && <ServerSetup onSaved={() => { boot(); setPhase('login'); }} />}
       {phase === 'login' && <Login onDone={signedIn} />}
       {phase === 'unlock' && <Unlock onDone={async () => { api.setToken(await secureGet(SECURE_TOKEN)); setPhase('app'); }} onPin={async () => { await secureRemove(SECURE_TOKEN); setPhase('login'); }} />}
@@ -104,12 +104,47 @@ function ServerSetup({ onSaved }) {
   );
 }
 
+function ForgotPin({ code, onClose }) {
+  const [c, setC] = useState(code);
+  const [note, setNote] = useState('');
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    setBusy(true);
+    try { await api.post('/api/emp/forgot-pin', { code: c.trim(), note: note.trim() }); setSent(true); }
+    catch (e) { toastErr(e); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Sheet open onClose={onClose} title={t('Forgot PIN?')}>
+      {sent ? (
+        <div>
+          <Banner kind="ok" icon="check">{t('Request sent. If the code is right, the manager will get it and tell you a new PIN.')}</Banner>
+          <button class="btn block" style="margin-top:12px" onClick={onClose}>{t('OK')}</button>
+        </div>
+      ) : (
+        <div>
+          <p class="small muted">{t('Send a request to the manager. When they approve it, they will tell you a new PIN.')}</p>
+          <Field label={t('Employee code or phone number')}>
+            <input class="input ltr" style="width:100%" value={c} onInput={(e) => setC(e.currentTarget.value)} autocapitalize="characters" />
+          </Field>
+          <Field label={t('Note (optional)')}>
+            <input class="input" style="width:100%" value={note} maxLength={200} onInput={(e) => setNote(e.currentTarget.value)} />
+          </Field>
+          <button class="btn block" disabled={!c.trim() || busy} onClick={send}>{busy ? <Spinner sm /> : t('Send request')}</button>
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
 function Login({ onDone }) {
   const [code, setCode] = useState(LS.get('afford.empCode') || '');
   const [step, setStep] = useState(LS.get('afford.empCode') ? 'pin' : 'code');
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
   const [askBio, setAskBio] = useState(null);
+  const [forgot, setForgot] = useState(false);
 
   const submit = async (pin) => {
     setBusy(true);
@@ -162,8 +197,12 @@ function Login({ onDone }) {
           <WhoCard name={who?.name || code} sub={who ? `${t('Employee')} · ${who.empCode || code}` : t('Staff login')} onChange={() => setStep('code')} />
           <div class="center muted small" style="margin-top:20px">{t('Enter your PIN')}</div>
           <PinPad length={4} max={6} onDone={submit} error={err?.at} busy={busy} />
+          <div class="center" style="margin-top:14px">
+            <button class="btn ghost small" onClick={() => setForgot(true)}>{t('Forgot PIN?')}</button>
+          </div>
         </div>
       )}
+      {forgot && <ForgotPin code={code.trim()} onClose={() => setForgot(false)} />}
       <div class="auth-credit"><Credit /></div>
     </div>
   );

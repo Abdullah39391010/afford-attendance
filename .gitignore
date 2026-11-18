@@ -11,3 +11,4 @@ local.properties
 apps/web/dist-admin/
 apps/web/dist-employee/
 owner/staff/
+owner/owner/

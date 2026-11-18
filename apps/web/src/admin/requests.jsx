@@ -4,12 +4,12 @@ import { useState, useEffect } from 'preact/hooks';
 import { api } from '../shared/api.js';
 import { t, nm, reqLabel } from '../shared/i18n.js';
 import { fmtDate, fmtTime, fmtMoney, ago } from '../shared/format.js';
-import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Empty, Spinner, Toggle, Chips } from '../shared/ui.jsx';
+import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Empty, Spinner, Toggle, Chips, Dialog } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
 import { describe } from '../shared/describe.js';
 import { OwnerApprovals } from './pro.jsx';
 
-const ICON = { forgot_in: 'in', forgot_out: 'out', past_day: 'cal', leave: 'leave', advance: 'wallet', break: 'coffee', undo_checkout: 'undo', field_duty: 'map', recheckin: 'in' };
+const ICON = { forgot_in: 'in', forgot_out: 'out', past_day: 'cal', leave: 'leave', advance: 'wallet', break: 'coffee', undo_checkout: 'undo', field_duty: 'map', recheckin: 'in', swap: 'cal', pin_reset: 'lock' };
 
 export { describe };
 
@@ -65,7 +65,10 @@ function Decide({ r, onClose, onDone }) {
   const [paid, setPaid] = useState(true);
   const [inst, setInst] = useState(1);
   const [busy, setBusy] = useState(null);
+  const [pin, setPin] = useState(() => String(Math.floor(1000 + Math.random() * 9000)));
+  const [newPin, setNewPin] = useState(null);
   const canDecide = app.can('requests.decide') && r.status === 'pending';
+  const pinOk = /^\d{4,6}$/.test(pin);
 
   const go = async (approve) => {
     setBusy(approve ? 'yes' : 'no');
@@ -76,8 +79,10 @@ function Decide({ r, onClose, onDone }) {
         if (r.type === 'past_day') { body.inTime = inTime; body.outTime = outTime; }
         if (r.type === 'advance') { body.amount = Number(amount); body.installments = inst; }
         if (r.type === 'leave') body.paid = paid;
+        if (r.type === 'pin_reset') body.pin = pin;
       }
       const res = await api.post(`/api/admin/requests/${r.id}/decide`, body);
+      if (res.newPin) { setNewPin(res.newPin); return; }
       toast(approve ? (res.request?.data?.waitingForOwner ? t('Approved. The advance waits for the owner.') : t('Approved')) : t('Declined'), 'ok');
       onDone();
     } catch (e) { toastErr(e); } finally { setBusy(null); }
@@ -112,13 +117,26 @@ function Decide({ r, onClose, onDone }) {
           )}
           {r.type === 'leave' && <Toggle checked={paid} onChange={setPaid} label={t('Paid leave (within monthly allowance)')} sub={t('Turn off to approve as unpaid leave')} />}
           {r.type === 'break' && <p class="small muted">{t('The break starts when you approve. Coming back late is cut from salary.')}</p>}
+          {r.type === 'pin_reset' && (app.can('employees.edit') ? (
+            <div>
+              <p class="small muted">{t('Only approve if you are sure this is really the employee. Ask them in person or call them.')}</p>
+              <Field label={t('New PIN (4 to 6 digits)')}>
+                <input class="input ltr" style="width:100%;font-size:22px;letter-spacing:4px" inputmode="numeric" maxLength={6} value={pin} onInput={(e) => setPin(e.currentTarget.value.replace(/\D/g, ''))} />
+              </Field>
+            </div>
+          ) : <p class="small muted">{t('Only someone who can edit staff can approve this.')}</p>)}
           <Field label={t('Note to employee (optional)')}><input class="input" value={note} onInput={(e) => setNote(e.currentTarget.value)} /></Field>
           <div class="btn-row">
             <button class="btn soft" disabled={!!busy} onClick={() => go(false)}>{busy === 'no' ? <Spinner sm /> : <><Icon n="x" />{t('Decline')}</>}</button>
-            <button class="btn green" disabled={!!busy} onClick={() => go(true)}>{busy === 'yes' ? <Spinner sm /> : <><Icon n="check" />{t('Approve')}</>}</button>
+            <button class="btn green" disabled={!!busy || (r.type === 'pin_reset' && (!pinOk || !app.can('employees.edit')))} onClick={() => go(true)}>{busy === 'yes' ? <Spinner sm /> : <><Icon n="check" />{t('Approve')}</>}</button>
           </div>
         </div>
       )}
+      <Dialog open={!!newPin} title={t('New PIN set')} onClose={() => { setNewPin(null); onDone(); }}>
+        <p>{t('Tell {name} the new PIN:', { name: nm(r.employee) })}</p>
+        <div class="center ltr" style="font-size:36px;font-weight:800;letter-spacing:8px;margin:12px 0">{newPin}</div>
+        <button class="btn block" onClick={() => { setNewPin(null); onDone(); }}>{t('Done')}</button>
+      </Dialog>
     </Sheet>
   );
 }

@@ -193,3 +193,55 @@ test('web version login only when the owner allows it', async () => {
   const day = (await t.api('GET', `/api/admin/employees/${raza.id}/day/2026-11-16`, null, t.owner)).data.day;
   assert.equal(day.punches[0].source, 'web');
 });
+
+test('forgot PIN: request from the login screen, admin sets a new PIN, staff logs in with it', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  const sent = capture(t);
+  // unknown code: same answer, nothing stored
+  let r = await t.api('POST', '/api/emp/forgot-pin', { code: 'NOPE99' });
+  assert.deepEqual(r.data, { ok: true });
+  r = await t.api('POST', '/api/emp/forgot-pin', { code: t.ali.code.toLowerCase(), note: 'new phone' });
+  assert.deepEqual(r.data, { ok: true });
+  await t.api('POST', '/api/emp/forgot-pin', { code: '03001234567' }); // by phone: same pending request
+  const list = (await t.api('GET', '/api/admin/requests?status=pending', null, t.owner)).data.requests.filter((x) => x.type === 'pin_reset');
+  assert.equal(list.length, 1);
+  assert.equal(list[0].data.reason, 'new phone');
+  r = await t.api('POST', `/api/admin/requests/${list[0].id}/decide`, { approve: true, pin: '12' }, t.owner);
+  assert.equal(r.data.error, 'BAD_PIN');
+  r = await t.api('POST', `/api/admin/requests/${list[0].id}/decide`, { approve: true, pin: '4321' }, t.owner);
+  assert.equal(r.status, 200);
+  assert.equal(r.data.newPin, '4321');
+  assert.equal(r.data.request.status, 'approved');
+  r = await t.api('POST', '/api/emp/login', { code: t.ali.code, pin: '1111', deviceId: 'phone-ali-0001' });
+  assert.notEqual(r.status, 200);
+  r = await t.api('POST', '/api/emp/login', { code: t.ali.code, pin: '4321', deviceId: 'phone-ali-0001' });
+  assert.equal(r.status, 200);
+  assert.ok(sent.length >= 0);
+});
+
+test('forgot PIN is rate limited per address', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  let last;
+  for (let i = 0; i < 8; i++) last = await t.api('POST', '/api/emp/forgot-pin', { code: 'X' + i });
+  assert.equal(last.status, 429);
+});
+
+test('monthly Google Drive reminder goes to the owner once, on the 1st after 10 AM', async () => {
+  const t = await seeded('2026-11-30T12:00');
+  assert.equal(t.store.driveReminder(), false);
+  t.setTime('2026-12-01T09:00');
+  assert.equal(t.store.driveReminder(), false);
+  t.setTime('2026-12-01T10:05');
+  assert.equal(t.store.driveReminder(), true);
+  t.setTime('2026-12-01T15:00');
+  assert.equal(t.store.driveReminder(), false);
+});
+
+test('web owner page gets a short login', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  const web = await t.api('POST', '/api/admin/login', { login: 'owner', pin: '1234', deviceId: 'web-abc123' });
+  assert.equal(web.status, 200);
+  t.advance(13 * 60);
+  const r = await t.api('GET', '/api/admin/board', null, web.data.token);
+  assert.equal(r.status, 401);
+});

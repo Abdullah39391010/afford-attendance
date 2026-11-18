@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 2.1 · 18 November 2026 (apps v0.9)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
+  <div class="meta">Version 2.2 · 18 November 2026 (apps v0.9.1)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -220,7 +220,8 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
 
   <section class="flow">
     <h2>7. Owner web page</h2>
-    <p><b>Planned.</b> A private web page protected by the owner PIN, to see today's attendance and approve requests from any browser. Until then the owner uses the admin app, which already has everything plus the nightly summary alert.</p>
+    <p>Open <b>afford-attendance.abdullah6763939.workers.dev/owner/</b> on any computer and log in with your admin name and PIN. It is the full admin app in a wider layout: board, requests, staff, payroll, reports, roster and backups. Managers can use it too with their own login and permissions.</p>
+    <p>For safety a web login lasts 12 hours, then the PIN is asked again. Phone-only parts (fingerprint, daily backup to the phone, alert test, app update) are hidden on the web page.</p>
   </section>
 </section>
 
@@ -302,6 +303,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
     <tr><td>Checked out by mistake</td><td>(one tap)</td><td>The last check-out is removed and the employee is "in" again (no late time).</td></tr>
     <tr><td>Check in again</td><td>Reason (sent from inside the store)</td><td>The employee may check in once more today. The time between check-out and the new check-in counts as late.</td></tr>
     <tr><td>Out-of-town duty</td><td>Dates, reason</td><td>The days count as present, with no time cuts.</td></tr>
+    <tr><td>Forgot PIN</td><td>Employee code or phone number, from the "Forgot PIN?" button on the login screen (no login needed)</td><td>The admin types a new PIN (a random one is filled in) and tells it to the employee in person or by phone. The old PIN stops working. Only someone with "edit staff" permission can approve it. Make sure it is really that employee before approving.</td></tr>
   </table>
   <p>Declined requests change nothing. The employee sees the admin's note and gets an alert. Every decision goes into the audit log.</p>
 </section>
@@ -313,7 +315,8 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
     <tr><td>Owner approval</td><td>A bonus, advance, deposit entry, removal of an entry, or a salary change made by a <b>manager</b> is not counted until the owner approves it. The owner gets an alert and sees it at the top of Requests. The owner's own changes go straight through.</td></tr>
     <tr><td>Locked months</td><td>After salaries are paid, the owner opens Payroll for that finished month and taps "Lock this month". The payslips are frozen, and attendance and money for that month can't be changed by anyone. Only the owner can unlock it, and that is logged.</td></tr>
     <tr><td>Cloud backup</td><td>Every day the server saves a full backup in a separate vault and keeps 30 days. The owner can download any of them, restore one with the PIN, or back up now.</td></tr>
-    <tr><td>Phone backup</td><td>The owner's phone also saves a backup in Downloads/Afford Backups once a day (7 days kept). Keep a copy on Google Drive now and then.</td></tr>
+    <tr><td>Phone backup</td><td>The owner's phone also saves a backup in Downloads/Afford Backups once a day (7 days kept).</td></tr>
+    <tr><td>Google Drive copy</td><td>On the 1st of every month at 10 AM the owner gets a reminder. Open More › Backup › "Save to Google Drive", pick Drive in the list and tap Save. The card shows the date of the last copy and turns orange after a month. On the web page the button downloads the file instead; upload it at drive.google.com.</td></tr>
     <tr><td>Error alerts</td><td>If something fails on the server, the owner gets an alert (at most one an hour) and can see the error under Backup › Server health. GitHub also checks the server every 30 minutes and emails if it is down.</td></tr>
     <tr><td>Staff rules agreement</td><td>Rules are written from the settings, plus the owner's own lines. Changing them asks everyone to accept again.</td></tr>
   </table>
@@ -444,11 +447,13 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   <h2>20. Versions and test checklist</h2>
   <table>
     <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
-    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>46 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
+    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>50 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
     <tr><td>Admin app</td><td><span class="tag done">Live</span></td><td>Login, board, requests and owner approvals, staff, money with installments, payroll with paid record and month lock, settlement, rules agreement, backups, reports, kiosk, Urdu.</td></tr>
     <tr><td>Employee app</td><td><span class="tag done">Live</span></td><td>Rules agreement, phone locking, fingerprint, check-in inside and outside the circle, check-in-again request, break, requests, reminders, offline punch, calendar, payslip, Urdu.</td></tr>
     <tr><td>iPhone web version</td><td><span class="tag done">v0.9</span></td><td>Owner allows it per person, login in Safari, check in inside the circle, Add to Home Screen.</td></tr>
-    <tr><td>Owner web page</td><td><span class="tag">Next</span></td><td>PIN login, today's view, approve a request, monthly totals, Urdu.</td></tr>
+    <tr><td>Owner web page</td><td><span class="tag done">v0.9.1</span></td><td>Open /owner/ on a computer, PIN login, approve a request, payroll, download the backup file.</td></tr>
+    <tr><td>Forgot PIN</td><td><span class="tag done">v0.9.1</span></td><td>Staff taps "Forgot PIN?", owner approves with a new PIN, staff logs in with it.</td></tr>
+    <tr><td>Google Drive copy</td><td><span class="tag done">v0.9.1</span></td><td>Save to Google Drive from Backup, check "Last copy", reminder on the 1st.</td></tr>
   </table>
   <h3>Before each release</h3>
   <ul>

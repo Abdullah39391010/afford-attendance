@@ -7,6 +7,7 @@
 //  - branches: an employee belongs to one store location; a manager can be limited to one branch
 import { bad, forbidden, notFound, uid, isDate, isMonth, str, clampInt, local, hm, addDays, dateRange } from './util.js';
 import { shiftFor, empShift, empWeeklyOff } from './attendance.js';
+import { hashPin, validPin } from './crypto.js';
 
 const DOC_KINDS = ['cnic_front', 'cnic_back', 'contract', 'photo', 'other'];
 const NOTE_KINDS = ['warning', 'praise', 'note'];
@@ -31,6 +32,7 @@ export function installExtra(Store) {
     add('POST', '/api/admin/employees/:id/docs', this.addDoc, A('employees.edit', { maxBody: 1_000_000 }));
     add('GET', '/api/admin/docs/:id', this.getDoc, A('employees.edit'));
     add('DELETE', '/api/admin/docs/:id', this.deleteDoc, A('employees.edit'));
+    add('POST', '/api/emp/forgot-pin', this.forgotPin);
     add('GET', '/api/emp/roster', this.empRoster, { auth: 'emp' });
     add('GET', '/api/emp/notes', this.empNotes, { auth: 'emp' });
     add('POST', '/api/emp/notes/:id/seen', this.empNoteSeen, { auth: 'emp' });
@@ -199,6 +201,34 @@ export function installExtra(Store) {
     }));
   };
 
+  // ---------------------------------------------------------------- forgot PIN (from the login screen, no login needed)
+  P.forgotPin = function forgotPin({ body, ip }) {
+    const key = `fp:${ip}`;
+    this.lockCheck([key]);
+    this.lockFail([key]); // at most 5 asks in a row from one place, then a pause
+    const code = str(body.code, 40);
+    const r = code && this.db.get(
+      `SELECT id, code, data, active FROM employees WHERE deleted = 0 AND (lower(code) = lower(?) OR json_extract(data, '$.phone') = ?)`, code, code);
+    // same answer whether or not the code exists, so nobody can probe for codes
+    if (!r || !r.active) return { ok: true };
+    if (this.db.get("SELECT id FROM requests WHERE emp = ? AND type = 'pin_reset' AND status = 'pending'", r.id)) return { ok: true };
+    const id = uid();
+    this.db.run("INSERT INTO requests (id, emp, type, data, status, created) VALUES (?, ?, 'pin_reset', ?, 'pending', ?)",
+      id, r.id, JSON.stringify({ date: this.today(), source: 'login', reason: str(body.note, 200) }), this.now());
+    this.pushNewRequest({ id, emp: r.id, type: 'pin_reset' });
+    return { ok: true };
+  };
+  /** Approving a forgot-PIN request sets a new PIN; the admin tells it to the employee. */
+  P.applyPinReset = async function applyPinReset(actor, emp, body, data, result) {
+    let pin = String(body.pin || '');
+    if (!pin) pin = String(Math.floor(1000 + Math.random() * 9000));
+    if (!validPin(pin)) throw bad('BAD_PIN', 'PIN must be 4 to 6 digits');
+    this.db.run('UPDATE employees SET pin = ?, updated = ? WHERE id = ?', await hashPin(pin, this.pepper), this.now(), emp.id);
+    this.lockClear(`e:${emp.code.toLowerCase()}`);
+    data.pinSet = true;
+    result.newPin = pin;
+  };
+
   // ---------------------------------------------------------------- holidays
   P.pushNewHolidays = function pushNewHolidays(before, after) {
     const old = new Set(before.map((h) => h.date));
@@ -329,6 +359,19 @@ export function installExtra(Store) {
     this.db.run('DELETE FROM docs WHERE id = ?', r.id);
     this.audit(actor, 'employee.doc_removed', r.emp, { kind: r.kind, file: r.name });
     return { ok: true };
+  };
+
+  // ---------------------------------------------------------------- monthly reminder: keep a copy in Google Drive
+  P.driveReminder = function driveReminder(force) {
+    const l = local(this.now(), this.settings.tzOffsetMin);
+    const month = l.date.slice(0, 7);
+    if (!force && (l.date.slice(8) !== '01' || l.min < hm('10:00') || this.db.kvGet('driveRemind', '') === month)) return false;
+    this.db.kvSet('driveRemind', month);
+    this.queuePush('admin', this.ownerIds(), `drive-${month}`, (ur) => ({
+      title: ur ? 'ماہانہ بیک اپ گوگل ڈرائیو میں رکھیں' : 'Save the monthly backup to Google Drive',
+      body: ur ? 'مزید → بیک اپ → "گوگل ڈرائیو میں محفوظ کریں" دبائیں۔' : 'Open More → Backup and tap "Save to Google Drive".',
+    }));
+    return true;
   };
 
   // ---------------------------------------------------------------- birthdays and work anniversaries

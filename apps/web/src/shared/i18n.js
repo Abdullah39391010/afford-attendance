@@ -103,7 +103,7 @@ export const statusLabel = (s) => t(STATUS[s] || s);
 
 export const REQ_TYPES = {
   forgot_in: 'Forgot check-in', forgot_out: 'Forgot check-out', past_day: 'Past-day attendance', leave: 'Leave',
-  advance: 'Advance salary', break: 'Break', undo_checkout: 'Checked out by mistake', field_duty: 'Out-of-town duty', recheckin: 'Check in again', swap: 'Shift swap',
+  advance: 'Advance salary', break: 'Break', undo_checkout: 'Checked out by mistake', field_duty: 'Out-of-town duty', recheckin: 'Check in again', swap: 'Shift swap', pin_reset: 'Forgot PIN',
 };
 export const reqLabel = (s) => t(REQ_TYPES[s] || s);
 

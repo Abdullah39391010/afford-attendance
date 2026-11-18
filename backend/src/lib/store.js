@@ -16,13 +16,13 @@ const ADMIN_TTL = 30 * 24 * 3600 * 1000;
 const EMP_TTL = 365 * 24 * 3600 * 1000;
 const KIOSK_TTL = 365 * 24 * 3600 * 1000;
 const OPEN_MAX_MS = 20 * 3600 * 1000; // a check-in older than this no longer counts as "inside"
-const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'advance', 'break', 'undo_checkout', 'field_duty', 'recheckin', 'swap'];
+const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'advance', 'break', 'undo_checkout', 'field_duty', 'recheckin', 'swap', 'pin_reset'];
 const MONEY_KINDS = ['advance', 'deposit', 'deposit_cut', 'deposit_return', 'bonus', 'commission', 'fine'];
 const MAX_BODY = 1_500_000;
 const REQ_EN = { forgot_in: 'Forgot check-in', forgot_out: 'Forgot check-out', past_day: 'Fix a past day', leave: 'Leave', advance: 'Advance salary',
-  break: 'Extra break', undo_checkout: 'Undo check-out', field_duty: 'Out-of-town duty', recheckin: 'Check in again', swap: 'Shift swap' };
+  break: 'Extra break', undo_checkout: 'Undo check-out', field_duty: 'Out-of-town duty', recheckin: 'Check in again', swap: 'Shift swap', pin_reset: 'Forgot PIN' };
 const REQ_UR = { forgot_in: 'چیک اِن بھول گئے', forgot_out: 'چیک آؤٹ بھول گئے', past_day: 'پچھلے دن کی درستی', leave: 'چھٹی', advance: 'ایڈوانس تنخواہ',
-  break: 'اضافی وقفہ', undo_checkout: 'چیک آؤٹ واپس', field_duty: 'شہر سے باہر ڈیوٹی', recheckin: 'دوبارہ چیک اِن', swap: 'شفٹ کی تبدیلی' };
+  break: 'اضافی وقفہ', undo_checkout: 'چیک آؤٹ واپس', field_duty: 'شہر سے باہر ڈیوٹی', recheckin: 'دوبارہ چیک اِن', swap: 'شفٹ کی تبدیلی', pin_reset: 'پن بھول گئے' };
 
 const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
@@ -390,7 +390,9 @@ export class Store {
       throw new HttpError(401, 'WRONG_PIN', 'Wrong name or PIN');
     }
     this.lockClear(keys[0]);
-    const token = await this.issueToken('admin', a.id, str(body.deviceId, 80), ADMIN_TTL);
+    // a browser (owner web page) stays logged in for 12 hours; the phone app for 30 days
+    const web = str(body.deviceId, 80).startsWith('web-');
+    const token = await this.issueToken('admin', a.id, str(body.deviceId, 80), web ? 12 * 3600 * 1000 : ADMIN_TTL);
     this.audit({ id: a.id, name: a.name }, 'login', null, { device: str(body.deviceName, 60) });
     return { token, me: { id: a.id, name: a.name, login: a.login, role: a.role, perms: JSON.parse(a.perms) }, serverTime: this.now() };
   }
@@ -1325,7 +1327,7 @@ export class Store {
     return { since: rows.length ? rows[rows.length - 1].decided : since, items };
   }
 
-  decide({ actor, params, body }) {
+  async decide({ actor, params, body }) {
     const r = this.db.get('SELECT * FROM requests WHERE id = ?', params.id);
     if (!r) throw notFound('Request');
     if (r.status !== 'pending') throw bad('ALREADY_DECIDED', 'This request was already decided');
@@ -1402,6 +1404,10 @@ export class Store {
           break;
         case 'swap':
           this.applySwap(actor, emp, data);
+          break;
+        case 'pin_reset':
+          if (!this.can(actor, 'employees.edit')) throw forbidden('NO_PERMISSION', 'You need the "employees.edit" permission');
+          await this.applyPinReset(actor, emp, body, data, result);
           break;
         case 'undo_checkout': {
           const p = this.db.get('SELECT * FROM punches WHERE id = ?', data.punchId);

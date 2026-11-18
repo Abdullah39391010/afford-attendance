@@ -161,6 +161,8 @@ export default {
     if (env.ASSETS) {
       // the main address opens the staff web version (for iPhones)
       if (url.pathname === '/' || url.pathname === '/staff') return Response.redirect(`${url.origin}/staff/`, 302);
+      // the owner web page (the admin app in a browser)
+      if (url.pathname === '/owner' || url.pathname === '/admin') return Response.redirect(`${url.origin}/owner/`, 302);
       return env.ASSETS.fetch(request);
     }
     return new Response('Afford attendance API', { status: 200 });

@@ -22,6 +22,9 @@ import { More, Reports, Audit, ChangePin } from './more.jsx';
 import { SettingsHome, SettingsLocation, SettingsShifts, SettingsRoles, SettingsRules, SettingsHolidays, SettingsStore, Users } from './settings.jsx';
 import { KioskSetup, KioskMode } from './kiosk.jsx';
 
+// the owner web page: the same admin app, opened in a laptop or phone browser
+const IS_WEB = (typeof __WEB_APP__ !== 'undefined' && __WEB_APP__);
+
 export const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
 
@@ -56,7 +59,7 @@ export function App() {
     const dev = await deviceInfo();
     api.setDevice(dev.deviceId);
     if (!api.base) return show('server');
-    const kiosk = await secureGet('kioskToken');
+    const kiosk = IS_WEB ? null : await secureGet('kioskToken');
     if (kiosk) { api.setToken(kiosk); return show('kiosk'); }
     try {
       const inf = await api.get('/api/info');
@@ -98,7 +101,7 @@ export function App() {
   setBackHome('board', phase === 'app');
   return (
     <div>
-      {phase === 'splash' && <Splash title="Afford Super Store" sub={t('Attendance & Payroll · Admin')} onDone={onSplashDone} />}
+      {phase === 'splash' && <Splash title="Afford Super Store" sub={t('Attendance & Payroll · Admin')} onDone={onSplashDone} minMs={IS_WEB ? 1200 : undefined} />}
       {phase === 'server' && <ServerSetup err={bootErr} onSaved={() => { setPhase('splash2'); boot().then(() => { splashDone.current = true; setPhase(nextPhase.current || 'login'); }); }} />}
       {phase === 'splash2' && <div class="auth"><Spinner /></div>}
       {phase === 'setup' && <OwnerSetup onDone={signedIn} />}
@@ -107,7 +110,7 @@ export function App() {
       {phase === 'app' && me && <Shell me={me} logout={logout} toKiosk={() => setPhase('kiosk')} />}
       <ToastHost />
       <ConfirmHost />
-      {phase !== 'splash' && <UpdatePopup />}
+      {phase !== 'splash' && !IS_WEB && <UpdatePopup />}
     </div>
   );
 }
@@ -305,13 +308,13 @@ function Shell({ me, logout, toKiosk }) {
   const bref = useRef(null);
   bref.current = { me, settings };
   useEffect(() => {
-    const tick = () => autoBackupTick(bref.current);
+    const tick = () => !IS_WEB && autoBackupTick(bref.current);
     const iv = setInterval(tick, 60000);
     const onVis = () => document.visibilityState === 'visible' && tick();
     document.addEventListener('visibilitychange', onVis);
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   }, []);
-  useEffect(() => { if (settings) autoBackupTick(bref.current); }, [settings]);
+  useEffect(() => { if (settings && !IS_WEB) autoBackupTick(bref.current); }, [settings]);
 
   const tab = route.parts[0] || 'board';
   useEffect(() => {
