@@ -247,6 +247,12 @@ export function StaffDetail({ id, tab, q }) {
                 </div>
               </div>
             </div>
+            {app.can('employees.edit') && (
+              <div class="btn-row" style="margin:0 0 12px">
+                <button class="btn ghost" onClick={() => go(`staff/${id}/edit`)}><Icon n="edit" />{t('Edit details')}</button>
+                <button class="btn soft" onClick={() => delEmp(e)}><Icon n="trash" />{t('Delete')}</button>
+              </div>
+            )}
             <div class="tabs">{tabs.map(([k, l]) => <button key={k} class={`chip ${tab === k ? 'on' : ''}`} onClick={() => replace(`staff/${id}/${k}`)}>{l}</button>)}</div>
             {tab === 'info' && <Info e={e} reload={() => st.reload(true)} />}
             {tab === 'cal' && <EmpCalendar e={e} />}
@@ -259,6 +265,11 @@ export function StaffDetail({ id, tab, q }) {
   );
 }
 
+async function delEmp(e) {
+  if (!(await confirmBox({ title: t('Delete {name}?', { name: e.name }), text: t('The employee is removed from lists. Old attendance and salary records are kept.'), yes: t('Delete'), danger: true }))) return;
+  try { await api.del(`/api/admin/employees/${e.id}`); toast(t('Deleted'), 'ok'); go('staff'); } catch (err) { toastErr(err); }
+}
+
 function Info({ e, reload }) {
   const app = useApp();
   const s = app.settings;
@@ -267,10 +278,6 @@ function Info({ e, reload }) {
   const resetPhone = async () => {
     if (!(await confirmBox({ title: t('Reset phone for {name}?', { name: e.name }), text: t('The old phone stops working at once. The employee can then log in on a new phone.'), yes: t('Reset phone'), danger: true }))) return;
     try { await api.post(`/api/admin/employees/${e.id}/reset-device`); toast(t('Phone reset'), 'ok'); reload(); } catch (err) { toastErr(err); }
-  };
-  const del = async () => {
-    if (!(await confirmBox({ title: t('Delete {name}?', { name: e.name }), text: t('The employee is removed from lists. Old attendance and salary records are kept.'), yes: t('Delete'), danger: true }))) return;
-    try { await api.del(`/api/admin/employees/${e.id}`); toast(t('Deleted'), 'ok'); go('staff'); } catch (err) { toastErr(err); }
   };
   const month = todayStr(api.serverNow()).slice(0, 7);
   return (
@@ -292,7 +299,6 @@ function Info({ e, reload }) {
       <div style="display:grid;gap:10px;margin-bottom:20px">
         {app.can('payroll.view') && <button class="btn ghost" onClick={() => go(`payroll/${e.id}?month=${month}`)}><Icon n="money" />{t('Salary statement')}</button>}
         {app.me.role === 'owner' && e.deviceBound && <button class="btn ghost" onClick={resetPhone}><Icon n="phone" />{t('Reset phone (allow new phone)')}</button>}
-        {app.can('employees.edit') && <button class="btn soft" onClick={del}><Icon n="trash" />{t('Delete employee')}</button>}
       </div>
     </div>
   );

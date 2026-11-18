@@ -316,7 +316,7 @@ export function SettingsHolidays() {
 }
 
 const PERM_LABELS = {
-  'employees.view': 'View staff', 'employees.edit': 'Add & edit staff, set PINs', 'attendance.punch': 'Check staff in/out, mark leave',
+  'employees.view': 'View staff', 'employees.edit': 'Add, edit & delete staff, set PINs', 'attendance.punch': 'Check staff in/out, mark leave',
   'requests.decide': 'Approve / decline requests', 'payroll.view': 'See salaries & statements', 'money.edit': 'Advances & security deposits',
   'reports.view': 'Reports & exports', 'settings.edit': 'Change settings & rules', 'audit.view': 'See audit log', 'kiosk.setup': 'Set up kiosk phone',
 };

@@ -1,7 +1,7 @@
 {
-  "version": "0.6.2",
+  "version": "0.6.3",
   "notes": {
-    "en": "New app icon: white shopping bag with the red Afford A. Instant alerts are now switched on.",
-    "ur": "نیا ایپ آئیکن: سفید شاپنگ بیگ پر سرخ Afford کا A۔ فوری اطلاعات اب آن ہیں۔"
+    "en": "New app icon (white shopping bag with the red A). Instant alerts switched on. Staff page now has clear Edit details and Delete buttons; managers can do this when allowed.",
+    "ur": "نیا ایپ آئیکن (سفید شاپنگ بیگ پر سرخ A)۔ فوری اطلاعات آن۔ ملازم کے صفحے پر \"تفصیل تبدیل کریں\" اور \"حذف\" کے بٹن؛ اجازت ہو تو مینیجر بھی کر سکتا ہے۔"
   }
 }

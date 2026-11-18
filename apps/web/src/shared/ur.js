@@ -166,7 +166,7 @@ export const UR = {
   'Holidays': 'تعطیلات', '{n} holidays': '{n} تعطیلات', 'Add holiday': 'تعطیل شامل کریں', 'No holidays added': 'کوئی تعطیل شامل نہیں', 'Save holidays': 'تعطیلات محفوظ کریں',
   'Holidays are paid days off for everyone, e.g. Eid.': 'تعطیلات سب کے لیے تنخواہ والی چھٹی ہیں، مثلاً عید۔', 'e.g. Eid ul Fitr': 'مثلاً عید الفطر',
   'Add manager': 'مینیجر شامل کریں', 'Edit manager': 'مینیجر تبدیل کریں', '{n} permissions': '{n} اختیارات', 'Can do': 'کر سکتا ہے', 'Owner / Admin — everything': 'مالک / ایڈمن — سب کچھ',
-  'Remove {name}?': '{name} کو ہٹائیں؟', 'View staff': 'ملازمین دیکھیں', 'Add & edit staff, set PINs': 'ملازم شامل اور تبدیل کریں، پن رکھیں',
+  'Remove {name}?': '{name} کو ہٹائیں؟', 'View staff': 'ملازمین دیکھیں', 'Add, edit & delete staff, set PINs': 'ملازم شامل، تبدیل اور حذف کریں، پن رکھیں', 'Edit details': 'تفصیل تبدیل کریں',
   'Check staff in/out, mark leave': 'ملازمین کی حاضری لگائیں، چھٹی نشان زد کریں', 'Approve / decline requests': 'درخواستیں منظور / نامنظور کریں',
   'See salaries & statements': 'تنخواہیں اور تفصیل دیکھیں', 'Add advance / deposit / bonus': 'ایڈوانس / ڈپازٹ / بونس شامل کریں', 'Advances & security deposits': 'ایڈوانس اور سیکیورٹی ڈپازٹ',
   'Reports & exports': 'رپورٹس اور ایکسپورٹ', 'Change settings & rules': 'سیٹنگز اور اصول تبدیل کریں', 'See audit log': 'آڈٹ لاگ دیکھیں', 'Set up kiosk phone': 'کیوسک فون سیٹ کریں',
