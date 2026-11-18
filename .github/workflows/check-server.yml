@@ -1,0 +1,15 @@
+name: Check live server (read-only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Server info and update check
+        run: |
+          B=https://afford-attendance.abdullah6763939.workers.dev
+          echo "== /api/info"; curl -sS "$B/api/info"; echo
+          echo "== latest admin"; curl -sS "$B/api/app/latest?app=admin"; echo
+          echo "== latest employee"; curl -sS "$B/api/app/latest?app=employee&t=$(date +%s)"; echo
