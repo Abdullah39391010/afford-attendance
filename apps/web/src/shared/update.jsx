@@ -51,15 +51,24 @@ export function UpdatePopup() {
     }
   };
   useEffect(() => {
-    const check = async () => {
+    let last = 0;
+    // manual = the "Check for updates" button: ignores "later" and says when there is nothing new
+    const check = async (manual) => {
+      last = Date.now();
       try {
-        const r = await api.get(`/api/app/latest?app=${__APP_KIND__}`);
-        if (r.version && newer(r.version, __APP_VERSION__) && Date.now() > Number(LS.get(`afford.snooze.${r.version}`) || 0)) setRel(r);
-      } catch { /* offline: try later */ }
+        const r = await api.get(`/api/app/latest?app=${__APP_KIND__}&t=${manual ? Date.now() : ''}`);
+        if (r.version && newer(r.version, __APP_VERSION__) && (manual || Date.now() > Number(LS.get(`afford.snooze.${r.version}`) || 0))) setRel(r);
+        else if (manual) toast(r.version ? t('You have the latest version ({v}).', { v: __APP_VERSION__ }) : t('Could not check for updates. Try again later.'), r.version ? 'ok' : 'err');
+      } catch { if (manual) toast(t('Could not check for updates. Try again later.'), 'err'); }
     };
-    const tm = setTimeout(check, 4000);
-    const iv = setInterval(check, 6 * 3600 * 1000);
-    return () => { clearTimeout(tm); clearInterval(iv); };
+    const tm = setTimeout(() => check(false), 4000);
+    const iv = setInterval(() => check(false), 3 * 3600 * 1000);
+    // also check when the app comes back to the screen (at most every 30 minutes)
+    const onVis = () => { if (document.visibilityState === 'visible' && Date.now() - last > 30 * 60000) check(false); };
+    const onAsk = () => check(true);
+    document.addEventListener('visibilitychange', onVis);
+    addEventListener('afford-check-update', onAsk);
+    return () => { clearTimeout(tm); clearInterval(iv); document.removeEventListener('visibilitychange', onVis); removeEventListener('afford-check-update', onAsk); };
   }, []);
   if (!rel) return null;
   return (
@@ -85,4 +94,9 @@ export function UpdatePopup() {
       </div>
     </Dialog>
   );
+}
+
+/** "Check for updates" button for the More screens. */
+export function CheckUpdateButton() {
+  return <button class="btn block ghost" onClick={() => dispatchEvent(new Event('afford-check-update'))}><Icon n="download" />{t('Check for updates')}</button>;
 }

@@ -14,6 +14,7 @@ import { PunchSheet } from '../shared/punchsheet.jsx';
 import { getLoc } from './home.jsx';
 import { useEmp } from './app.jsx';
 import { TestAlert } from '../shared/perms.jsx';
+import { CheckUpdateButton } from '../shared/update.jsx';
 
 // ---------------------------------------------------------------- calendar
 export function MyCalendar() {
@@ -267,6 +268,7 @@ export function MyMore() {
           <FingerToggle title={t('Unlock Afford Staff')} />
         </div>
         <TestAlert kind="emp" />
+        <CheckUpdateButton />
         <Banner kind="info" icon="phone">{t('This app is linked to this phone. If you change your phone, ask the owner to reset it.')}</Banner>
         <button class="btn block ghost" onClick={async () => { if (await confirmBox({ title: t('Log out?'), text: t('You will need your PIN to log in again.'), yes: t('Log out'), danger: true })) E.logout(); }}><Icon n="logout" />{t('Log out')}</button>
         <Credit app="Afford Staff" />

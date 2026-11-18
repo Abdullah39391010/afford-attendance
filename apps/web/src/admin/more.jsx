@@ -9,6 +9,7 @@ import { tableDoc, printDoc, shareDocPdf, shareCsv } from '../shared/printdoc.js
 import { AuditList } from './staff.jsx';
 import { useApp } from './app.jsx';
 import { TestAlert } from '../shared/perms.jsx';
+import { CheckUpdateButton } from '../shared/update.jsx';
 
 export function More() {
   const app = useApp();
@@ -42,6 +43,7 @@ export function More() {
           <FingerToggle title={t('Unlock Afford Admin')} />
         </div>
         {app.can('requests.decide') && <TestAlert kind="admin" />}
+        <CheckUpdateButton />
         <button class="btn block ghost" onClick={app.logout}><Icon n="logout" />{t('Log out')}</button>
         <Credit app="Afford Admin" />
       </div>

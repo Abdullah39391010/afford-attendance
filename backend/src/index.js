@@ -42,37 +42,51 @@ export class StoreDO extends DurableObject {
   }
 }
 
-/** Latest release info for the in-app update popup (cached for 10 minutes). */
+/** Latest release info for the in-app update popup.
+ * GitHub's API allows only 60 calls an hour per IP without a token, and Cloudflare's IPs are shared,
+ * so it is often refused. Then the public releases feed is used instead (not rate limited). */
 async function latestRelease(env, app, ctx) {
   const repo = env.GITHUB_REPO;
   if (!repo) return { version: null };
   const cache = caches.default;
-  const key = new Request(`https://cache.local/release/${repo}/${app}`);
-  const hit = await cache.match(key);
+  const key = new Request(`https://cache.local/release2/${repo}/${app}`);
+  const hit = await cache.match(key).catch(() => null);
   if (hit) return hit.json();
+  const ua = { 'user-agent': 'afford-attendance-worker' };
   let out = { version: null };
   try {
-    const res = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=20`, {
-      headers: { 'user-agent': 'afford-attendance-worker', accept: 'application/vnd.github+json' },
-    });
+    const res = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=20`, { headers: { ...ua, accept: 'application/vnd.github+json' } });
     if (res.ok) {
       const list = await res.json();
-      const rel = list.find((r) => !r.draft && !r.prerelease && r.assets?.some((a) => a.name.startsWith(`afford-${app}`)));
+      const rel = list.find((r) => !r.draft && !r.prerelease && r.assets?.some((a) => a.name.startsWith(`afford-${app}`) && a.name.endsWith('.apk')));
       if (rel) {
         const asset = rel.assets.find((a) => a.name.startsWith(`afford-${app}`) && a.name.endsWith('.apk'));
-        out = {
-          version: (rel.tag_name.match(/\d+\.\d+\.\d+/) || [null])[0],
-          notes: rel.body || '',
-          url: asset?.browser_download_url || rel.html_url,
-          published: rel.published_at,
-        };
+        out = { version: (rel.tag_name.match(/\d+\.\d+\.\d+/) || [null])[0], notes: rel.body || '', url: asset.browser_download_url, published: rel.published_at, via: 'api' };
       }
     }
-  } catch {
-    /* offline or rate limited: report no update */
+  } catch { /* fall back below */ }
+  if (!out.version) {
+    try {
+      const feed = await (await fetch(`https://github.com/${repo}/releases.atom`, { headers: ua })).text();
+      const tags = [...feed.matchAll(/\/releases\/tag\/(v(\d+\.\d+\.\d+)-\d+)/g)];
+      for (const [, tag, ver] of tags) {
+        const url = `https://github.com/${repo}/releases/download/${tag}/afford-${app}-${ver}.apk`;
+        const head = await fetch(url, { method: 'HEAD', headers: ua, redirect: 'manual' });
+        if (head.status >= 400) continue; // this release has no APK for this app
+        let notes = '';
+        try {
+          const vj = await (await fetch(`https://raw.githubusercontent.com/${repo}/${tag}/apps/version.json`, { headers: ua })).json();
+          notes = `${vj.notes?.en || ''}\n\nUR: ${vj.notes?.ur || ''}`;
+        } catch { /* no notes */ }
+        out = { version: ver, notes, url, via: 'feed' };
+        break;
+      }
+    } catch { /* offline: no update */ }
   }
-  const resp = new Response(JSON.stringify(out), { headers: { 'cache-control': 'max-age=600', 'content-type': 'application/json' } });
-  ctx.waitUntil(cache.put(key, resp.clone()));
+  if (out.version) {
+    const resp = new Response(JSON.stringify(out), { headers: { 'cache-control': 'max-age=300', 'content-type': 'application/json' } });
+    ctx.waitUntil(cache.put(key, resp.clone()).catch(() => {}));
+  }
   return out;
 }
 

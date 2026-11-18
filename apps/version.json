@@ -1,7 +1,7 @@
 {
-  "version": "0.6.4",
+  "version": "0.6.5",
   "notes": {
-    "en": "New login screen: logo on top, a card showing who is logging in, and a cleaner PIN pad. Plus the shopping-bag icon, instant alerts and the staff Edit / Delete buttons.",
-    "ur": "نئی لاگ ان اسکرین: اوپر لوگو، کون لاگ ان کر رہا ہے اس کا کارڈ، اور صاف پن پیڈ۔ ساتھ میں شاپنگ بیگ آئیکن، فوری اطلاعات اور ملازم تبدیل / حذف کے بٹن۔"
+    "en": "Update check fixed: the app now finds new versions reliably, checks again when you come back to it, and has a \"Check for updates\" button in More.",
+    "ur": "اپڈیٹ چیک ٹھیک: ایپ اب نیا ورژن صحیح ڈھونڈتی ہے، واپس کھولنے پر دوبارہ چیک کرتی ہے، اور \"مزید\" میں \"اپڈیٹ چیک کریں\" کا بٹن ہے۔"
   }
 }
