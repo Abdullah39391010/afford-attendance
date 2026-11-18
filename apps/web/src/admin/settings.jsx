@@ -5,10 +5,11 @@ import { AffordDevice } from 'afford-device';
 import { api } from '../shared/api.js';
 import { t, nm, errText } from '../shared/i18n.js';
 import { dayShort, fmtDate, todayStr, addDays } from '../shared/format.js';
-import { TopBar, Icon, Field, Toggle, Seg, Sheet, Loader, useLoad, toast, toastErr, go, Spinner, Empty, confirmBox, Banner, Pill } from '../shared/ui.jsx';
+import { TopBar, Icon, Avatar, Field, Toggle, Seg, Sheet, Loader, useLoad, toast, toastErr, go, Spinner, Empty, confirmBox, Banner, Pill } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
 import { resizePhoto } from './staff.jsx';
 import { SignaturePad } from './ops.jsx';
+import { AdminPhoto } from './more.jsx';
 import { SigImage } from '../shared/statement.jsx';
 import { pakistanHolidays, PK_YEARS } from './extra.jsx';
 
@@ -478,7 +479,7 @@ export function Users() {
           <div class="list">
             {d.users.map((u) => (
               <button key={u.id} class="row" onClick={() => setEdit({ ...u, pin: '' })}>
-                <div class="avatar">{u.name.slice(0, 1)}</div>
+                <Avatar name={u.name} src={u.hasPhoto ? `/api/admin/users/${u.id}/photo` : null} ver={u.photoVer} />
                 <div class="main"><div class="title">{u.name} <span class="muted small ltr">{u.login}</span></div>
                   <div class="sub">{u.role === 'owner' ? t('Owner / Admin — everything') : t('{n} permissions', { n: u.perms.length })}</div></div>
                 {!u.active && <Pill s="absent">{t('Inactive')}</Pill>}
@@ -491,6 +492,7 @@ export function Users() {
       <Sheet open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? t('Edit manager') : t('Add manager')}>
         {edit && (
           <div>
+            {edit.id && <div class="gap" style="margin-bottom:10px"><AdminPhoto id={edit.id} name={edit.name} ver={edit.hasPhoto ? edit.photoVer || 1 : 0} onChanged={() => st.reload(true)} /><span class="small muted">{t('Tap the picture to add or change the photo.')}</span></div>}
             <Field label={t('Name')}><input class="input" value={edit.name} onInput={(e) => setEdit({ ...edit, name: e.currentTarget.value })} /></Field>
             <div class="two">
               <Field label={t('Login name')}><input class="input ltr" style="width:100%" autocapitalize="off" value={edit.login} onInput={(e) => setEdit({ ...edit, login: e.currentTarget.value.toLowerCase() })} /></Field>

@@ -182,4 +182,7 @@ export const UR2 = {
   "Signature saved": "دستخط محفوظ",
   "Signature removed": "دستخط ہٹا دیے گئے",
   "Remove the authorised signature?": "مجاز دستخط ہٹا دیں؟",
+  "Photo saved": "تصویر محفوظ",
+  "Change photo": "تصویر بدلیں",
+  "Tap the picture to add or change the photo.": "تصویر شامل کرنے یا بدلنے کے لیے تصویر پر دبائیں۔",
 };

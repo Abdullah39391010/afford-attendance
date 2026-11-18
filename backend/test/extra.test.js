@@ -422,3 +422,20 @@ test('blood group saved and checked', async () => {
   const list = (await t.api('GET', '/api/admin/employees', null, t.owner)).data.employees;
   assert.ok('bloodGroup' in list.find((x) => x.id === t.ali.id));
 });
+
+test('owner and manager photos', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  const jpg = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJ';
+  let me = (await t.api('GET', '/api/admin/me', null, t.owner)).data.me;
+  assert.equal(me.hasPhoto, false);
+  let r = await t.api('PUT', '/api/admin/me/photo', { dataUrl: jpg }, t.owner);
+  assert.equal(r.data.ok, true);
+  me = (await t.api('GET', '/api/admin/me', null, t.owner)).data.me;
+  assert.equal(me.hasPhoto, true);
+  const res = await t.api('GET', `/api/admin/users/${me.id}/photo`, null, t.owner);
+  assert.equal(res.status, 200);
+  const users = (await t.api('GET', '/api/admin/users', null, t.owner)).data.users;
+  assert.equal(users.find((u) => u.id === me.id).hasPhoto, true);
+  r = await t.api('PUT', '/api/admin/me/photo', { dataUrl: 'data:text/html;base64,AAAA' }, t.owner);
+  assert.equal(r.data.error, 'BAD_IMAGE');
+});

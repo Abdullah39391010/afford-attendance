@@ -4,6 +4,7 @@
 //  - staff can change their own PIN in the staff app
 import { bad, HttpError } from './util.js';
 import { hashPin, checkPin, validPin } from './crypto.js';
+import { dataUrlResponse } from './store.js';
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
@@ -20,6 +21,31 @@ export function installPins(Store) {
     add('POST', '/api/emp/me/pin', this.empChangePin, { auth: 'emp' });
     add('GET', '/api/admin/auth-signature', this.getAuthSig, A('payroll.view'));
     add('PUT', '/api/admin/auth-signature', this.putAuthSig, A(null, { owner: true }));
+    add('GET', '/api/admin/users/:id/photo', this.adminPhoto, A());
+    add('PUT', '/api/admin/me/photo', (c) => this.putAdminPhoto({ ...c, params: { id: c.actor.id } }), A());
+    add('PUT', '/api/admin/users/:id/photo', this.putAdminPhoto, A(null, { owner: true }));
+  };
+
+  // ---------------------------------------------------------------- owner / manager photos (like staff photos)
+  P.adminPhotoInfo = function adminPhotoInfo(id) {
+    const v = this.db.kvGet(`aphoto:${id}`, null);
+    return { hasPhoto: !!v, photoVer: v?.ts || 0 };
+  };
+  P.adminPhoto = function adminPhoto({ params }) {
+    const v = this.db.kvGet(`aphoto:${params.id}`, null);
+    if (!v?.data) return new Response(null, { status: 404 });
+    return dataUrlResponse(v.data);
+  };
+  P.putAdminPhoto = function putAdminPhoto({ actor, body, params }) {
+    const u = this.db.get('SELECT id, name FROM admins WHERE id = ?', params.id);
+    if (!u) throw bad('NOT_FOUND', 'User not found');
+    const d = body.dataUrl ? String(body.dataUrl) : null;
+    if (d && !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(d)) throw bad('BAD_IMAGE', 'Photo must be a PNG, JPEG or WEBP image');
+    if (d && d.length > 300_000) throw bad('TOO_LARGE', 'Photo is too large');
+    if (d) this.db.kvSet(`aphoto:${u.id}`, { data: d, ts: this.now() });
+    else this.db.run('DELETE FROM kv WHERE k = ?', `aphoto:${u.id}`);
+    this.audit(actor, 'user.photo', u.id, { name: u.name });
+    return { ok: true, ...this.adminPhotoInfo(u.id) };
   };
 
   // ---------------------------------------------------------------- authorised signature (owner, drawn once)

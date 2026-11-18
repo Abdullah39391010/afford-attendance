@@ -280,7 +280,7 @@ export class Store {
     add('POST', '/api/emp/login', this.empLogin);
     add('POST', '/api/kiosk/login', this.kioskLogin);
     // admin
-    add('GET', '/api/admin/me', (c) => ({ me: c.actor, permissions: PERMISSIONS, serverTime: this.now() }), A());
+    add('GET', '/api/admin/me', (c) => ({ me: { ...c.actor, ...this.adminPhotoInfo(c.actor.id) }, permissions: PERMISSIONS, serverTime: this.now() }), A());
     add('POST', '/api/admin/logout', this.logout, A());
     add('POST', '/api/admin/me/pin', this.changeOwnPin, A());
     add('GET', '/api/admin/changes', this.changes, A());
@@ -461,7 +461,7 @@ export class Store {
   listUsers() {
     return {
       users: this.db.all('SELECT id, name, login, role, perms, active, created FROM admins ORDER BY created')
-        .map((u) => ({ ...u, perms: JSON.parse(u.perms), active: !!u.active, branchId: this.db.kvGet('adminBranches', {})[u.id] || '' })),
+        .map((u) => ({ ...u, perms: JSON.parse(u.perms), active: !!u.active, branchId: this.db.kvGet('adminBranches', {})[u.id] || '', ...this.adminPhotoInfo(u.id) })),
       permissions: PERMISSIONS,
     };
   }
@@ -505,6 +505,7 @@ export class Store {
     const u = this.db.get('SELECT * FROM admins WHERE id = ?', params.id);
     if (!u) throw notFound('User');
     this.db.run('DELETE FROM admins WHERE id = ?', params.id);
+    this.db.run('DELETE FROM kv WHERE k = ?', `aphoto:${params.id}`);
     this.db.run("DELETE FROM sessions WHERE kind = 'admin' AND sub = ?", params.id);
     this.audit(actor, 'user.deleted', params.id, { name: u.name });
     return { ok: true };
@@ -1813,7 +1814,7 @@ function pickDay(d) {
 function reqOut(r) {
   return { id: r.id, emp: r.emp, type: r.type, data: JSON.parse(r.data), status: r.status, note: r.note, created: r.created, decided: r.decided };
 }
-function dataUrlResponse(d) {
+export function dataUrlResponse(d) {
   const m = /^data:(image\/[a-z+]+);base64,(.+)$/.exec(d);
   const bin = Uint8Array.from(atob(m[2]), (ch) => ch.charCodeAt(0));
   return new Response(bin, { headers: { 'content-type': m[1], 'cache-control': 'private, max-age=86400' } });

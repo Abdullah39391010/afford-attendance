@@ -1,12 +1,12 @@
 // More menu, reports (daily / weekly / monthly, late and absent lists, CSV + PDF), audit log, change PIN.
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 import { api } from '../shared/api.js';
 import { t, nm, statusLabel, getLang, setLang } from '../shared/i18n.js';
 import { fmtTime, fmtDur, fmtDate, todayStr, addDays } from '../shared/format.js';
-import { TopBar, Icon, Loader, useLoad, toast, toastErr, go, goBack, Seg, Chips, Field, Spinner, Empty, Pill, LangSwitch, FingerToggle, Credit } from '../shared/ui.jsx';
+import { TopBar, Icon, Avatar, Loader, useLoad, toast, toastErr, go, goBack, Seg, Chips, Field, Spinner, Empty, Pill, LangSwitch, FingerToggle, Credit } from '../shared/ui.jsx';
 import { tableDoc, printDoc, shareDocPdf, shareCsv } from '../shared/printdoc.js';
-import { AuditList } from './staff.jsx';
+import { AuditList, resizePhoto } from './staff.jsx';
 import { useApp } from './app.jsx';
 import { TestAlert } from '../shared/perms.jsx';
 import { CheckUpdateButton } from '../shared/update.jsx';
@@ -30,7 +30,7 @@ export function More() {
       <TopBar logo title={t('More')} />
       <div class="wrap">
         <div class="card gap">
-          <div class="avatar">{app.me.name.slice(0, 1)}</div>
+          <AdminPhoto id={app.me.id} name={app.me.name} self />
           <div class="grow"><b>{app.me.name}</b><div class="small muted">{app.me.role === 'owner' ? t('Owner / Admin') : t('Manager')} · <span class="ltr">{app.me.login}</span></div></div>
         </div>
         <div class="list">
@@ -187,5 +187,34 @@ export function ChangePin() {
         <button class="btn block" onClick={save}>{t('Save')}</button>
       </div>
     </div>
+  );
+}
+
+/** Owner / manager photo. Tap it to choose a new picture. `self` = my own photo, otherwise the owner sets someone else's. */
+export function AdminPhoto({ id, name, self, ver: ver0, onChanged }) {
+  const [ver, setVer] = useState(ver0);
+  const [has, setHas] = useState(ver0 ? true : undefined);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!self || has !== undefined) return;
+    api.get('/api/admin/me').then((r) => { setHas(!!r.me.hasPhoto); setVer(r.me.photoVer); }).catch(() => setHas(false));
+  }, [id]);
+  const pick = async (e) => {
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = '';
+    if (!file) return;
+    setBusy(true);
+    try {
+      const dataUrl = await resizePhoto(file);
+      const r = await api.put(self ? '/api/admin/me/photo' : `/api/admin/users/${id}/photo`, { dataUrl });
+      setHas(true); setVer(r.photoVer); toast(t('Photo saved'), 'ok'); onChanged?.();
+    } catch (x) { toastErr(x); } finally { setBusy(false); }
+  };
+  return (
+    <label style="position:relative;cursor:pointer;flex:none" aria-label={t('Change photo')}>
+      <Avatar lg name={name} src={has ? `/api/admin/users/${id}/photo` : null} ver={ver} />
+      <span style="position:absolute;right:-2px;bottom:-2px;background:var(--card);border-radius:50%;padding:3px;box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex">{busy ? <Spinner sm /> : <Icon n="edit" />}</span>
+      <input type="file" accept="image/*" style="display:none" onChange={pick} />
+    </label>
   );
 }

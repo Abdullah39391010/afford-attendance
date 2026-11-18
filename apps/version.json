@@ -1,7 +1,7 @@
 {
-  "version": "0.10.2",
+  "version": "0.10.3",
   "notes": {
-    "en": "Authorised signature: the owner signs once in Settings > Store, and payslips add it after the employee signs for the salary.",
-    "ur": "مجاز دستخط: مالک سیٹنگز > اسٹور میں ایک بار دستخط کرے، ملازم کے تنخواہ پر دستخط کے بعد پے سلپ پر یہ خود لگ جائیں گے۔"
+    "en": "Photos for the owner and managers: tap your picture in More, or set a manager's photo in More > Managers.",
+    "ur": "مالک اور مینیجرز کی تصویر: More میں اپنی تصویر پر دبائیں، یا More > مینیجرز میں مینیجر کی تصویر لگائیں۔"
   }
 }
