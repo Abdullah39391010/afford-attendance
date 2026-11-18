@@ -6,6 +6,7 @@ import {
 import { hashPin, checkPin, newToken, sha256, validPin } from './crypto.js';
 import { makeBackup, checkBackup, applyBackup } from './backup.js';
 import { sendPushes } from './push.js';
+import { installPro } from './pro.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -242,6 +243,9 @@ export class Store {
     } catch (e) {
       if (e instanceof HttpError) return json({ error: e.code, message: e.message, ...(e.extra || {}) }, e.status);
       console.error(e);
+      this.outbox = [];
+      this.logError(`${req.method} ${path.replace(/\/[A-Za-z0-9_-]{16,}/g, '/:id')}`, e);
+      if (this.outbox.length) await this.flushPush().catch(() => {});
       return json({ error: 'SERVER', message: 'Something went wrong' }, 500);
     }
   }
@@ -328,6 +332,7 @@ export class Store {
     add('GET', '/api/kiosk/employees', this.kioskEmployees, { auth: 'kiosk' });
     add('GET', '/api/kiosk/employees/:id/photo', this.kioskEmpPhoto, { auth: 'kiosk' });
     add('POST', '/api/kiosk/punch', this.kioskPunch, { auth: 'kiosk' });
+    this.proRoutes(add, A);
     return R;
   }
 
@@ -504,6 +509,10 @@ export class Store {
     const e = this.empRow(params.id);
     const out = this.empOut(e, actor);
     if (this.can(actor, 'payroll.view')) out.depositBalance = this.depositBalance(e.id);
+    const ps = this.db.get("SELECT data FROM approvals WHERE kind = 'salary' AND status = 'pending' AND emp = ? ORDER BY created DESC LIMIT 1", e.id);
+    if (ps && this.can(actor, 'payroll.view')) out.salaryPending = JSON.parse(ps.data).to;
+    const acc = this.db.kvGet('policyAccept', {})[e.id] || null;
+    out.rulesAccepted = acc ? { ...acc, current: acc.ver === this.policyVer() } : null;
     return { employee: out };
   }
   nextCode() {
@@ -538,6 +547,12 @@ export class Store {
     if (!s.roles.some((r) => r.id === data.roleId)) throw bad('BAD_ROLE', 'Unknown role');
     if (!s.shifts.some((r) => r.id === data.shiftId)) throw bad('BAD_SHIFT', 'Unknown shift');
     if (existing && !this.can(actor, 'payroll.view')) data.salary = existing.salary; // cannot change what they cannot see
+    // a manager's salary change waits for the owner
+    let salaryAsk = null;
+    if (!this.isOwner(actor) && data.salary !== (existing ? existing.salary : 0)) {
+      salaryAsk = { from: existing ? existing.salary : 0, to: data.salary };
+      data.salary = existing ? existing.salary : 0;
+    }
     let code = str(body.code, 20) || cur.code || this.nextCode();
     if (!/^[A-Za-z0-9-]{1,20}$/.test(code)) throw bad('BAD_CODE', 'Employee code can use letters, numbers and dash');
     const dupe = this.db.get('SELECT id FROM employees WHERE lower(code) = lower(?) AND id != ?', code, existing?.id || '');
@@ -569,7 +584,11 @@ export class Store {
       this.audit(actor, 'employee.added', id, { name: data.name, code, salary: data.salary });
     }
     if (body.photo !== undefined) this.putEmpPhoto({ actor, body: { dataUrl: body.photo }, params: { id }, quiet: true });
-    return { employee: this.empOut(this.empRow(id), actor) };
+    if (salaryAsk) {
+      this.db.run("UPDATE approvals SET status = 'cancelled', decided = ? WHERE kind = 'salary' AND status = 'pending' AND emp = ?", this.now(), id);
+      this.askOwner(actor, 'salary', this.empRow(id), salaryAsk);
+    }
+    return { employee: this.empOut(this.empRow(id), actor), salaryPendingOwner: !!salaryAsk };
   }
   deleteEmployee({ actor, params }) {
     const e = this.empRow(params.id);
@@ -733,6 +752,7 @@ export class Store {
 
   /** Set the first check-in or last check-out of a past/current day (forgot / correction). */
   setDayTime(emp, date, type, ts, meta) {
+    this.assertMonthOpen(date);
     const ps = this.db.all('SELECT * FROM punches WHERE emp = ? AND day = ? AND voided = 0 ORDER BY ts', emp.id, date);
     const ins = ps.filter((p) => p.type === 'in');
     const outs = ps.filter((p) => p.type === 'out');
@@ -784,9 +804,10 @@ export class Store {
   }
 
   // ---------------------------------------------------------------- admin: attendance
-  changes() {
+  changes({ actor }) {
     const p = this.db.get("SELECT COUNT(*) AS n, MAX(created) AS latest FROM requests WHERE status = 'pending'");
-    return { ver: this.db.kvGet('ver', 0), pending: p.n, latestPending: p.latest || 0, serverTime: this.now() };
+    return { ver: this.db.kvGet('ver', 0), pending: p.n, latestPending: p.latest || 0, serverTime: this.now(),
+      ownerPending: this.isOwner(actor) ? this.pendingApprovals() : 0 };
   }
 
   board({ q }) {
@@ -843,6 +864,7 @@ export class Store {
   voidPunch({ actor, params, body }) {
     const p = this.db.get('SELECT * FROM punches WHERE id = ?', params.id);
     if (!p) throw notFound('Punch');
+    this.assertMonthOpen(p.day);
     const reason = str(body.reason, 200);
     if (!reason) throw bad('NEED_REASON', 'Please write a reason');
     this.db.run('UPDATE punches SET voided = 1 WHERE id = ?', p.id);
@@ -860,6 +882,7 @@ export class Store {
     const dates = isDate(body.toDate) && isDate(body.date) ? dateRange(body.date, body.toDate) : [body.date];
     if (!dates.every(isDate)) throw bad('BAD_DATE', 'Bad date');
     if (dates.length > 62) throw bad('BAD_DATE', 'Too many days');
+    this.assertDatesOpen(dates);
     const status = body.status || null;
     if (status && !MARKS.includes(status)) throw bad('BAD_STATUS', `Status must be one of ${MARKS.join(', ')}`);
     for (const d of dates) {
@@ -927,6 +950,8 @@ export class Store {
     return (by.deposit || 0) + (by.deposit_cut || 0) - (by.deposit_return || 0);
   }
   statement(emp, month, preloaded) {
+    const frozen = this.lockedStatement(emp.id, month);
+    if (frozen) return structuredClone(frozen);
     const dates = monthDates(month);
     const get = preloaded || this.loadDays([emp.id], dates[0], dates[dates.length - 1]);
     const days = dates.map((d) => daySummary(emp, this.settings, d, get(emp.id, d), this.now()));
@@ -961,7 +986,7 @@ export class Store {
           r.leave.paid, r.leave.unpaid, r.totalCuts, r.advances, r.depositCut, r.bonus, r.net, r.depositBalance]),
       ]), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="payroll-${month}.csv"` } });
     }
-    return { month, totals, rows };
+    return { month, totals, rows, locked: this.locks()[month] ? { ts: this.locks()[month].ts, by: this.locks()[month].byName } : null };
   }
 
   // ---------------------------------------------------------------- money
@@ -972,14 +997,28 @@ export class Store {
     const amount = clampInt(body.amount, 1, 100_000_000, 0);
     if (!amount) throw bad('BAD_AMOUNT', 'Amount must be more than 0');
     const month = isMonth(body.month) ? body.month : this.month();
+    this.assertMonthOpen(month);
     const id = uid();
-    this.db.run('INSERT INTO money (id, emp, kind, amount, month, note, ts, by_admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, emp.id, kind, amount, month, str(body.note, 200), this.now(), actor.id);
-    this.audit(actor, `money.${kind}`, emp.id, { name: emp.name, amount, month, note: str(body.note, 200) });
-    return { id, depositBalance: this.depositBalance(emp.id) };
+    // a manager's entry waits for the owner (voided = 2: not counted yet)
+    const wait = !this.isOwner(actor);
+    this.db.run('INSERT INTO money (id, emp, kind, amount, month, note, ts, by_admin, voided) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, emp.id, kind, amount, month, str(body.note, 200), this.now(), actor.id, wait ? 2 : 0);
+    this.audit(actor, `money.${kind}`, emp.id, { name: emp.name, amount, month, note: str(body.note, 200), waitingForOwner: wait });
+    if (wait) this.askOwner(actor, 'money_add', emp, { moneyId: id, kind, amount, month, note: str(body.note, 200) });
+    return { id, pendingOwner: wait, depositBalance: this.depositBalance(emp.id) };
   }
   voidMoney({ actor, params }) {
     const m = this.db.get('SELECT * FROM money WHERE id = ?', params.id);
     if (!m) throw notFound('Entry');
+    this.assertMonthOpen(m.month);
+    if (m.voided === 0 && !this.isOwner(actor)) {
+      if (this.db.get("SELECT id FROM approvals WHERE kind = 'money_void' AND status = 'pending' AND json_extract(data, '$.moneyId') = ?", m.id)) {
+        throw bad('ALREADY_ASKED', 'Already waiting for the owner');
+      }
+      this.askOwner(actor, 'money_void', this.empRow(m.emp, { withDeleted: true }), { moneyId: m.id, kind: m.kind, amount: m.amount, month: m.month });
+      return { ok: true, pendingOwner: true };
+    }
+    if (m.voided === 2) this.db.run("UPDATE approvals SET status = 'cancelled', decided = ? WHERE status = 'pending' AND json_extract(data, '$.moneyId') = ?", this.now(), m.id);
     this.db.run('UPDATE money SET voided = 1 WHERE id = ?', m.id);
     this.audit(actor, 'money.removed', m.emp, { kind: m.kind, amount: m.amount, month: m.month });
     return { ok: true };
@@ -987,7 +1026,10 @@ export class Store {
   listMoney({ params }) {
     const emp = this.empRow(params.id, { withDeleted: true });
     return {
-      entries: this.db.all('SELECT * FROM money WHERE emp = ? ORDER BY ts DESC LIMIT 500', emp.id).map((m) => ({ ...m, voided: !!m.voided })),
+      entries: this.db.all('SELECT * FROM money WHERE emp = ? ORDER BY ts DESC LIMIT 500', emp.id).map((m) => ({
+        ...m, voided: m.voided === 1, pendingOwner: m.voided === 2,
+        removalPending: m.voided === 0 && !!this.db.get("SELECT id FROM approvals WHERE kind = 'money_void' AND status = 'pending' AND json_extract(data, '$.moneyId') = ?", m.id),
+      })),
       depositBalance: this.depositBalance(emp.id),
     };
   }
@@ -1226,6 +1268,7 @@ export class Store {
     const note = str(body.note, 300);
     const result = {};
     if (body.approve) {
+      if (data.date && isDate(data.date)) this.assertDatesOpen(data.toDate ? dateRange(data.date, data.toDate) : [data.date]);
       const meta = { source: 'request', byAdmin: actor.id, reason: `Request ${r.type}${note ? `: ${note}` : ''}` };
       const sm = shiftMins(empShift(emp, this.settings));
       const at = (date, t) => {
@@ -1277,8 +1320,13 @@ export class Store {
         case 'advance': {
           const amount = clampInt(body.amount ?? data.amount, 1, 10_000_000, data.amount);
           const id = uid();
-          this.db.run("INSERT INTO money (id, emp, kind, amount, month, note, ts, by_admin) VALUES (?, ?, 'advance', ?, ?, ?, ?, ?)",
-            id, emp.id, amount, this.month(), data.reason || 'Advance', this.now(), actor.id);
+          const wait = !this.isOwner(actor);
+          this.db.run("INSERT INTO money (id, emp, kind, amount, month, note, ts, by_admin, voided) VALUES (?, ?, 'advance', ?, ?, ?, ?, ?, ?)",
+            id, emp.id, amount, this.month(), data.reason || 'Advance', this.now(), actor.id, wait ? 2 : 0);
+          if (wait) {
+            this.askOwner(actor, 'money_add', emp, { moneyId: id, kind: 'advance', amount, month: this.month(), note: data.reason || 'Advance' });
+            data.waitingForOwner = true;
+          }
           data.approvedAmount = amount;
           break;
         }
@@ -1503,6 +1551,7 @@ export class Store {
       depositBalance: this.depositBalance(emp.id),
       pendingRequests: this.db.all("SELECT * FROM requests WHERE emp = ? AND status = 'pending' ORDER BY created DESC", emp.id).map(reqOut),
       recheckin: this.recheckinState(emp),
+      policy: (() => { const p = this.policyFor(emp); return p.needed ? p : { ver: p.ver, needed: false, accepted: p.accepted }; })(),
     };
   }
   empPunch({ actor, body }) {
@@ -1617,3 +1666,5 @@ function dataUrlResponse(d) {
 }
 
 export { paidLeaveQuota };
+
+installPro(Store);

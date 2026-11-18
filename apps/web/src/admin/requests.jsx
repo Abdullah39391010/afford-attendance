@@ -7,6 +7,7 @@ import { fmtDate, fmtTime, fmtMoney, ago } from '../shared/format.js';
 import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Empty, Spinner, Toggle } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
 import { describe } from '../shared/describe.js';
+import { OwnerApprovals } from './pro.jsx';
 
 const ICON = { forgot_in: 'in', forgot_out: 'out', past_day: 'cal', leave: 'leave', advance: 'wallet', break: 'coffee', undo_checkout: 'undo', field_duty: 'map', recheckin: 'in' };
 
@@ -26,9 +27,11 @@ export function Requests() {
         <div style="margin-top:12px">
           <Seg value={tab} onChange={setTab} options={[['pending', t('Waiting')], ['approved', t('Approved')], ['declined', t('Declined')], ['all', t('All')]]} />
         </div>
+        {app.me.role === 'owner' && tab === 'pending' && <OwnerApprovals />}
         <Loader st={st}>{(data) => (
           <div class="list">
-            {!data.requests.length && <Empty icon="inbox" text={tab === 'pending' ? t('No requests waiting. All done!') : t('Nothing here')} />}
+            {!data.requests.length && !(tab === 'pending' && app.ownerPending) && <Empty icon="inbox" text={tab === 'pending' ? t('No requests waiting. All done!') : t('Nothing here')} />}
+            {tab === 'pending' && app.ownerPending > 0 && data.requests.length > 0 && <div class="section-title">{t('Staff requests')}</div>}
             {data.requests.map((r) => (
               <button key={r.id} class="row" onClick={() => setSel(r)}>
                 <div class="avatar" style="background:var(--bg);color:var(--ink2)"><Icon n={ICON[r.type]} /></div>
@@ -73,8 +76,8 @@ function Decide({ r, onClose, onDone }) {
         if (r.type === 'advance') body.amount = Number(amount);
         if (r.type === 'leave') body.paid = paid;
       }
-      await api.post(`/api/admin/requests/${r.id}/decide`, body);
-      toast(approve ? t('Approved') : t('Declined'), 'ok');
+      const res = await api.post(`/api/admin/requests/${r.id}/decide`, body);
+      toast(approve ? (res.request?.data?.waitingForOwner ? t('Approved. The advance waits for the owner.') : t('Approved')) : t('Declined'), 'ok');
       onDone();
     } catch (e) { toastErr(e); } finally { setBusy(null); }
   };

@@ -8,6 +8,7 @@ import { setTz } from '../shared/format.js';
 import {
   Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, Credit, askFinger, WhoCard } from '../shared/ui.jsx';
 import { BackupScreen, autoBackupTick } from './backup.jsx';
+import { RulesAgreement } from './pro.jsx';
 import { startNotify, stopNotify } from '../shared/notify.js';
 import { PermissionGate } from '../shared/perms.jsx';
 import { UpdatePopup } from '../shared/update.jsx';
@@ -288,7 +289,7 @@ function Shell({ me, logout, toKiosk }) {
     const poll = async () => {
       try {
         const c = await api.get('/api/admin/changes');
-        if (alive) { setChg((p) => (p.ver === c.ver && p.pending === c.pending ? p : c)); setOnline(true); }
+        if (alive) { setChg((p) => (p.ver === c.ver && p.pending === c.pending && p.ownerPending === c.ownerPending ? p : c)); setOnline(true); }
       } catch (e) { if (alive && e.code === 'NETWORK') setOnline(false); }
     };
     poll();
@@ -321,14 +322,14 @@ function Shell({ me, logout, toKiosk }) {
 
   const nav = [
     { key: 'board', icon: 'board', label: 'Board' },
-    { key: 'requests', icon: 'inbox', label: 'Requests', badge: chg.pending },
+    { key: 'requests', icon: 'inbox', label: 'Requests', badge: chg.pending + (chg.ownerPending || 0) },
     can('employees.view') && { key: 'staff', icon: 'users', label: 'Staff' },
     can('payroll.view') && { key: 'payroll', icon: 'money', label: 'Payroll' },
     { key: 'more', icon: 'more', label: 'More' },
   ].filter(Boolean);
 
   if (!settings) return <div class="auth"><Spinner /></div>;
-  const ctx = { me, can, settings, reloadSettings: loadSettings, ver: chg.ver, pending: chg.pending, logout, toKiosk, refreshChanges: () => setChg((c) => ({ ...c, ver: c.ver + 0.001 })) };
+  const ctx = { me, can, settings, reloadSettings: loadSettings, ver: chg.ver, pending: chg.pending, ownerPending: chg.ownerPending || 0, logout, toKiosk, refreshChanges: () => setChg((c) => ({ ...c, ver: c.ver + 0.001 })) };
   const p = route.parts;
   let screen;
   switch (p[0]) {
@@ -347,6 +348,7 @@ function Shell({ me, logout, toKiosk }) {
     case 'users': screen = <Users />; break;
     case 'kiosk': screen = <KioskSetup />; break;
     case 'backup': screen = <BackupScreen />; break;
+    case 'rules': screen = <RulesAgreement />; break;
     case 'settings':
       screen = { location: <SettingsLocation />, shifts: <SettingsShifts />, roles: <SettingsRoles />, rules: <SettingsRules />, holidays: <SettingsHolidays />, store: <SettingsStore /> }[p[1]] || <SettingsHome />;
       break;

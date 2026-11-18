@@ -141,7 +141,7 @@ export function StaffForm({ id }) {
       if (!body.pin) delete body.pin;
       if (photo !== undefined) body.photo = photo;
       const r = id ? await api.put(`/api/admin/employees/${id}`, body) : await api.post('/api/admin/employees', body);
-      toast(t('Saved'), 'ok');
+      toast(r.salaryPendingOwner ? t('Saved. The salary change waits for the owner.') : t('Saved'), 'ok');
       if (id) goBack(); else go(`staff/${r.employee.id}`);
     } catch (e) { toastErr(e); } finally { setBusy(false); }
   };
@@ -287,13 +287,14 @@ function Info({ e, reload }) {
         {e.cnic && <div class="kv"><span class="k">{t('CNIC')}</span><span class="v ltr">{e.cnic}</span></div>}
         <div class="kv"><span class="k">{t('Shift')}</span><span class="v">{nm(shift)} <span class="ltr">{shift?.start}–{shift?.end}</span></span></div>
         <div class="kv"><span class="k">{t('Weekly off')}</span><span class="v">{off}</span></div>
-        {app.can('payroll.view') && <div class="kv"><span class="k">{t('Monthly salary')}</span><span class="v">{fmtMoney(e.salary, s.currency)}</span></div>}
+        {app.can('payroll.view') && <div class="kv"><span class="k">{t('Monthly salary')}</span><span class="v">{fmtMoney(e.salary, s.currency)}{e.salaryPending != null && <div class="small" style="color:var(--orange)">{t('Change to {a} waits for the owner', { a: fmtMoney(e.salaryPending, s.currency) })}</div>}</span></div>}
         {app.can('payroll.view') && <div class="kv"><span class="k">{t('Security deposit')}</span><span class="v">{fmtMoney(e.depositBalance, s.currency)}</span></div>}
         <div class="kv"><span class="k">{t('Joined')}</span><span class="v">{e.joinDate ? fmtDate(e.joinDate) : '—'}</span></div>
         <div class="kv"><span class="k">{t('Paid leave / month')}</span><span class="v">{e.paidLeavePerMonth ?? `${s.rules.paidLeavePerMonth} (${t('store rule')})`}</span></div>
         <div class="kv"><span class="k">{t('Salary statement')}</span><span class="v">{t(VIS_LABEL[e.salaryVisibility] || VIS_LABEL.always)}</span></div>
         {e.helperFor?.length > 0 && <div class="kv"><span class="k">{t('Can check in others')}</span><span class="v">{t('{n} people', { n: e.helperFor.length })}</span></div>}
         <div class="kv"><span class="k">{t('Phone')}</span><span class="v">{e.deviceBound ? `${t('Linked')} ${e.deviceName ? `(${e.deviceName})` : ''}` : t('Not linked yet')}</span></div>
+        <div class="kv"><span class="k">{t('Rules agreement')}</span><span class="v">{e.rulesAccepted?.current ? `${t('Accepted')} · ${fmtDateTime(e.rulesAccepted.ts)}` : e.rulesAccepted ? t('Accepted an older version') : t('Not accepted yet')}</span></div>
         {e.notes && <div class="kv"><span class="k">{t('Notes')}</span><span class="v">{e.notes}</span></div>}
       </div>
       <div style="display:grid;gap:10px;margin-bottom:20px">
@@ -391,8 +392,8 @@ function Money({ e }) {
   const [f, setF] = useState({ kind: 'advance', amount: '', note: '', month: todayStr(api.serverNow()).slice(0, 7) });
   const save = async () => {
     try {
-      await api.post('/api/admin/money', { employeeId: e.id, ...f, amount: Number(f.amount) });
-      toast(t('Saved'), 'ok');
+      const r = await api.post('/api/admin/money', { employeeId: e.id, ...f, amount: Number(f.amount) });
+      toast(r.pendingOwner ? t('Sent to the owner for approval') : t('Saved'), 'ok');
       setAdd(false);
       setF({ ...f, amount: '', note: '' });
       st.reload(true);
@@ -400,7 +401,11 @@ function Money({ e }) {
   };
   const voidM = async (m) => {
     if (!(await confirmBox({ title: t('Remove this entry?'), yes: t('Remove'), danger: true }))) return;
-    try { await api.post(`/api/admin/money/${m.id}/void`); st.reload(true); } catch (err) { toastErr(err); }
+    try {
+      const r = await api.post(`/api/admin/money/${m.id}/void`);
+      if (r.pendingOwner) toast(t('Sent to the owner for approval'), 'ok');
+      st.reload(true);
+    } catch (err) { toastErr(err); }
   };
   const label = moneyLabel;
   return (
@@ -419,8 +424,10 @@ function Money({ e }) {
                 <div class="main">
                   <div class="title">{label(m.kind)} · {fmtMoney(m.amount, cur)}</div>
                   <div class="sub">{fmtMonth(m.month)} · {fmtDateTime(m.ts)}{m.note ? ` · ${m.note}` : ''}</div>
+                  {m.pendingOwner && <div style="margin-top:4px"><Pill s="pending">{t('Waiting for owner')}</Pill></div>}
+                  {m.removalPending && <div style="margin-top:4px"><Pill s="pending">{t('Removal waits for owner')}</Pill></div>}
                 </div>
-                {!m.voided && app.can('money.edit') && <button class="iconbtn" onClick={() => voidM(m)}><Icon n="trash" /></button>}
+                {!m.voided && !m.removalPending && app.can('money.edit') && <button class="iconbtn" onClick={() => voidM(m)}><Icon n="trash" /></button>}
               </div>
             ))}
           </div>

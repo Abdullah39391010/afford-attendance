@@ -9,6 +9,7 @@ import { MonthNav } from '../shared/calendar.jsx';
 import { Statement } from '../shared/statement.jsx';
 import { statementDoc, printDoc, shareDocPdf, shareCsv } from '../shared/printdoc.js';
 import { useApp } from './app.jsx';
+import { MonthLock } from './pro.jsx';
 
 export function Payroll({ q }) {
   const app = useApp();
@@ -32,6 +33,7 @@ export function Payroll({ q }) {
         <Loader st={st}>{(data) => (
           <div>
             {month === today.slice(0, 7) && <Banner kind="info">{t('This month is still running. Figures are up to today.')}</Banner>}
+            <MonthLock month={month} locked={data.locked} current={month >= today.slice(0, 7)} onChanged={() => st.reload(true)} />
             <div class="card">
               <div class="kv"><span class="k">{t('Total salaries')}</span><span class="v">{fmtMoney(data.totals.salary, cur)}</span></div>
               <div class="kv"><span class="k">{t('Total cuts')}</span><span class="v">− {fmtMoney(data.totals.cuts, cur)}</span></div>

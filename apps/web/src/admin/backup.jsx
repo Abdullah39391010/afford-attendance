@@ -9,6 +9,7 @@ import { t } from '../shared/i18n.js';
 import { fmtDateTime, fmtDate } from '../shared/format.js';
 import { TopBar, Icon, Toggle, Field, Spinner, Banner, Dialog, toast, toastErr, confirmBox } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
+import { CloudBackups, ServerHealth } from './pro.jsx';
 
 const FOLDER = 'Afford Backups';
 const KEEP_DAYS = 7;
@@ -110,6 +111,7 @@ export function BackupScreen() {
           <button class="btn block" disabled={busy} onClick={now}>{busy ? <Spinner sm /> : <><Icon n="download" />{t('Back up now')}</>}</button>
           <p class="small muted" style="margin:8px 0 0">{t('The app must be opened at least once after closing time for the daily backup. If the phone was off, it is saved the next time you open the app.')}</p>
         </div>
+        <CloudBackups />
         <div class="card">
           <h2>{t('Restore')}</h2>
           <Banner kind="warn">{t('Restoring replaces ALL current data with the data in the backup file.')}</Banner>
@@ -117,6 +119,7 @@ export function BackupScreen() {
           <button class="btn block ghost" onClick={() => pick.current.click()}><Icon n="refresh" />{t('Choose backup file')}</button>
         </div>
       </div>
+      <div class="wrap"><ServerHealth /></div>
       {file && <RestoreDialog file={file} onClose={() => setFile(null)} />}
     </div>
   );

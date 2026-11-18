@@ -17,7 +17,8 @@ export function More() {
     app.can('reports.view') && ['reports', 'report', 'Reports', 'Daily, weekly, monthly · late & absent lists'],
     app.can('settings.edit') && ['settings', 'gear', 'Settings', 'Location, shifts, rules, holidays, logo'],
     app.me.role === 'owner' && ['users', 'key', 'Managers', 'Add managers and set what they can do'],
-    app.me.role === 'owner' && ['backup', 'download', 'Backup & restore', 'Daily backup on this phone, restore from a file'],
+    app.me.role === 'owner' && ['backup', 'download', 'Backup & restore', 'Cloud backup, phone backup, server health'],
+    app.can('employees.view') && ['rules', 'shield', 'Staff rules agreement', 'Rules every employee accepts in the app'],
     app.can('audit.view') && ['audit', 'log', 'Audit log', 'Every admin action'],
     ['pin', 'shield', 'Change my PIN', ''],
   ].filter(Boolean);

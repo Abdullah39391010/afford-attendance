@@ -7,10 +7,19 @@ compatibility_date = "2025-09-01"
 name = "STORE"
 class_name = "StoreDO"
 
+# Separate storage for the daily cloud backups (kept 30 days), so a wipe or bad restore of the store cannot touch them
+[[durable_objects.bindings]]
+name = "VAULT"
+class_name = "VaultDO"
+
 # Free plan needs SQLite-backed Durable Objects
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["StoreDO"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["VaultDO"]
 
 [vars]
 STORE_ID = "afford"

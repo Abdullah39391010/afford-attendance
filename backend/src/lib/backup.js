@@ -16,6 +16,7 @@ export const TABLES = {
   requests: ['id', 'emp', 'type', 'data', 'status', 'note', 'created', 'decided', 'decided_by'],
   money: ['id', 'emp', 'kind', 'amount', 'month', 'note', 'ts', 'by_admin', 'voided'],
   audit: ['id', 'ts', 'actor', 'actor_name', 'action', 'target', 'detail'],
+  approvals: ['id', 'kind', 'emp', 'data', 'status', 'created', 'by_admin', 'by_name', 'decided', 'note'],
 };
 
 export function makeBackup(db, meta) {

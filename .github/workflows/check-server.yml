@@ -1,6 +1,9 @@
 name: Check live server (read-only)
+# Also runs every 30 minutes. If the server is down the run fails and GitHub emails the repo owner.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
 permissions:
   contents: read
 jobs:
@@ -10,6 +13,6 @@ jobs:
       - name: Server info and update check
         run: |
           B=https://afford-attendance.abdullah6763939.workers.dev
-          echo "== /api/info"; curl -sS "$B/api/info"; echo
+          echo "== /api/info"; curl -fsS --retry 3 --retry-delay 20 --retry-all-errors "$B/api/info"; echo
           echo "== latest admin"; curl -sS "$B/api/app/latest?app=admin"; echo
           echo "== latest employee"; curl -sS "$B/api/app/latest?app=employee&t=$(date +%s)"; echo

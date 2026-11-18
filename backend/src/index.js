@@ -30,16 +30,69 @@ export class StoreDO extends DurableObject {
         await ctx.storage.put('wipedFor', env.WIPE_TOKEN);
       }
       this.store = new Store(new DB(ctx.storage.sql), env);
-      if ((await ctx.storage.getAlarm()) == null) await ctx.storage.setAlarm(Date.now() + 3600 * 1000);
+      if (env.VAULT) this.store.vault = vaultClient(env.VAULT);
+      const next = await ctx.storage.getAlarm();
+      if (next == null || next > Date.now() + 3600 * 1000) await ctx.storage.setAlarm(Date.now() + 5 * 60 * 1000);
     });
   }
   async fetch(request) {
     return this.store.handle(request);
   }
+  // runs every hour: housekeeping once a day, and the daily cloud backup
   async alarm() {
-    this.store.cleanup();
-    await this.ctx.storage.setAlarm(Date.now() + 24 * 3600 * 1000);
+    try {
+      const last = (await this.ctx.storage.get('cleanedAt')) || 0;
+      if (Date.now() - last > 23 * 3600 * 1000) {
+        this.store.cleanup();
+        await this.ctx.storage.put('cleanedAt', Date.now());
+      }
+      await this.store.dailyCloudBackup();
+    } finally {
+      await this.ctx.storage.setAlarm(Date.now() + 3600 * 1000);
+    }
   }
+}
+
+/** Backups live in their own Durable Object. Big files are split into 1 MB pieces. */
+export class VaultDO extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
+    this.sql.exec('CREATE TABLE IF NOT EXISTS backups (name TEXT PRIMARY KEY, created INTEGER NOT NULL, size INTEGER NOT NULL, parts INTEGER NOT NULL)');
+    this.sql.exec('CREATE TABLE IF NOT EXISTS parts (name TEXT NOT NULL, idx INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (name, idx))');
+  }
+  async put(name, text) {
+    const size = 1_000_000;
+    const n = Math.max(1, Math.ceil(text.length / size));
+    this.ctx.storage.transactionSync(() => {
+      this.sql.exec('DELETE FROM parts WHERE name = ?', name);
+      for (let i = 0; i < n; i++) this.sql.exec('INSERT INTO parts (name, idx, data) VALUES (?, ?, ?)', name, i, text.slice(i * size, (i + 1) * size));
+      this.sql.exec('INSERT OR REPLACE INTO backups (name, created, size, parts) VALUES (?, ?, ?, ?)', name, Date.now(), text.length, n);
+    });
+    return true;
+  }
+  async list() {
+    return this.sql.exec('SELECT name, created, size FROM backups ORDER BY name DESC').toArray();
+  }
+  async get(name) {
+    const rows = this.sql.exec('SELECT data FROM parts WHERE name = ? ORDER BY idx', name).toArray();
+    return rows.length ? rows.map((r) => r.data).join('') : null;
+  }
+  async remove(name) {
+    this.sql.exec('DELETE FROM parts WHERE name = ?', name);
+    this.sql.exec('DELETE FROM backups WHERE name = ?', name);
+    return true;
+  }
+}
+
+function vaultClient(ns) {
+  const stub = () => ns.get(ns.idFromName('vault'));
+  return {
+    put: (name, text) => stub().put(name, text),
+    list: () => stub().list(),
+    get: (name) => stub().get(name),
+    remove: (name) => stub().remove(name),
+  };
 }
 
 /** Latest release info for the in-app update popup.

@@ -1,7 +1,7 @@
 {
-  "version": "0.6.9",
+  "version": "0.7.0",
   "notes": {
-    "en": "\"Ask to check in again\" now works only from inside the store, the same as a check-in.",
-    "ur": "\"دوبارہ چیک اِن کی اجازت\" اب صرف اسٹور کے اندر سے بھیجی جا سکتی ہے، بالکل چیک اِن کی طرح۔"
+    "en": "Daily cloud backup (30 days), staff rules agreement, owner approval for manager money and salary changes, lock paid months, server error alerts.",
+    "ur": "روزانہ کلاؤڈ بیک اپ (30 دن)، اسٹاف قوانین کا معاہدہ، مینیجر کی رقم اور تنخواہ کی تبدیلی پر مالک کی منظوری، ادا شدہ مہینہ لاک، سرور خرابی کی اطلاع۔"
   }
 }

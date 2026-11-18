@@ -257,6 +257,28 @@ function Shell({ logout }) {
       {!home ? <div class="auth"><Spinner /></div> : screen}
       <BottomNav items={nav} active={['home', 'calendar', 'requests', 'pay'].includes(tab) ? tab : 'more'} onGo={(k) => go(k)} />
       <PermissionGate need={['location', 'camera', 'notifications']} />
+      {home?.policy?.needed && <RulesGate p={home.policy} onDone={loadHome} />}
     </ECtx.Provider>
+  );
+}
+
+/** Staff must read and accept the store rules before using the app (saved with the date). */
+function RulesGate({ p, onDone }) {
+  const [ok, setOk] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const ur = document.documentElement.dir === 'rtl';
+  const lines = (ur ? p.ur : p.en) || [];
+  const accept = async () => {
+    setBusy(true);
+    try { await api.post('/api/emp/policy/accept', { ver: p.ver }); toast(t('Thank you'), 'ok'); await onDone(); } catch (e) { toastErr(e); onDone(); } finally { setBusy(false); }
+  };
+  return (
+    <div class="rules-gate">
+      <div class="rg-head"><Icon n="shield" /><h1>{p.accepted ? t('The store rules were updated') : t('Store rules')}</h1></div>
+      <p class="small muted" style="margin:0 0 12px">{t('Please read these rules. Your salary is worked out by them.')}</p>
+      <ol class="rg-list">{lines.map((l, i) => <li key={i}>{l}</li>)}</ol>
+      <label class="rg-check"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.currentTarget.checked)} /><span>{t('I have read and agree to these rules.')}</span></label>
+      <button class="btn block big" disabled={!ok || busy} onClick={accept}>{busy ? <Spinner sm /> : t('I agree')}</button>
+    </div>
   );
 }
