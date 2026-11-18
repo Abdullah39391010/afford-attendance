@@ -5,7 +5,8 @@ import { api } from '../shared/api.js';
 import { t, nm, statusLabel, getLang, reqLabel, auditLabel, moneyLabel } from '../shared/i18n.js';
 import { fmtTime, fmtDur, fmtDate, fmtMoney, fmtDateTime, todayStr, fmtMonth, dayShort } from '../shared/format.js';
 import {
-  TopBar, Icon, Avatar, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, go, goBack, replace, Seg, Toggle, Spinner, Empty, confirmBox, Banner, Chips, MoneyInput } from '../shared/ui.jsx';
+  TopBar, Icon, Avatar, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, go, goBack, replace, Seg, Toggle, Spinner, Empty, confirmBox, Banner, Chips, MoneyInput, PinPad, askFinger } from '../shared/ui.jsx';
+import { AffordDevice } from 'afford-device';
 import { Calendar, MonthNav } from '../shared/calendar.jsx';
 import { useApp } from './app.jsx';
 import { BranchChips, branchName, branchQ, StaffFile, NotesTab } from './extra.jsx';
@@ -250,6 +251,7 @@ export function StaffForm({ id }) {
 export function StaffDetail({ id, tab, q }) {
   const app = useApp();
   const st = useLoad(() => api.get(`/api/admin/employees/${id}`), [id]);
+  const [del, setDel] = useState(false);
   useEffect(() => { st.reload(true); }, [app.ver]);
   const tabs = [['info', t('Profile')], ['cal', t('Calendar')], ['notes', t('Notes')], app.can('payroll.view') && ['money', t('Money')], app.can('audit.view') && ['log', t('History')]].filter(Boolean);
   return (
@@ -276,9 +278,10 @@ export function StaffDetail({ id, tab, q }) {
             {app.can('employees.edit') && (
               <div class="btn-row" style="margin:0 0 12px">
                 <button class="btn ghost" onClick={() => go(`staff/${id}/edit`)}><Icon n="edit" />{t('Edit details')}</button>
-                <button class="btn soft" onClick={() => delEmp(e)}><Icon n="trash" />{t('Delete')}</button>
+                <button class="btn soft" onClick={() => setDel(true)}><Icon n="trash" />{t('Delete')}</button>
               </div>
             )}
+            {del && <DeleteSheet e={e} owner={app.me.role === 'owner'} onClose={() => setDel(false)} onCleared={() => { setDel(false); st.reload(true); }} />}
             <div class="tabs">{tabs.map(([k, l]) => <button key={k} class={`chip ${tab === k ? 'on' : ''}`} onClick={() => replace(`staff/${id}/${k}`)}>{l}</button>)}</div>
             {tab === 'info' && <Info e={e} reload={() => st.reload(true)} />}
             {tab === 'cal' && <EmpCalendar e={e} />}
@@ -293,8 +296,70 @@ export function StaffDetail({ id, tab, q }) {
 }
 
 async function delEmp(e) {
-  if (!(await confirmBox({ title: t('Delete {name}?', { name: e.name }), text: t('The employee is removed from lists. Old attendance and salary records are kept.'), yes: t('Delete'), danger: true }))) return;
-  try { await api.del(`/api/admin/employees/${e.id}`); toast(t('Deleted'), 'ok'); go('staff'); } catch (err) { toastErr(err); }
+  if (!(await confirmBox({ title: t('Delete {name}?', { name: e.name }), text: t('The employee is removed from lists. Old attendance and salary records are kept.'), yes: t('Delete'), danger: true }))) return false;
+  try { await api.del(`/api/admin/employees/${e.id}`); toast(t('Deleted'), 'ok'); go('staff'); return true; } catch (err) { toastErr(err); return false; }
+}
+
+const IS_WEB = typeof __WEB_APP__ !== 'undefined' && __WEB_APP__;
+
+/** Delete choices. Clearing records or erasing the employee is owner-only and needs the PIN or fingerprint, then a final yes. */
+function DeleteSheet({ e, owner, onClose, onCleared }) {
+  const [mode, setMode] = useState(null); // 'records' | 'all'
+  const [err, setErr] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [bio, setBio] = useState(false);
+  useEffect(() => { if (!IS_WEB) AffordDevice.biometricAvailable().then((r) => setBio(!!r.available)).catch(() => {}); }, []);
+
+  const what = mode === 'all'
+    ? t('{name} and ALL their records will be deleted forever: attendance, requests, salary, advances, notes and documents. This cannot be undone.', { name: e.name })
+    : t('All attendance, requests and salary records of {name} will be deleted forever. The employee stays in the staff list. This cannot be undone.', { name: e.name });
+  const run = async (p) => {
+    // 1) check the PIN / fingerprint, 2) final yes, 3) delete
+    setBusy(true);
+    let counts;
+    try { counts = (await api.post(`/api/admin/employees/${e.id}/erase`, { mode, ...p, check: true })).counts; }
+    catch (x) { setBusy(false); if (x.code === 'WRONG_PIN') setErr({ at: Date.now() }); toastErr(x); return; }
+    setBusy(false);
+    const n = t('{p} check-ins and check-outs, {r} requests, {m} money entries.', { p: counts.punches, r: counts.requests, m: counts.money });
+    const ok = await confirmBox({ title: mode === 'all' ? t('Delete {name} forever?', { name: e.name }) : t('Clear all records of {name}?', { name: e.name }), text: `${what} ${n}`, yes: t('Yes, delete'), danger: true });
+    if (!ok) { onClose(); return; }
+    setBusy(true);
+    try {
+      await api.post(`/api/admin/employees/${e.id}/erase`, { mode, ...p });
+      toast(t('Deleted'), 'ok');
+      if (mode === 'all') go('staff'); else onCleared();
+    } catch (x) { toastErr(x); } finally { setBusy(false); }
+  };
+  const finger = async () => { if (await askFinger(t('Confirm it is you'))) run({ fingerprint: true }); };
+
+  return (
+    <Sheet open onClose={onClose} title={t('Delete')}>
+      {!mode ? (
+        <div class="list" style="margin:0">
+          <button class="row" onClick={async () => { if (await delEmp(e)) onClose(); }}>
+            <Icon n="users" /><div class="main"><div class="title">{t('Remove from staff list')}</div><div class="sub">{t('Old attendance and salary records are kept.')}</div></div>
+          </button>
+          {owner && <button class="row" onClick={() => setMode('records')}>
+            <Icon n="cal" /><div class="main"><div class="title">{t('Clear attendance and salary records')}</div><div class="sub">{t('The employee stays. Needs your PIN or fingerprint.')}</div></div>
+          </button>}
+          {owner && <button class="row" onClick={() => setMode('all')}>
+            <Icon n="trash" /><div class="main"><div class="title" style="color:var(--red)">{t('Delete employee and all records')}</div><div class="sub">{t('Forever. Needs your PIN or fingerprint.')}</div></div>
+          </button>}
+          {!owner && <p class="small muted" style="padding:10px 14px;margin:0">{t('Only the owner can clear or delete records.')}</p>}
+        </div>
+      ) : (
+        <div>
+          <Banner kind="err" icon="trash">{what}</Banner>
+          <div class="center muted small" style="margin-top:12px">{t('Confirm it is you: enter your PIN')}</div>
+          {busy ? <div class="center" style="padding:30px"><Spinner /></div> : (
+            <PinPad length={4} max={6} onDone={(pin) => run({ pin })} error={err?.at}
+              extra={bio ? <button class="fn" onClick={finger} aria-label={t('Fingerprint')}><Icon n="finger" /></button> : undefined} />
+          )}
+          {bio && <button class="btn block ghost" style="margin-top:10px" onClick={finger}><Icon n="finger" />{t('Use fingerprint')}</button>}
+        </div>
+      )}
+    </Sheet>
+  );
 }
 
 function Info({ e, reload }) {

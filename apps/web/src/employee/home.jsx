@@ -112,14 +112,14 @@ export function Home() {
 
   return (
     <div class="screen">
-      <TopBar logo title={store.name || 'Afford Super Store'} />
+      <TopBar logo title={(getLang() === 'ur' && store.nameUr) || store.name || 'Afford Super Store'} />
       <div class="wrap">
         <div class="card gap" style="margin-top:12px">
           <Avatar name={emp.name} src={emp.hasPhoto ? '/api/emp/photo' : null} ver={emp.photoVer} />
           <div class="grow">
             <div class="small muted">{greet}</div>
             <b style="font-size:17px">{nm(emp)}</b>
-            <div class="small muted">{getLang() === 'ur' && emp.roleUr ? emp.roleUr : emp.role} · <span class="ltr">{emp.code}</span>{emp.branch ? ` · ${emp.branch}` : ''}</div>
+            <div class="small muted">{getLang() === 'ur' && emp.roleUr ? emp.roleUr : emp.role} · <span class="ltr">{emp.code}</span>{emp.branch ? ` · ${(getLang() === 'ur' && emp.branchUr) || emp.branch}` : ''}</div>
           </div>
         </div>
         <WebInstallHint />

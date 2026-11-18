@@ -82,6 +82,7 @@ export function mergeSettings(cur, patch) {
   if (!patch || typeof patch !== 'object') throw bad('BAD_SETTINGS', 'Settings must be an object');
 
   if ('storeName' in patch) s.storeName = str(patch.storeName, 80) || s.storeName;
+  if ('storeNameUr' in patch) s.storeNameUr = str(patch.storeNameUr, 80);
   if ('currency' in patch) s.currency = str(patch.currency, 8) || s.currency;
   if ('storeAddress' in patch) s.storeAddress = str(patch.storeAddress, 160);
   if ('storePhone' in patch) s.storePhone = str(patch.storePhone, 40);
@@ -94,7 +95,7 @@ export function mergeSettings(cur, patch) {
       const lng = Number(l.lng);
       if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180) || (lat === 0 && lng === 0))
         throw bad('BAD_LOCATION', `Bad GPS point for "${l.name}"`);
-      return { id: str(l.id, 40) || uid(), name: str(l.name, 60) || 'Store', lat, lng, radius: num(l.radius, 10, 5000, 100),
+      return { id: str(l.id, 40) || uid(), name: str(l.name, 60) || 'Store', nameUr: str(l.nameUr, 60), lat, lng, radius: num(l.radius, 10, 5000, 100),
         address: str(l.address, 160), phone: str(l.phone, 40) };
     });
   }

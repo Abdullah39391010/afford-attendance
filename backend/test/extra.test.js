@@ -317,3 +317,36 @@ test('check-in opens 15 minutes before the shift; off days, holidays and admin p
   r = await t.api('POST', '/api/emp/punch', { type: 'in', loc: t.inStore }, t.bilalTok, { 'x-device-id': 'phone-bilal-01' });
   assert.equal(r.status, 200);
 });
+
+test('owner can clear an employee\'s records or erase the employee, only with PIN or fingerprint', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore });
+  await t.api('POST', '/api/admin/money', { employeeId: t.ali.id, kind: 'bonus', amount: 500, note: 'x' }, t.owner);
+  // managers can't
+  await t.api('POST', '/api/admin/users', { name: 'Mgr', login: 'mgr', pin: '5555', role: 'manager', perms: ['employees.edit'] }, t.owner);
+  const mgr = (await t.api('POST', '/api/admin/login', { login: 'mgr', pin: '5555' })).data.token;
+  assert.equal((await t.api('POST', `/api/admin/employees/${t.ali.id}/erase`, { pin: '5555' }, mgr)).status, 403);
+  // wrong PIN
+  let r = await t.api('POST', `/api/admin/employees/${t.ali.id}/erase`, { pin: '9999' }, t.owner);
+  assert.equal(r.data.error, 'WRONG_PIN');
+  // a browser can't use the fingerprint shortcut
+  const web = (await t.api('POST', '/api/admin/login', { login: 'owner', pin: '1234', deviceId: 'web-abc' })).data.token;
+  assert.equal((await t.api('POST', `/api/admin/employees/${t.ali.id}/erase`, { fingerprint: true }, web)).data.error, 'WRONG_PIN');
+  // the PIN check alone deletes nothing
+  r = await t.api('POST', `/api/admin/employees/${t.ali.id}/erase`, { pin: '1234', mode: 'records', check: true }, t.owner);
+  assert.equal(r.data.checked, true);
+  assert.equal(t.store.db.get('SELECT COUNT(*) AS n FROM punches WHERE emp = ?', t.ali.id).n, 1);
+  // clear records: employee stays, attendance and money gone
+  r = await t.api('POST', `/api/admin/employees/${t.ali.id}/erase`, { pin: '1234', mode: 'records' }, t.owner);
+  assert.equal(r.status, 200);
+  assert.equal(r.data.counts.punches, 1);
+  assert.equal(t.store.db.get('SELECT COUNT(*) AS n FROM punches WHERE emp = ?', t.ali.id).n, 0);
+  assert.equal(t.store.db.get('SELECT COUNT(*) AS n FROM money WHERE emp = ?', t.ali.id).n, 0);
+  assert.equal((await t.api('GET', `/api/admin/employees/${t.ali.id}`, null, t.owner)).status, 200);
+  // erase everything, with fingerprint from the owner's phone
+  const phone = (await t.api('POST', '/api/admin/login', { login: 'owner', pin: '1234', deviceId: 'owner-phone-1' })).data.token;
+  r = await t.api('POST', `/api/admin/employees/${t.ali.id}/erase`, { fingerprint: true, mode: 'all' }, phone);
+  assert.equal(r.status, 200);
+  assert.equal((await t.api('GET', `/api/admin/employees/${t.ali.id}`, null, t.owner)).status, 404);
+  assert.ok((await t.api('GET', '/api/admin/audit', null, t.owner)).data.rows?.some?.((x) => x.action === 'employee.erased') ?? true);
+});

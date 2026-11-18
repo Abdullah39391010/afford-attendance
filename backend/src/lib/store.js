@@ -201,7 +201,7 @@ export class Store {
       const a = this.db.get('SELECT * FROM admins WHERE id = ?', s.sub);
       if (!a || !a.active) throw new HttpError(401, 'BAD_TOKEN', 'Account disabled');
       const branchId = a.role === 'owner' ? '' : this.db.kvGet('adminBranches', {})[a.id] || '';
-      return { id: a.id, name: a.name, login: a.login, role: a.role, perms: JSON.parse(a.perms), kind: 'admin', branchId };
+      return { id: a.id, name: a.name, login: a.login, role: a.role, perms: JSON.parse(a.perms), kind: 'admin', branchId, device: s.device || '' };
     }
     if (kind === 'emp') {
       const r = this.db.get('SELECT * FROM employees WHERE id = ?', s.sub);
@@ -1666,14 +1666,14 @@ export class Store {
     return {
       serverTime: this.now(),
       store: {
-        name: s.storeName, currency: s.currency, tzOffsetMin: s.tzOffsetMin, logoVer: this.db.kvGet('logoVer', 0),
+        name: s.storeName, nameUr: s.storeNameUr || '', currency: s.currency, tzOffsetMin: s.tzOffsetMin, logoVer: this.db.kvGet('logoVer', 0),
         locations: s.locations.map((l) => ({ name: l.name, lat: l.lat, lng: l.lng, radius: l.radius })),
         rules: { breakAllowanceMin: er.breakAllowanceMin, breakNeedsApproval: s.rules.breakNeedsApproval, pastDayRequestDays: s.rules.pastDayRequestDays,
           lateGraceMin: er.lateGraceMin, maxOfflineHours: s.rules.maxOfflineHours, requireInRadiusCheckIn: er.requireInRadiusCheckIn },
       },
       employee: {
         id: emp.id, code: emp.code, name: emp.name, nameUr: emp.nameUr, role: role?.name, roleUr: role?.nameUr,
-        shift: shiftToday, normalShift: empShift(emp, s), branch: emp.branchId ? s.locations.find((l) => l.id === emp.branchId)?.name || null : null, fieldStaff: !!emp.fieldStaff, checkoutAnywhere: !!(emp.fieldStaff || role?.checkoutAnywhere),
+        shift: shiftToday, normalShift: empShift(emp, s), branch: emp.branchId ? s.locations.find((l) => l.id === emp.branchId)?.name || null : null, branchUr: emp.branchId ? s.locations.find((l) => l.id === emp.branchId)?.nameUr || null : null, fieldStaff: !!emp.fieldStaff, checkoutAnywhere: !!(emp.fieldStaff || role?.checkoutAnywhere),
         salaryVisibility: emp.salaryVisibility, hasPhoto: emp.hasPhoto, photoVer: emp.photoVer, helperCount: this.helperIds(emp).size,
       },
       window: (() => {

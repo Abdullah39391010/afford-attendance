@@ -18,11 +18,11 @@ export function BranchChips({ value, onChange }) {
   if (locs.length < 2 || app.me.branchId) return null;
   return (
     <div style="margin-top:10px">
-      <Chips value={value || ''} onChange={onChange} options={[['', t('All branches')], ...locs.map((l) => [l.id, l.name])]} />
+      <Chips value={value || ''} onChange={onChange} options={[['', t('All branches')], ...locs.map((l) => [l.id, (getLang() === 'ur' && l.nameUr) || l.name])]} />
     </div>
   );
 }
-export const branchName = (app, id) => (app.settings.locations || []).find((l) => l.id === id)?.name || '';
+export const branchName = (app, id) => { const l = (app.settings.locations || []).find((x) => x.id === id); return l ? (getLang() === 'ur' && l.nameUr) || l.name : ''; };
 export const branchQ = (b) => (b ? `&branch=${encodeURIComponent(b)}` : '');
 
 // ---------------------------------------------------------------- birthdays on the board

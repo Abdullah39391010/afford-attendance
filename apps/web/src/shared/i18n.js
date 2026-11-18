@@ -122,7 +122,7 @@ export const AUDIT = {
   setup: 'Owner account created', login: 'Logged in', 'admin.pin_changed': 'Changed own PIN',
   'attendance.check_in': 'Checked in by admin', 'attendance.check_out': 'Checked out by admin', 'attendance.break_ended': 'Break ended by admin',
   'attendance.mark': 'Day marked', 'attendance.punch_removed': 'Punch removed',
-  'employee.added': 'Employee added', 'employee.updated': 'Employee updated', 'employee.deleted': 'Employee deleted',
+  'employee.added': 'Employee added', 'employee.updated': 'Employee updated', 'employee.deleted': 'Employee deleted', 'employee.erased': 'Employee and all records deleted', 'employee.records_cleared': 'Employee records cleared',
   'employee.phone_linked': 'Phone linked', 'employee.phone_reset': 'Phone reset', 'employee.photo': 'Photo changed', 'employee.pin_set': 'PIN set',
   'attendance.helper_in': 'Helper check-in', 'attendance.helper_out': 'Helper check-out', 'kiosk.added': 'Kiosk added', 'kiosk.removed': 'Kiosk removed', 'data.restore': 'Data restored from backup',
   'money.advance': 'Advance given', 'money.deposit': 'Deposit received', 'money.deposit_cut': 'Deposit cut', 'money.deposit_return': 'Deposit returned',

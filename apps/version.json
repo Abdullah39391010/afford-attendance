@@ -1,7 +1,7 @@
 {
-  "version": "0.9.7",
+  "version": "0.9.8",
   "notes": {
-    "en": "Check in again: when approved, the time counts from when the employee asked, not from the approval.",
-    "ur": "دوبارہ چیک اِن: منظوری پر وقت درخواست بھیجنے کے لمحے سے گنا جاتا ہے، منظوری کے وقت سے نہیں۔"
+    "en": "Delete employee: remove from list, clear records, or delete everything, after owner PIN or fingerprint. Urdu names for branches and the store.",
+    "ur": "ملازم حذف کریں: فہرست سے ہٹائیں، ریکارڈ صاف کریں یا سب کچھ حذف کریں، مالک کے PIN یا فنگر پرنٹ کے بعد۔ برانچ اور اسٹور کے اردو نام۔"
   }
 }

@@ -7,7 +7,7 @@
 //  - branches: an employee belongs to one store location; a manager can be limited to one branch
 import { bad, forbidden, notFound, uid, isDate, isMonth, str, clampInt, local, hm, addDays, dateRange } from './util.js';
 import { shiftFor, empShift, empWeeklyOff } from './attendance.js';
-import { hashPin, validPin, sha256 } from './crypto.js';
+import { hashPin, validPin, sha256, checkPin } from './crypto.js';
 import { HttpError, commas } from './util.js';
 
 const DOC_KINDS = ['cnic_front', 'cnic_back', 'contract', 'photo', 'other'];
@@ -35,6 +35,7 @@ export function installExtra(Store) {
     add('DELETE', '/api/admin/docs/:id', this.deleteDoc, A('employees.edit'));
     add('POST', '/api/emp/forgot-pin', this.forgotPin);
     add('POST', '/api/owner-page/login', this.ownerPageLogin);
+    add('POST', '/api/admin/employees/:id/erase', this.eraseEmployee, A(null, { owner: true }));
     add('GET', '/api/emp/roster', this.empRoster, { auth: 'emp' });
     add('GET', '/api/emp/notes', this.empNotes, { auth: 'emp' });
     add('POST', '/api/emp/notes/:id/seen', this.empNoteSeen, { auth: 'emp' });
@@ -67,6 +68,50 @@ export function installExtra(Store) {
     if (!a) throw bad('NO_OWNER', 'No owner account');
     const token = await this.issueToken('admin', a.id, 'web-ownerpage', 12 * 3600 * 1000);
     return { token, me: { id: a.id, name: a.name, login: a.login, role: a.role, perms: JSON.parse(a.perms) }, serverTime: this.now() };
+  };
+
+  // ---------------------------------------------------------------- erase an employee's records (owner only, PIN or fingerprint)
+  P.eraseEmployee = async function eraseEmployee({ actor, params, body, ip }) {
+    const a = this.db.get('SELECT * FROM admins WHERE id = ?', actor.id);
+    const keys = [`a:${a.login}`, `ip:${ip}`];
+    this.lockCheck(keys);
+    // fingerprint is checked on the owner's own phone; a browser must always type the PIN
+    const fingerOk = body.fingerprint === true && !String(actor.device || '').startsWith('web-');
+    if (!fingerOk) {
+      if (!(await checkPin(String(body.pin || ''), a.pin, this.pepper))) {
+        this.lockFail(keys);
+        throw new HttpError(401, 'WRONG_PIN', 'Wrong PIN');
+      }
+      this.lockClear(keys[0]);
+    }
+    const mode = body.mode === 'all' ? 'all' : 'records';
+    const e = this.db.get('SELECT id, code, data FROM employees WHERE id = ?', params.id);
+    if (!e) throw notFound('Employee');
+    const name = JSON.parse(e.data).name;
+    const id = e.id;
+    const counts = {
+      punches: this.db.get('SELECT COUNT(*) AS n FROM punches WHERE emp = ?', id).n,
+      money: this.db.get('SELECT COUNT(*) AS n FROM money WHERE emp = ?', id).n,
+      requests: this.db.get('SELECT COUNT(*) AS n FROM requests WHERE emp = ?', id).n,
+    };
+    if (body.check) return { ok: true, checked: true, counts }; // PIN is right; nothing deleted yet
+    // attendance, requests and salary records
+    this.db.run('DELETE FROM photos WHERE punch IN (SELECT id FROM punches WHERE emp = ?)', id);
+    for (const tb of ['punches', 'breaks', 'day_marks', 'requests', 'money', 'payments', 'approvals', 'roster']) this.db.run(`DELETE FROM ${tb} WHERE emp = ?`, id);
+    for (const m of Object.keys(this.locks())) {
+      const snap = this.db.kvGet(`lock:${m}`, {});
+      if (snap[id]) { delete snap[id]; this.db.kvSet(`lock:${m}`, snap); }
+    }
+    if (mode === 'all') {
+      for (const tb of ['staff_notes', 'docs']) this.db.run(`DELETE FROM ${tb} WHERE emp = ?`, id);
+      this.db.run("DELETE FROM sessions WHERE kind = 'emp' AND sub = ?", id);
+      this.db.run("DELETE FROM push_tokens WHERE kind = 'emp' AND sub = ?", id);
+      this.db.run('DELETE FROM employees WHERE id = ?', id);
+      const acc = this.db.kvGet('policyAccept', null);
+      if (acc && acc[id]) { delete acc[id]; this.db.kvSet('policyAccept', acc); }
+    }
+    this.audit(actor, mode === 'all' ? 'employee.erased' : 'employee.records_cleared', id, { name, code: e.code, ...counts, by: fingerOk ? 'fingerprint' : 'pin' });
+    return { ok: true, mode, counts };
   };
 
   // ---------------------------------------------------------------- branches

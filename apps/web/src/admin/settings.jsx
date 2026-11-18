@@ -51,7 +51,7 @@ export function SettingsHome() {
 export function SettingsStore() {
   const app = useApp();
   const s = app.settings;
-  const [f, setF] = useState({ storeName: s.storeName, currency: s.currency, weeklyOff: s.weeklyOff, storeAddress: s.storeAddress || '', storePhone: s.storePhone || '' });
+  const [f, setF] = useState({ storeName: s.storeName, storeNameUr: s.storeNameUr || '', currency: s.currency, weeklyOff: s.weeklyOff, storeAddress: s.storeAddress || '', storePhone: s.storePhone || '' });
   const [save, busy] = useSave();
   const uploadLogo = async (e) => {
     const file = e.currentTarget.files[0];
@@ -68,6 +68,7 @@ export function SettingsStore() {
       <div class="wrap">
         <div class="card">
           <Field label={t('Store name')}><input class="input" value={f.storeName} onInput={(e) => setF({ ...f, storeName: e.currentTarget.value })} /></Field>
+          <Field label={t('Store name in Urdu (optional)')}><input class="input" dir="rtl" style="font-family:Naskh,serif" value={f.storeNameUr} onInput={(e) => setF({ ...f, storeNameUr: e.currentTarget.value })} /></Field>
           <Field label={t('Currency')}><input class="input ltr" style="width:100%" value={f.currency} onInput={(e) => setF({ ...f, currency: e.currentTarget.value })} /></Field>
           <Field label={t('Address (shown on payslips)')}><input class="input" value={f.storeAddress} onInput={(e) => setF({ ...f, storeAddress: e.currentTarget.value })} /></Field>
           <Field label={t('Phone (shown on payslips)')}><input class="input ltr" style="width:100%" value={f.storePhone} onInput={(e) => setF({ ...f, storePhone: e.currentTarget.value })} /></Field>
@@ -118,6 +119,7 @@ export function SettingsLocation() {
         {locs.map((l, i) => (
           <div key={i} class="card">
             <Field label={t('Name')}><input class="input" value={l.name} onInput={(e) => upd(i, 'name', e.currentTarget.value)} /></Field>
+            <Field label={t('Name in Urdu (optional)')}><input class="input" dir="rtl" style="font-family:Naskh,serif" value={l.nameUr || ''} onInput={(e) => upd(i, 'nameUr', e.currentTarget.value)} /></Field>
             <div class="two">
               <Field label={t('Latitude')}><input class="input ltr" style="width:100%" inputmode="decimal" value={l.lat} onInput={(e) => upd(i, 'lat', e.currentTarget.value)} /></Field>
               <Field label={t('Longitude')}><input class="input ltr" style="width:100%" inputmode="decimal" value={l.lng} onInput={(e) => upd(i, 'lng', e.currentTarget.value)} /></Field>
