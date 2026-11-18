@@ -1,7 +1,7 @@
 {
   "version": "0.6.0",
   "notes": {
-    "en": "Request alerts now ring with the notification tone and show on the lock screen. While the app is open, alerts come within 20 seconds. Instant alerts (Firebase) are ready once the owner finishes the setup. Also: in-app update download, permissions popup.",
-    "ur": "درخواستوں کی اطلاع اب نوٹیفکیشن ٹون کے ساتھ آتی ہے اور لاک اسکرین پر نظر آتی ہے۔ ایپ کھلی ہو تو 20 سیکنڈ میں اطلاع۔ فوری اطلاع (Firebase) مالک کے سیٹ اپ کے بعد چلے گی۔ ساتھ میں: ایپ کے اندر اپڈیٹ ڈاؤن لوڈ، اجازتوں کا پاپ اپ۔"
+    "en": "New Afford Supermarket logo on the app icon, screens and printouts, with a new opening animation. Instant alerts through Firebase turn on once the owner finishes the setup.",
+    "ur": "ایپ آئیکن، اسکرینوں اور پرنٹ پر نیا Afford Supermarket لوگو، اور نئی اوپننگ اینیمیشن۔ فوری اطلاع (Firebase) مالک کے سیٹ اپ کے بعد چلے گی۔"
   }
 }
