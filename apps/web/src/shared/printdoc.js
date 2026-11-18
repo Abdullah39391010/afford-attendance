@@ -38,7 +38,7 @@ const CSS = (a, rtl) => `
 .doc .kv b{font-family:system-ui,Arial,sans-serif}
 .doc .net{display:flex;justify-content:space-between;font-size:17px;font-weight:700;border-top:2px solid #1f2023;margin-top:8px;padding-top:8px}
 .doc .net b{color:#C62032;font-family:system-ui,Arial,sans-serif}
-.doc .foot{margin-top:28px;display:flex;justify-content:space-between;font-size:11px;color:#666}
+.doc .foot{margin-top:28px;display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:#666}
 .doc .sig{border-top:1px solid #999;width:180px;text-align:center;padding-top:4px}
 .doc .st{display:inline-block;padding:1px 6px;border-radius:8px;font-size:10.5px;font-weight:700}
 .doc .st-present{background:#E3F4EA;color:#137043}.doc .st-late{background:#FFF1DC;color:#9a5300}.doc .st-absent{background:#FCE9EB;color:#A3172A}
@@ -104,7 +104,7 @@ export async function statementDoc(st) {
   ${(st.payments || []).map((p) => kv(`${t('Paid')} · ${t({ cash: 'Cash', bank: 'Bank transfer', other: 'Other' }[p.method] || p.method)} · ${fmtDateTime(p.ts)}`, fmtMoney(p.amount, cur))).join('')}
   <h2>${esc(t('Daily record'))}</h2>
   <table><thead><tr><th>${esc(t('Date'))}</th><th>${esc(t('Status'))}</th><th class="n">${esc(t('In'))}</th><th class="n">${esc(t('Out'))}</th><th class="n">${esc(t('Hours'))}</th><th class="n">${esc(t('Late'))}</th><th class="n">${esc(t('Early'))}</th><th class="n">${esc(t('Cut'))}</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="foot"><div class="sig">${esc(t('Received by (employee signature)'))}</div><div class="sig">${esc(t('Authorised signature'))}</div></div>
+  <div class="foot"><div>${(() => { const sp = (st.payments || []).filter((p) => p.signature).pop(); return sp && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(sp.signature) ? `<img src="${sp.signature}" alt="" style="display:block;height:60px;width:auto;margin:0 auto 2px">` : ''; })()}<div class="sig">${esc(t('Received by (employee signature)'))}</div></div><div class="sig">${esc(t('Authorised signature'))}</div></div>
   </div>`;
   return { body, css: CSS(a, rtl), title: `${e.name} ${st.month}` };
 }

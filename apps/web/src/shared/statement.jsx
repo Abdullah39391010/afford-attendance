@@ -61,6 +61,7 @@ export function Statement({ s, busy, onPrint, onShare, extra }) {
         {s.overtime?.pay > 0 && kv(t('Overtime ({m} min × {r})', { m: s.overtime.min, r: s.overtime.rate }), `+ ${fmtMoney2(s.overtime.pay, cur)}`)}
         {kv(t('Net pay'), fmtMoney(s.net, cur), 'total')}
         {s.payments?.length > 0 && s.payments.map((p) => kv(`${t('Paid')} · ${t(PAY_METHOD[p.method] || p.method)} · ${fmtDateTime(p.ts)}`, fmtMoney(p.amount, cur)))}
+        {(s.payments || []).filter((p) => p.signature).map((p) => <SigImage key={`s${p.id}`} src={p.signature} label={`${t('Signed by employee')} · ${fmtDateTime(p.ts)}`} />)}
         {s.payments && s.net > 0 && (s.paid >= s.net
           ? <div class="pill st-approved" style="margin-top:8px">{t('Salary paid')}</div>
           : s.complete && <div class="pill st-pending" style="margin-top:8px">{s.paid ? t('{a} still to pay', { a: fmtMoney(s.net - s.paid, cur) }) : t('Not paid yet')}</div>)}
@@ -99,3 +100,14 @@ export function Statement({ s, busy, onPrint, onShare, extra }) {
     </div>
   );
 }
+
+/** Signature shown on a white card so it reads in dark mode too. */
+export function SigImage({ src, label }) {
+  return (
+    <div style="margin-top:8px">
+      <div class="small muted">{label}</div>
+      <img src={src} alt={t('Signature')} style="display:block;background:#fff;border:1px solid var(--line);border-radius:10px;width:100%;max-width:320px;height:auto;margin-top:4px" />
+    </div>
+  );
+}
+

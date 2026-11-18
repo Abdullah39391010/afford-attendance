@@ -129,10 +129,14 @@ export function installOps(Store) {
     const paid = this.paymentsFor(emp.id, month).reduce((a, p) => a + p.amount, 0);
     const amount = body.amount == null || body.amount === '' ? Math.max(0, st.net - paid) : clampInt(body.amount, 1, 100_000_000, 0);
     if (!amount) throw bad('BAD_AMOUNT', 'Nothing left to pay for this month');
+    // employee's hand signature (PNG drawn on the admin's phone)
+    const sig = body.signature ? String(body.signature) : null;
+    if (sig && (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(sig) || sig.length > 200_000)) throw bad('BAD_SIGNATURE', 'The signature could not be saved. Clear it and sign again.');
     const id = uid();
     this.db.run('INSERT INTO payments (id, emp, month, amount, method, note, ts, by_admin, voided) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)',
       id, emp.id, month, amount, method, str(body.note, 200), this.now(), actor.id);
-    this.audit(actor, 'payroll.salary_paid', emp.id, { name: emp.name, month, amount, method, note: str(body.note, 200) });
+    if (sig) this.db.run('INSERT INTO signatures (payment, emp, data, ts) VALUES (?, ?, ?, ?)', id, emp.id, sig, this.now());
+    this.audit(actor, 'payroll.salary_paid', emp.id, { name: emp.name, month, amount, method, note: str(body.note, 200), signed: sig ? true : undefined });
     this.queuePush('emp', [emp.id], `paid-${id}`, (ur) => ({
       title: ur ? 'تنخواہ ادا ہو گئی' : 'Salary paid',
       body: ur ? `${month} کی تنخواہ ${this.settings.currency} ${commas(amount)} ادا کر دی گئی۔` : `${this.settings.currency} ${commas(amount)} paid for ${month}.`,

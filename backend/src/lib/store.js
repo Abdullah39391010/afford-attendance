@@ -9,6 +9,7 @@ import { sendPushes } from './push.js';
 import { installPro } from './pro.js';
 import { installOps } from './ops.js';
 import { installExtra } from './extra.js';
+import { installPins } from './pins.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -347,6 +348,7 @@ export class Store {
     this.proRoutes(add, A);
     this.opsRoutes(add, A);
     this.extraRoutes(add, A);
+    this.pinsRoutes(add, A);
     return R;
   }
 
@@ -606,9 +608,12 @@ export class Store {
     }
     const active = 'active' in body ? (body.active ? 1 : 0) : existing ? (existing.active ? 1 : 0) : 1;
     let pin;
-    if (body.pin) {
-      if (!validPin(String(body.pin))) throw bad('BAD_PIN', 'PIN must be 4 to 6 digits');
-      pin = await hashPin(String(body.pin), this.pepper);
+    let plainPin = body.pin ? String(body.pin) : '';
+    // a new employee with no PIN typed gets the store's default PIN
+    if (!plainPin && !existing) plainPin = (await this.defaultPin()) || '';
+    if (plainPin) {
+      if (!validPin(plainPin)) throw bad('BAD_PIN', 'PIN must be 4 to 6 digits');
+      pin = await hashPin(plainPin, this.pepper);
     }
     const id = existing?.id || uid();
     if (existing) {
@@ -626,6 +631,7 @@ export class Store {
         id, code, JSON.stringify(data), pin || null, active, this.now(), this.now());
       this.audit(actor, 'employee.added', id, { name: data.name, code, salary: data.salary });
     }
+    if (pin) await this.rememberPin(id, plainPin);
     if (body.photo !== undefined) this.putEmpPhoto({ actor, body: { dataUrl: body.photo }, params: { id }, quiet: true });
     if (salaryAsk) {
       this.db.run("UPDATE approvals SET status = 'cancelled', decided = ? WHERE kind = 'salary' AND status = 'pending' AND emp = ?", this.now(), id);
@@ -658,6 +664,7 @@ export class Store {
     const e = this.empRow(params.id);
     if (!validPin(String(body.pin || ''))) throw bad('BAD_PIN', 'PIN must be 4 to 6 digits');
     this.db.run('UPDATE employees SET pin = ?, updated = ? WHERE id = ?', await hashPin(String(body.pin), this.pepper), this.now(), e.id);
+    await this.rememberPin(e.id, String(body.pin));
     this.lockClear(`e:${e.code.toLowerCase()}`);
     this.audit(actor, 'employee.pin_set', e.id, { name: e.name });
     return { ok: true };
@@ -1023,11 +1030,16 @@ export class Store {
     const frozen = opts.live ? null : this.lockedStatement(emp.id, month);
     const st = frozen ? structuredClone(frozen) : this.liveStatement(emp, month, preloaded);
     const s = this.settings;
-    st.payments = this.paymentsFor(emp.id, month).map((p) => ({ id: p.id, amount: p.amount, method: p.method, note: p.note, ts: p.ts }));
+    st.payments = this.paymentsFor(emp.id, month).map((p) => ({ id: p.id, amount: p.amount, method: p.method, note: p.note, ts: p.ts, signed: !!this.db.get('SELECT 1 AS x FROM signatures WHERE payment = ?', p.id) }));
     st.paid = st.payments.reduce((a, p) => a + p.amount, 0);
     st.slipNo = `${emp.code}-${month.replace('-', '')}`;
     st.storeAddress = s.storeAddress || '';
     st.storePhone = s.storePhone || '';
+    return st;
+  }
+  /** Adds the employee's hand signature to each salary payment (only for one statement at a time). */
+  withSigs(st) {
+    for (const p of st.payments || []) if (p.signed) p.signature = this.db.get('SELECT data FROM signatures WHERE payment = ?', p.id)?.data || null;
     return st;
   }
   liveStatement(emp, month, preloaded) {
@@ -1045,7 +1057,7 @@ export class Store {
   }
   payrollOne({ params, q }) {
     const month = isMonth(q.get('month')) ? q.get('month') : this.month();
-    return { statement: this.statement(this.empRow(params.id, { withDeleted: true }), month) };
+    return { statement: this.withSigs(this.statement(this.empRow(params.id, { withDeleted: true }), month)) };
   }
   payrollAll({ actor, q }) {
     const month = isMonth(q.get('month')) ? q.get('month') : this.month();
@@ -1735,7 +1747,7 @@ export class Store {
           employee: { name: actor.name, nameUr: actor.nameUr, code: actor.code }, depositBalance: this.depositBalance(actor.id) };
       }
     }
-    const st = this.statement(actor, month);
+    const st = this.withSigs(this.statement(actor, month));
     if (actor.salaryVisibility === 'last7') {
       // only the last 7 days of records, no monthly totals
       const today = this.today();
@@ -1808,3 +1820,4 @@ export { paidLeaveQuota };
 installPro(Store);
 installOps(Store);
 installExtra(Store);
+installPins(Store);

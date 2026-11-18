@@ -1,7 +1,7 @@
 {
-  "version": "0.9.9",
+  "version": "0.10.0",
   "notes": {
-    "en": "Fix: Urdu (and other) text typed with some phone keyboards was cleared on Save. It now saves.",
-    "ur": "درستی: کچھ فون کی بورڈز سے لکھا اردو متن محفوظ کرنے پر مٹ جاتا تھا۔ اب محفوظ ہوتا ہے۔"
+    "en": "Default PIN for new staff, admin can see staff PINs, staff can change their PIN. Employee signs on the phone when salary is paid.",
+    "ur": "نئے عملے کا عام PIN، ایڈمن عملے کا PIN دیکھ سکتا ہے، عملہ اپنا PIN بدل سکتا ہے۔ تنخواہ ادا ہونے پر ملازم فون پر دستخط کرتا ہے۔"
   }
 }

@@ -1,6 +1,6 @@
 // Settings: store, location (GPS), shifts, roles, rules, holidays; managers and permissions.
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 import { AffordDevice } from 'afford-device';
 import { api } from '../shared/api.js';
 import { t, nm, errText } from '../shared/i18n.js';
@@ -48,6 +48,27 @@ export function SettingsHome() {
   );
 }
 
+/** One PIN that every new employee gets automatically. Staff can change it later in the staff app. */
+function DefaultPinCard() {
+  const [pin, setPin] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api.get('/api/admin/default-pin').then((r) => setPin(r.pin || '')).catch(() => setPin('')); }, []);
+  const save = async () => {
+    if (pin && !/^\d{4,6}$/.test(pin)) return toast(t('PIN must be 4 to 6 digits.'), 'err');
+    setBusy(true);
+    try { await api.put('/api/admin/default-pin', { pin }); toast(pin ? t('Default PIN saved') : t('Default PIN turned off'), 'ok'); } catch (e) { toastErr(e); } finally { setBusy(false); }
+  };
+  return (
+    <div class="card">
+      <h2>{t('Default PIN for new staff')}</h2>
+      <Field hint={t('Every new employee gets this PIN automatically. Leave empty to type a PIN for each person. Staff can change their PIN in the staff app.')}>
+        <input class="input ltr" style="width:100%" inputmode="numeric" maxLength={6} value={pin ?? ''} disabled={pin === null} onInput={(e) => setPin(e.currentTarget.value.replace(/\D/g, ''))} />
+      </Field>
+      <button class="btn block" disabled={busy || pin === null} onClick={save}>{busy ? <Spinner sm /> : t('Save')}</button>
+    </div>
+  );
+}
+
 export function SettingsStore() {
   const app = useApp();
   const s = app.settings;
@@ -82,6 +103,7 @@ export function SettingsStore() {
           </Field>
           <button class="btn block" disabled={busy} onClick={() => save(f)}>{t('Save')}</button>
         </div>
+        {app.can('employees.edit') && <DefaultPinCard />}
         <div class="card gap">
           <img src="./logo.png" alt="" style="width:96px;height:auto;flex:none" />
           <div class="grow"><b>{t('Logo')}</b><div class="small muted">{t('Used on printouts and the owner page.')}</div></div>

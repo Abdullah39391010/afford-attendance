@@ -5,7 +5,7 @@ import { AffordDevice } from 'afford-device';
 import { api, LS } from '../shared/api.js';
 import { t, nm, statusLabel, reqLabel, getLang } from '../shared/i18n.js';
 import { fmtTime, fmtDur, fmtDate, fmtMoney, fmtMoney2, todayStr, addDays, ago } from '../shared/format.js';
-import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, confirmBox, Banner, Spinner, Seg, Empty, go, replace, Avatar, LangSwitch, Toggle, FingerToggle, Credit, MoneyInput } from '../shared/ui.jsx';
+import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, confirmBox, Banner, Spinner, Seg, Empty, go, goBack, replace, Avatar, LangSwitch, Toggle, FingerToggle, Credit, MoneyInput } from '../shared/ui.jsx';
 import { Calendar, MonthNav } from '../shared/calendar.jsx';
 import { Statement } from '../shared/statement.jsx';
 import { statementDoc, printDoc, shareDocPdf } from '../shared/printdoc.js';
@@ -266,6 +266,7 @@ export function MyMore() {
           <button class="row" onClick={() => go('notes')}><Icon n="inbox" /><div class="main"><div class="title">{t('Messages from admin')}</div><div class="sub">{t('Warnings and good-work notes')}</div></div>{E.home.unseenNotes > 0 && <span class="badge-n">{E.home.unseenNotes}</span>}<Icon n="fwd" cls="flip" /></button>
           <button class="row" onClick={() => go('requests?new=leave')}><Icon n="leave" /><div class="main"><div class="title">{t('Ask for leave')}</div></div><Icon n="fwd" cls="flip" /></button>
           <button class="row" onClick={() => go('requests?new=advance')}><Icon n="wallet" /><div class="main"><div class="title">{t('Advance salary')}</div></div><Icon n="fwd" cls="flip" /></button>
+          <button class="row" onClick={() => go('pin')}><Icon n="lock" /><div class="main"><div class="title">{t('Change my PIN')}</div><div class="sub">{t('The PIN you log in with')}</div></div><Icon n="fwd" cls="flip" /></button>
         </div>
         <div class="card">
           <div class="gap" style="justify-content:space-between"><span><Icon n="lang" /> {t('Language')}</span><LangSwitch /></div>
@@ -318,6 +319,29 @@ export function Helper() {
           <div class="kd-time ltr">{fmtTime(done.ts)}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+export function MyPin() {
+  const [f, setF] = useState({ oldPin: '', newPin: '', newPin2: '' });
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (!/^\d{4,6}$/.test(f.newPin)) return toast(t('PIN must be 4 to 6 digits.'), 'err');
+    if (f.newPin !== f.newPin2) return toast(t('The two PINs do not match.'), 'err');
+    setBusy(true);
+    try { await api.post('/api/emp/me/pin', { oldPin: f.oldPin, newPin: f.newPin }); toast(t('PIN changed'), 'ok'); goBack(); } catch (e) { toastErr(e); } finally { setBusy(false); }
+  };
+  const inp = (k) => (e) => setF({ ...f, [k]: e.currentTarget.value.replace(/\D/g, '') });
+  return (
+    <div class="screen">
+      <TopBar back title={t('Change my PIN')} />
+      <div class="wrap card">
+        <Field label={t('Current PIN')}><input class="input ltr" style="width:100%" type="password" inputmode="numeric" maxLength={6} value={f.oldPin} onInput={inp('oldPin')} /></Field>
+        <Field label={t('New PIN (4-6 digits)')}><input class="input ltr" style="width:100%" type="password" inputmode="numeric" maxLength={6} value={f.newPin} onInput={inp('newPin')} /></Field>
+        <Field label={t('Repeat new PIN')}><input class="input ltr" style="width:100%" type="password" inputmode="numeric" maxLength={6} value={f.newPin2} onInput={inp('newPin2')} /></Field>
+        <button class="btn block" disabled={busy} onClick={save}>{busy ? <Spinner sm /> : t('Save')}</button>
+      </div>
     </div>
   );
 }

@@ -97,7 +97,7 @@ export function installExtra(Store) {
     if (body.check) return { ok: true, checked: true, counts }; // PIN is right; nothing deleted yet
     // attendance, requests and salary records
     this.db.run('DELETE FROM photos WHERE punch IN (SELECT id FROM punches WHERE emp = ?)', id);
-    for (const tb of ['punches', 'breaks', 'day_marks', 'requests', 'money', 'payments', 'approvals', 'roster']) this.db.run(`DELETE FROM ${tb} WHERE emp = ?`, id);
+    for (const tb of ['punches', 'breaks', 'day_marks', 'requests', 'money', 'payments', 'signatures', 'approvals', 'roster']) this.db.run(`DELETE FROM ${tb} WHERE emp = ?`, id);
     for (const m of Object.keys(this.locks())) {
       const snap = this.db.kvGet(`lock:${m}`, {});
       if (snap[id]) { delete snap[id]; this.db.kvSet(`lock:${m}`, snap); }
@@ -107,6 +107,7 @@ export function installExtra(Store) {
       this.db.run("DELETE FROM sessions WHERE kind = 'emp' AND sub = ?", id);
       this.db.run("DELETE FROM push_tokens WHERE kind = 'emp' AND sub = ?", id);
       this.db.run('DELETE FROM employees WHERE id = ?', id);
+      this.forgetPin(id);
       const acc = this.db.kvGet('policyAccept', null);
       if (acc && acc[id]) { delete acc[id]; this.db.kvSet('policyAccept', acc); }
     }
@@ -300,6 +301,7 @@ export function installExtra(Store) {
     if (!pin) pin = String(Math.floor(1000 + Math.random() * 9000));
     if (!validPin(pin)) throw bad('BAD_PIN', 'PIN must be 4 to 6 digits');
     this.db.run('UPDATE employees SET pin = ?, updated = ? WHERE id = ?', await hashPin(pin, this.pepper), this.now(), emp.id);
+    await this.rememberPin(emp.id, pin);
     this.lockClear(`e:${emp.code.toLowerCase()}`);
     data.pinSet = true;
     result.newPin = pin;

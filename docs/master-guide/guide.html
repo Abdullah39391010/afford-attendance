@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 2.4 · 18 November 2026 (apps v0.9.9)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
+  <div class="meta">Version 2.5 · 19 November 2026 (apps v0.10.0)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -154,6 +154,8 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
     <tr><td>Requests inbox</td><td>Forgot check-in, forgot check-out, past-day attendance, leave, advance salary (in 1 to 6 monthly installments), break, "checked out by mistake", "check in again" and out-of-town duty. Approve or decline with a note, and change the time or amount before approving if needed. For the owner, a "Waiting for your approval" list sits on top.</td></tr>
     <tr><td>Employees</td><td>Add, edit and delete employees, with photo, phone, CNIC, role, salary, shift, weekly off, joining date, active/inactive and PIN. Also set per employee: field staff, kiosk allowed, paid leave override and salary visibility.</td></tr>
     <tr><td>Delete employee</td><td>Delete gives three choices: remove from the staff list (records kept), clear attendance and salary records (owner only), or delete the employee and all records (owner only). Clearing or deleting first asks for the owner PIN or fingerprint, then shows how many records will go and asks to confirm. This cannot be undone.</td></tr>
+    <tr><td>Staff PINs</td><td>Settings → Store has a default PIN that every new employee gets automatically. On an employee's Profile, tap Show to see their login code and current PIN (only people who can edit staff). Staff change their own PIN in the staff app under More → Change my PIN. PINs set before v0.10.0 show as "not known" until set again.</td></tr>
+    <tr><td>Salary signature</td><td>When marking salary as paid in cash, the employee signs with a finger on the admin's phone. The signature is saved with the payment, shows on the salary statement in both apps and is printed on the payslip.</td></tr>
     <tr><td>Urdu names</td><td>Employees, shifts, roles, holidays, branches and the store name can each have an Urdu name. The Urdu name shows when the app is in Urdu.</td></tr>
     <tr><td>Check in / out for staff</td><td>Check any employee in or out now or at a given time. A reason is required and it is written to the audit log.</td></tr>
     <tr><td>Calendar</td><td>Per employee, one solid colour per day (see section 13). Tap a day to see the punches, GPS distance, kiosk photo and requests.</td></tr>
@@ -453,7 +455,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   <h2>20. Versions and test checklist</h2>
   <table>
     <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
-    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>54 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
+    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>56 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
     <tr><td>Admin app</td><td><span class="tag done">Live</span></td><td>Login, board, requests and owner approvals, staff, money with installments, payroll with paid record and month lock, settlement, rules agreement, backups, reports, kiosk, Urdu.</td></tr>
     <tr><td>Employee app</td><td><span class="tag done">Live</span></td><td>Rules agreement, phone locking, fingerprint, check-in inside and outside the circle, check-in-again request, break, requests, reminders, offline punch, calendar, payslip, Urdu.</td></tr>
     <tr><td>iPhone web version</td><td><span class="tag done">v0.9</span></td><td>Owner allows it per person, login in Safari, check in inside the circle, Add to Home Screen.</td></tr>

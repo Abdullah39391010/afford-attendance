@@ -118,8 +118,11 @@ export function StaffForm({ id }) {
   const [f, setF] = useState(null);
   const [photo, setPhoto] = useState(undefined);
   const [busy, setBusy] = useState(false);
+  const [defPin, setDefPin] = useState(null);
+  const [makeDefault, setMakeDefault] = useState(false);
   useEffect(() => {
     if (!id) {
+      api.get('/api/admin/default-pin').then((r) => { if (r.pin) { setDefPin(r.pin); setF((x) => (x && !x.pin ? { ...x, pin: r.pin } : x)); } }).catch(() => {});
       setF({ name: '', nameUr: '', code: '', phone: '', cnic: '', roleId: s.roles[1]?.id || s.roles[0].id, shiftId: s.shifts[0].id, salary: '', weeklyOff: null,
         fieldStaff: false, kioskAllowed: true, helperFor: [], paidLeavePerMonth: '', salaryVisibility: 'always', joinDate: todayStr(api.serverNow()), notes: '', active: true, pin: '',
         fatherName: '', dob: '', address: '', emergencyName: '', emergencyPhone: '', branchId: app.me.branchId || '', webAllowed: false });
@@ -143,6 +146,7 @@ export function StaffForm({ id }) {
     try {
       const body = { ...f, salary: f.salary === '' ? 0 : Number(f.salary), paidLeavePerMonth: f.paidLeavePerMonth === '' ? null : Number(f.paidLeavePerMonth) };
       if (!body.pin) delete body.pin;
+      if (!id && makeDefault && body.pin && body.pin !== defPin) await api.put('/api/admin/default-pin', { pin: body.pin }).catch(() => {});
       if (photo !== undefined) body.photo = photo;
       const r = id ? await api.put(`/api/admin/employees/${id}`, body) : await api.post('/api/admin/employees', body);
       toast(r.salaryPendingOwner ? t('Saved. The salary change waits for the owner.') : t('Saved'), 'ok');
@@ -240,6 +244,9 @@ export function StaffForm({ id }) {
           <Field label={id ? t('New PIN (leave empty to keep)') : t('PIN for the employee app and kiosk')} hint={t('4 to 6 digits. Give it to the employee privately.')}>
             <input class="input ltr" style="width:100%" inputmode="numeric" maxLength={6} value={f.pin} onInput={(e) => set('pin', e.currentTarget.value.replace(/\D/g, ''))} />
           </Field>
+          {!id && (defPin && f.pin === defPin
+            ? <p class="small muted" style="margin:-4px 0 10px">{t('This is the default PIN for new staff. Change it in Settings → Store.')}</p>
+            : <Toggle checked={makeDefault} onChange={setMakeDefault} label={t('Use this PIN for every new employee')} sub={t('New staff get it automatically. Each person can change it in the staff app.')} />)}
           <Field label={t('Notes')}><textarea class="input" value={f.notes} onInput={inp('notes')} /></Field>
         </div>
         <button class="btn block" disabled={busy} onClick={save} style="margin-bottom:20px">{busy ? <Spinner sm /> : t('Save')}</button>
@@ -385,6 +392,7 @@ function Info({ e, reload }) {
         <div class="kv"><span class="k">{t('Paid leave / month')}</span><span class="v">{e.paidLeavePerMonth ?? `${s.rules.paidLeavePerMonth} (${t('store rule')})`}</span></div>
         <div class="kv"><span class="k">{t('Salary statement')}</span><span class="v">{t(VIS_LABEL[e.salaryVisibility] || VIS_LABEL.always)}</span></div>
         {e.helperFor?.length > 0 && <div class="kv"><span class="k">{t('Can check in others')}</span><span class="v">{t('{n} people', { n: e.helperFor.length })}</span></div>}
+        {app.can('employees.edit') && <PinRow e={e} />}
         <div class="kv"><span class="k">{t('Phone')}</span><span class="v">{e.deviceBound ? `${t('Linked')} ${e.deviceName ? `(${e.deviceName})` : ''}` : t('Not linked yet')}</span></div>
         <div class="kv"><span class="k">{t('Rules agreement')}</span><span class="v">{e.rulesAccepted?.current ? `${t('Accepted')} · ${fmtDateTime(e.rulesAccepted.ts)}` : e.rulesAccepted ? t('Accepted an older version') : t('Not accepted yet')}</span></div>
         {e.notes && <div class="kv"><span class="k">{t('Notes')}</span><span class="v">{e.notes}</span></div>}
@@ -396,6 +404,27 @@ function Info({ e, reload }) {
         {app.me.role === 'owner' && e.deviceBound && <button class="btn ghost" onClick={resetPhone}><Icon n="phone" />{t('Reset phone (allow new phone)')}</button>}
       </div>
     </div>
+  );
+}
+
+/** The employee's login code and current PIN, hidden until tapped. */
+function PinRow({ e }) {
+  const [pin, setPin] = useState(undefined);
+  const [busy, setBusy] = useState(false);
+  const show = async () => {
+    if (pin !== undefined) return setPin(undefined);
+    setBusy(true);
+    try { setPin((await api.get(`/api/admin/employees/${e.id}/pin`)).pin); } catch (x) { toastErr(x); } finally { setBusy(false); }
+  };
+  return (
+    <>
+      <div class="kv"><span class="k">{t('Login code')}</span><span class="v ltr" style="font-weight:700">{e.code}</span></div>
+      <div class="kv"><span class="k">{t('Login PIN')}</span><span class="v">
+        {pin === undefined ? <span class="ltr">••••</span> : pin ? <span class="ltr" style="font-weight:700;letter-spacing:2px">{pin}</span>
+          : <span class="small" style="color:var(--orange)">{t('Not known (set before this update). Set a new PIN with Edit.')}</span>}
+        {' '}<button class="btn small soft" disabled={busy} onClick={show}>{busy ? <Spinner sm /> : pin === undefined ? t('Show') : t('Hide')}</button>
+      </span></div>
+    </>
   );
 }
 

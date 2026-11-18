@@ -21,6 +21,7 @@ export const TABLES = {
   roster: ['emp', 'day', 'shift_id', 'off', 'note', 'by_admin', 'ts'],
   staff_notes: ['id', 'emp', 'kind', 'text', 'ts', 'by_admin', 'by_name', 'seen', 'voided'],
   docs: ['id', 'emp', 'kind', 'name', 'mime', 'data', 'size', 'ts', 'by_admin'],
+  signatures: ['payment', 'emp', 'data', 'ts'],
 };
 
 export function makeBackup(db, meta) {

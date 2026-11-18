@@ -350,3 +350,57 @@ test('owner can clear an employee\'s records or erase the employee, only with PI
   assert.equal((await t.api('GET', `/api/admin/employees/${t.ali.id}`, null, t.owner)).status, 404);
   assert.ok((await t.api('GET', '/api/admin/audit', null, t.owner)).data.rows?.some?.((x) => x.action === 'employee.erased') ?? true);
 });
+
+test('PINs: default PIN for new staff, admin can see PIN, staff change own PIN', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  // Ali's PIN was set when added, so the admin can see it
+  let r = await t.api('GET', `/api/admin/employees/${t.ali.id}/pin`, null, t.owner);
+  assert.equal(r.data.pin, '1111');
+  // default PIN
+  r = await t.api('PUT', '/api/admin/default-pin', { pin: '12' }, t.owner);
+  assert.equal(r.data.error, 'BAD_PIN');
+  await t.api('PUT', '/api/admin/default-pin', { pin: '5555' }, t.owner);
+  assert.equal((await t.api('GET', '/api/admin/default-pin', null, t.owner)).data.pin, '5555');
+  const nw = (await t.api('POST', '/api/admin/employees', { name: 'Usman', roleId: 'cashier', salary: 20000 }, t.owner)).data.employee;
+  assert.equal((await t.api('GET', `/api/admin/employees/${nw.id}/pin`, null, t.owner)).data.pin, '5555');
+  r = await t.api('POST', '/api/emp/login', { code: nw.code, pin: '5555', deviceId: 'phone-usman-001' });
+  assert.ok(r.data.token);
+  // a typed PIN still wins
+  const nw2 = (await t.api('POST', '/api/admin/employees', { name: 'Zain', roleId: 'cashier', salary: 20000, pin: '4321' }, t.owner)).data.employee;
+  assert.equal((await t.api('GET', `/api/admin/employees/${nw2.id}/pin`, null, t.owner)).data.pin, '4321');
+  // staff change their PIN; old PIN must be right
+  r = await t.aliApi('POST', '/api/emp/me/pin', { oldPin: '0000', newPin: '7777' });
+  assert.equal(r.data.error, 'WRONG_PIN');
+  r = await t.aliApi('POST', '/api/emp/me/pin', { oldPin: '1111', newPin: '7777' });
+  assert.equal(r.data.ok, true);
+  assert.equal((await t.api('GET', `/api/admin/employees/${t.ali.id}/pin`, null, t.owner)).data.pin, '7777');
+  // admin sets a PIN
+  await t.api('POST', `/api/admin/employees/${t.ali.id}/pin`, { pin: '8888' }, t.owner);
+  assert.equal((await t.api('GET', `/api/admin/employees/${t.ali.id}/pin`, null, t.owner)).data.pin, '8888');
+  // an old PIN from before this version can't be shown
+  t.store.db.run('DELETE FROM kv WHERE k = ?', `pinv:${t.bilal.id}`);
+  r = await t.api('GET', `/api/admin/employees/${t.bilal.id}/pin`, null, t.owner);
+  assert.equal(r.data.pin, null);
+  assert.equal(r.data.hasPin, true);
+  // staff can't read PINs
+  r = await t.aliApi('GET', `/api/admin/employees/${t.bilal.id}/pin`);
+  assert.equal(r.status, 401);
+});
+
+test('salary paid: employee signature saved and shown on both statements', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  let r = await t.api('POST', '/api/admin/payments', { employeeId: t.ali.id, month: '2026-11', amount: 1000, method: 'cash', signature: 'data:text/html;base64,AAAA' }, t.owner);
+  assert.equal(r.data.error, 'BAD_SIGNATURE');
+  r = await t.api('POST', '/api/admin/payments', { employeeId: t.ali.id, month: '2026-11', amount: 1000, method: 'cash', signature: png }, t.owner);
+  assert.equal(r.data.ok, true);
+  const adm = (await t.api('GET', `/api/admin/payroll/${t.ali.id}?month=2026-11`, null, t.owner)).data.statement;
+  assert.equal(adm.payments[0].signed, true);
+  assert.equal(adm.payments[0].signature, png);
+  const mine = (await t.aliApi('GET', '/api/emp/statement?month=2026-11')).data;
+  const pay = (mine.statement || mine).payments[0];
+  assert.equal(pay.signature, png);
+  // payroll list stays light
+  const list = (await t.api('GET', '/api/admin/payroll?month=2026-11', null, t.owner)).data;
+  assert.ok(!JSON.stringify(list).includes('iVBOR'));
+});

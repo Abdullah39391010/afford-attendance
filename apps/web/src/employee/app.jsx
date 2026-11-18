@@ -11,7 +11,7 @@ import { flush, onQueue, queued } from '../shared/offline.js';
 import { startNotify, stopNotify } from '../shared/notify.js';
 import { PermissionGate } from '../shared/perms.jsx';
 import { Home } from './home.jsx';
-import { MyCalendar, MyRequests, MyPay, MyMore, Helper } from './screens.jsx';
+import { MyCalendar, MyRequests, MyPay, MyMore, Helper, MyPin } from './screens.jsx';
 import { MyRoster, MyNotes } from './extra.jsx';
 
 export const ECtx = createContext(null);
@@ -280,6 +280,7 @@ function Shell({ logout }) {
     case 'helper': screen = <Helper />; break;
     case 'roster': screen = <MyRoster />; break;
     case 'notes': screen = <MyNotes />; break;
+    case 'pin': screen = <MyPin />; break;
     default: screen = <Home />;
   }
   const nav = [
