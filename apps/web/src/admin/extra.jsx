@@ -346,6 +346,7 @@ export function StaffFile({ e }) {
     <div class="card">
       <h2>{t('Staff file')}</h2>
       {kv(t("Father's name"), e.fatherName)}
+      {e.bloodGroup && <div class="kv"><span class="k">{t('Blood group')}</span><span class="v ltr" style="font-weight:700;color:var(--red)">{e.bloodGroup}</span></div>}
       {kv(t('Date of birth'), e.dob && fmtDate(e.dob))}
       {kv(t('Address'), e.address)}
       {(e.emergencyName || e.emergencyPhone) && <div class="kv"><span class="k">{t('Emergency contact')}</span><span class="v">{e.emergencyName} {e.emergencyPhone && <a class="ltr" href={`tel:${e.emergencyPhone}`}>{e.emergencyPhone}</a>}</span></div>}

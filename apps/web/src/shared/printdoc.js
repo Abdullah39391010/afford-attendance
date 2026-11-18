@@ -40,6 +40,7 @@ const CSS = (a, rtl) => `
 .doc .net b{color:#C62032;font-family:system-ui,Arial,sans-serif}
 .doc .foot{margin-top:28px;display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:#666}
 .doc .sig{border-top:1px solid #999;width:180px;text-align:center;padding-top:4px}
+.doc .sigbox{width:180px}.doc .sigimg{display:block;height:64px;width:auto;max-width:180px;margin:0 auto 2px}
 .doc .st{display:inline-block;padding:1px 6px;border-radius:8px;font-size:10.5px;font-weight:700}
 .doc .st-present{background:#E3F4EA;color:#137043}.doc .st-late{background:#FFF1DC;color:#9a5300}.doc .st-absent{background:#FCE9EB;color:#A3172A}
 .doc .st-leave,.doc .st-leave_unpaid{background:#EEE8FB;color:#5a36a8}.doc .st-off,.doc .st-holiday{background:#EEF0F2;color:#5b6168}.doc .st-duty{background:#E8EAF6;color:#3949AB}
@@ -48,6 +49,14 @@ const CSS = (a, rtl) => `
 
 function header(a, storeName, title, right, contact) {
   return `<div class="hd"><img src="${a.logo}"><div><h1>${esc(storeName)}</h1>${contact ? `<div class="s">${esc(contact)}</div>` : ''}<div class="s">${esc(title)}</div></div><div class="r">${right || ''}</div></div>`;
+}
+
+// "Received by" box with the employee's hand signature from the latest salary payment, when there is one
+const SIG_RE = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/;
+function receivedBy(st) {
+  const sp = (st.payments || []).filter((p) => p.signature && SIG_RE.test(p.signature)).pop();
+  const img = sp ? `<img class="sigimg" src="${sp.signature}" alt="">` : '';
+  return `<div class="sigbox">${img}<div class="sig">${esc(t('Received by (employee signature)'))}</div></div>`;
 }
 
 export async function statementDoc(st) {
@@ -104,7 +113,7 @@ export async function statementDoc(st) {
   ${(st.payments || []).map((p) => kv(`${t('Paid')} · ${t({ cash: 'Cash', bank: 'Bank transfer', other: 'Other' }[p.method] || p.method)} · ${fmtDateTime(p.ts)}`, fmtMoney(p.amount, cur))).join('')}
   <h2>${esc(t('Daily record'))}</h2>
   <table><thead><tr><th>${esc(t('Date'))}</th><th>${esc(t('Status'))}</th><th class="n">${esc(t('In'))}</th><th class="n">${esc(t('Out'))}</th><th class="n">${esc(t('Hours'))}</th><th class="n">${esc(t('Late'))}</th><th class="n">${esc(t('Early'))}</th><th class="n">${esc(t('Cut'))}</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="foot"><div>${(() => { const sp = (st.payments || []).filter((p) => p.signature).pop(); return sp && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(sp.signature) ? `<img src="${sp.signature}" alt="" style="display:block;height:60px;width:auto;margin:0 auto 2px">` : ''; })()}<div class="sig">${esc(t('Received by (employee signature)'))}</div></div><div class="sig">${esc(t('Authorised signature'))}</div></div>
+  <div class="foot">${receivedBy(st)}<div class="sig">${esc(t('Authorised signature'))}</div></div>
   </div>`;
   return { body, css: CSS(a, rtl), title: `${e.name} ${st.month}` };
 }
@@ -134,6 +143,7 @@ export async function shareDocPdf(doc, filename) {
   document.body.appendChild(host);
   try {
     await document.fonts.ready;
+    await Promise.all([...host.querySelectorAll('img')].map((im) => (im.decode ? im.decode().catch(() => {}) : Promise.resolve())));
     const canvas = await html2canvas(host, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
     const pdf = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
     const pw = pdf.internal.pageSize.getWidth();
@@ -177,7 +187,7 @@ export async function settlementDoc(x, storeName, currency, contact) {
   ${kv(t('Security deposit returned'), `+ ${fmtMoney(x.depositBalance, cur)}`)}
   <div class="net"><span>${esc(x.total >= 0 ? t('Amount to pay the employee') : t('Amount the employee owes'))}</span><b>${esc(fmtMoney(Math.abs(x.total), cur))}</b></div>
   <p class="muted" style="margin-top:14px">${esc(t('All dues between the store and the employee are cleared with this payment.'))}</p>
-  <div class="foot"><div class="sig">${esc(t('Received by (employee signature)'))}</div><div class="sig">${esc(t('Authorised signature'))}</div></div>
+  <div class="foot">${receivedBy(st)}<div class="sig">${esc(t('Authorised signature'))}</div></div>
   </div>`;
   return { body, css: CSS(a, rtl), title: `${e.name} settlement` };
 }

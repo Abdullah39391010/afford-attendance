@@ -183,7 +183,9 @@ export function installOps(Store) {
   P.settlement = function settlement({ params, q }) {
     const emp = this.empRow(params.id, { withDeleted: true });
     const lastDay = isDate(q.get('lastDay')) ? q.get('lastDay') : emp.leaveDate || this.today();
-    return this.settlementData(emp, lastDay);
+    const x = this.settlementData(emp, lastDay);
+    this.withSigs(x.statement);
+    return x;
   };
   P.settle = function settle({ actor, params, body }) {
     const emp = this.empRow(params.id);

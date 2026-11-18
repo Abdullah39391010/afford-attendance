@@ -404,3 +404,14 @@ test('salary paid: employee signature saved and shown on both statements', async
   const list = (await t.api('GET', '/api/admin/payroll?month=2026-11', null, t.owner)).data;
   assert.ok(!JSON.stringify(list).includes('iVBOR'));
 });
+
+test('blood group saved and checked', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  const e = (await t.api('GET', `/api/admin/employees/${t.ali.id}`, null, t.owner)).data.employee;
+  await t.api('PUT', `/api/admin/employees/${t.ali.id}`, { ...e, bloodGroup: 'a+' }, t.owner);
+  assert.equal((await t.api('GET', `/api/admin/employees/${t.ali.id}`, null, t.owner)).data.employee.bloodGroup, 'A+');
+  await t.api('PUT', `/api/admin/employees/${t.ali.id}`, { ...e, bloodGroup: 'X' }, t.owner);
+  assert.equal((await t.api('GET', `/api/admin/employees/${t.ali.id}`, null, t.owner)).data.employee.bloodGroup, '');
+  const list = (await t.api('GET', '/api/admin/employees', null, t.owner)).data.employees;
+  assert.ok('bloodGroup' in list.find((x) => x.id === t.ali.id));
+});

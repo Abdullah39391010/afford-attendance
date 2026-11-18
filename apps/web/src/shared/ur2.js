@@ -172,4 +172,7 @@ export const UR2 = {
   "Clear": "صاف کریں",
   "Signed by employee": "ملازم کے دستخط",
   "The signature could not be saved. Clear it and sign again.": "دستخط محفوظ نہیں ہو سکے۔ صاف کر کے دوبارہ دستخط کریں۔",
+  "Search name, code, phone or blood group": "نام، کوڈ، فون یا بلڈ گروپ تلاش کریں",
+  "Blood group": "بلڈ گروپ",
+  "Not known": "معلوم نہیں",
 };

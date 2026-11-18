@@ -748,10 +748,13 @@ public class AffordDevicePlugin extends Plugin {
             wv.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onPageFinished(WebView view, String url) {
-                    PrintManager pm = (PrintManager) getActivity().getSystemService(Context.PRINT_SERVICE);
-                    PrintAttributes attrs = new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build();
-                    pm.print(job, view.createPrintDocumentAdapter(job), attrs);
-                    call.resolve();
+                    // give pictures (logo, signature) a moment to draw before the print preview takes its copy
+                    view.postDelayed(() -> {
+                        PrintManager pm = (PrintManager) getActivity().getSystemService(Context.PRINT_SERVICE);
+                        PrintAttributes attrs = new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build();
+                        pm.print(job, view.createPrintDocumentAdapter(job), attrs);
+                        call.resolve();
+                    }, 700);
                 }
             });
             printWebView = wv; // keep a reference until printing is done

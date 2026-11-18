@@ -17,6 +17,7 @@ const ADMIN_TTL = 30 * 24 * 3600 * 1000;
 const EMP_TTL = 365 * 24 * 3600 * 1000;
 const KIOSK_TTL = 365 * 24 * 3600 * 1000;
 const OPEN_MAX_MS = 20 * 3600 * 1000; // a check-in older than this no longer counts as "inside"
+const BLOOD = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'advance', 'break', 'undo_checkout', 'field_duty', 'recheckin', 'swap', 'pin_reset'];
 const MONEY_KINDS = ['advance', 'deposit', 'deposit_cut', 'deposit_return', 'bonus', 'commission', 'fine'];
 const MAX_BODY = 1_500_000;
@@ -574,6 +575,7 @@ export class Store {
       notes: str(pick('notes', ''), 300),
       // staff file
       fatherName: str(pick('fatherName', ''), 60),
+      bloodGroup: BLOOD.includes(String(pick('bloodGroup', '')).toUpperCase()) ? String(pick('bloodGroup', '')).toUpperCase() : '',
       dob: pick('dob', '') && isDate(pick('dob', '')) ? pick('dob', '') : null,
       address: str(pick('address', ''), 200),
       emergencyName: str(pick('emergencyName', ''), 60),

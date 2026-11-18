@@ -11,6 +11,15 @@ import { Calendar, MonthNav } from '../shared/calendar.jsx';
 import { useApp } from './app.jsx';
 import { BranchChips, branchName, branchQ, StaffFile, NotesTab } from './extra.jsx';
 
+export const BLOOD = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+/** "a+", "AB -", "o positive", "B neg" -> the blood group, else null */
+export function bloodQuery(q) {
+  const m = /^\s*(ab|a|b|o)\s*(\+|-|pos(?:itive)?|neg(?:ative)?|ve\+|ve-)\s*$/i.exec(q || '');
+  if (!m) return null;
+  const sign = /^(\+|pos)/i.test(m[2]) || m[2] === 've+' ? '+' : '-';
+  return `${m[1].toUpperCase()}${sign}`;
+}
+
 export function StaffList() {
   const app = useApp();
   const [q, setQ] = useState('');
@@ -24,13 +33,15 @@ export function StaffList() {
       <TopBar logo title={t('Staff')} />
       <div class="wrap">
         <div class="gap" style="margin-top:12px">
-          <div class="search grow"><Icon n="search" /><input class="input" placeholder={t('Search name, code or phone')} value={q} onInput={(e) => setQ(e.currentTarget.value)} /></div>
+          <div class="search grow"><Icon n="search" /><input class="input" placeholder={t('Search name, code, phone or blood group')} value={q} onInput={(e) => setQ(e.currentTarget.value)} /></div>
         </div>
         <div style="margin-top:10px"><Seg value={showAll ? 'all' : 'active'} onChange={(v) => setShowAll(v === 'all')} options={[['active', t('Active')], ['all', t('All (with inactive)')]]} /></div>
         <BranchChips value={branch} onChange={setBranch} />
         <Loader st={st}>{(data) => {
           const ql = q.toLowerCase();
-          const rows = data.employees.filter((e) => !ql || `${e.name} ${e.nameUr} ${e.code} ${e.phone}`.toLowerCase().includes(ql));
+          // typing a blood group (A+, o-, ab+ ...) shows everyone with exactly that group
+          const bq = bloodQuery(q);
+          const rows = data.employees.filter((e) => !ql || (bq ? e.bloodGroup === bq : `${e.name} ${e.nameUr} ${e.code} ${e.phone} ${e.bloodGroup || ''}`.toLowerCase().includes(ql)));
           return (
             <div>
               <div class="small muted" style="margin:10px 4px 0">{t('{n} employees', { n: rows.length })}</div>
@@ -41,7 +52,7 @@ export function StaffList() {
                     <Avatar name={e.name} src={e.hasPhoto ? `/api/admin/employees/${e.id}/photo` : null} ver={e.photoVer} />
                     <div class="main">
                       <div class="title">{nm(e)} <span class="muted small ltr">{e.code}</span></div>
-                      <div class="sub">{roleName(e.roleId)}{e.branchId && (app.settings.locations || []).length > 1 ? ` · ${branchName(app, e.branchId)}` : ''}{e.fieldStaff ? ` · ${t('Field staff')}` : ''}{e.phone ? ` · ` : ''}<span class="ltr">{e.phone}</span></div>
+                      <div class="sub">{roleName(e.roleId)}{e.branchId && (app.settings.locations || []).length > 1 ? ` · ${branchName(app, e.branchId)}` : ''}{e.fieldStaff ? ` · ${t('Field staff')}` : ''}{e.phone ? ` · ` : ''}<span class="ltr">{e.phone}</span>{e.bloodGroup && <span class="ltr" style="color:var(--red);font-weight:700"> · {e.bloodGroup}</span>}</div>
                     </div>
                     <div class="end">
                       {!e.active && <Pill s="absent">{t('Inactive')}</Pill>}
@@ -125,7 +136,7 @@ export function StaffForm({ id }) {
       api.get('/api/admin/default-pin').then((r) => { if (r.pin) { setDefPin(r.pin); setF((x) => (x && !x.pin ? { ...x, pin: r.pin } : x)); } }).catch(() => {});
       setF({ name: '', nameUr: '', code: '', phone: '', cnic: '', roleId: s.roles[1]?.id || s.roles[0].id, shiftId: s.shifts[0].id, salary: '', weeklyOff: null,
         fieldStaff: false, kioskAllowed: true, helperFor: [], paidLeavePerMonth: '', salaryVisibility: 'always', joinDate: todayStr(api.serverNow()), notes: '', active: true, pin: '',
-        fatherName: '', dob: '', address: '', emergencyName: '', emergencyPhone: '', branchId: app.me.branchId || '', webAllowed: false });
+        fatherName: '', bloodGroup: '', dob: '', address: '', emergencyName: '', emergencyPhone: '', branchId: app.me.branchId || '', webAllowed: false });
     } else {
       api.get(`/api/admin/employees/${id}`).then((r) => setF({ ...r.employee, helperFor: r.employee.helperFor || [], paidLeavePerMonth: r.employee.paidLeavePerMonth ?? '', pin: '' })).catch(toastErr);
     }
@@ -178,6 +189,7 @@ export function StaffForm({ id }) {
         <div class="card">
           <h2>{t('Staff file')}</h2>
           <Field label={t("Father's name")}><input class="input" value={f.fatherName || ''} onInput={inp('fatherName')} /></Field>
+          <Field label={t('Blood group')}><Chips value={f.bloodGroup || ''} onChange={(v) => set('bloodGroup', v)} options={[['', t('Not known')], ...BLOOD.map((b) => [b, b])]} /></Field>
           <Field label={t('Date of birth')} hint={t('Used for the birthday wish')}><input class="input ltr" style="width:100%" type="date" value={f.dob || ''} onInput={inp('dob')} /></Field>
           <Field label={t('Address')}><input class="input" value={f.address || ''} onInput={inp('address')} /></Field>
           <div class="two">
