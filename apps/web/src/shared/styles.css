@@ -399,3 +399,55 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
 label.btn.disabled { opacity: .6; pointer-events: none; }
 /* ---------- owner web page on a laptop */
 @media (min-width: 900px) { html.web .wrap { max-width: 980px; } }
+
+/* Glass sample: only bars, menu, sheets and dialogs. Cards stay solid. */
+html.glass { background: #F3F3F6; }
+html.glass body { background: transparent; }
+html.glass body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(900px 520px at -10% -8%, #FFDDE2 0%, rgba(255,221,226,0) 60%),
+    radial-gradient(760px 520px at 112% 38%, #E2EAFF 0%, rgba(226,234,255,0) 58%),
+    radial-gradient(700px 460px at 30% 112%, #FFEBD6 0%, rgba(255,235,214,0) 60%);
+}
+html.glass .topbar {
+  background: rgba(255,255,255,.58);
+  -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+  border-bottom: 1px solid rgba(255,255,255,.75);
+  box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04);
+}
+html.glass .bottomnav {
+  inset: auto 12px calc(var(--safe-bottom) + 10px) 12px; padding-bottom: 0;
+  border-radius: 28px; border: 1px solid rgba(255,255,255,.8);
+  background: rgba(255,255,255,.55);
+  -webkit-backdrop-filter: blur(24px) saturate(190%); backdrop-filter: blur(24px) saturate(190%);
+  box-shadow: 0 12px 32px rgba(30,20,40,.14), inset 0 1px 0 rgba(255,255,255,.9);
+}
+html.glass .bottomnav .in { padding: 5px; }
+html.glass .bottomnav button { border-radius: 22px; padding: 7px 0 6px; transition: background .2s; }
+html.glass .bottomnav button.on { background: rgba(198,32,50,.11); }
+html.glass .screen { padding-bottom: calc(var(--safe-bottom) + 104px); }
+html.glass .backdrop { background: rgba(20,20,28,.22); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+html.glass .sheet {
+  margin: 0 8px calc(var(--safe-bottom) + 8px); width: calc(100% - 16px);
+  border-radius: 30px; border: 1px solid rgba(255,255,255,.85);
+  background: rgba(255,255,255,.74);
+  -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 20px 50px rgba(30,20,40,.22), inset 0 1px 0 rgba(255,255,255,.9);
+}
+html.glass .sheet .input, html.glass .dialog .input { background: rgba(255,255,255,.85); }
+html.glass .dialog {
+  border-radius: 30px; border: 1px solid rgba(255,255,255,.85);
+  background: rgba(255,255,255,.76);
+  -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 24px 60px rgba(30,20,40,.25), inset 0 1px 0 rgba(255,255,255,.9);
+}
+html.glass .auth { background: transparent; }
+/* no blur on this phone: same shapes, plain white */
+html.glass.noblur .topbar, html.glass.noblur .bottomnav, html.glass.noblur .sheet, html.glass.noblur .dialog, html.glass.noblur .backdrop {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+html.glass.noblur .topbar { background: rgba(255,255,255,.97); }
+html.glass.noblur .bottomnav { background: rgba(255,255,255,.98); }
+html.glass.noblur .sheet, html.glass.noblur .dialog { background: #fff; }
+html.glass.noblur .backdrop { background: rgba(20,20,28,.42); }
