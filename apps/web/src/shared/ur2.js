@@ -116,4 +116,5 @@ export const UR2 = {
   "Turn off owner page": "مالک کا صفحہ بند کریں",
   "Wrong code. Please try again.": "غلط کوڈ۔ دوبارہ کوشش کریں۔",
   "The owner page code is not set yet.": "مالک کے صفحے کا کوڈ ابھی نہیں لگایا گیا۔",
+  "This page is not turned on yet.": "یہ صفحہ ابھی چالو نہیں کیا گیا۔",
 };

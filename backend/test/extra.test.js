@@ -246,22 +246,21 @@ test('web owner page gets a short login', async () => {
   assert.equal(r.status, 401);
 });
 
-test('owner web page: own code set by the owner, wrong codes locked out, logs in as owner', async () => {
+test('owner web page: own code from the server secret, wrong codes locked out, logs in as owner', async () => {
   const t = await seeded('2026-11-16T08:00');
   let r = await t.api('POST', '/api/owner-page/login', { code: '9999' });
   assert.equal(r.data.error, 'OWNER_PAGE_OFF');
-  r = await t.api('PUT', '/api/admin/owner-page', { code: '12' }, t.owner);
-  assert.equal(r.data.error, 'BAD_CODE');
-  r = await t.api('PUT', '/api/admin/owner-page', { code: '4455' }, t.owner);
-  assert.equal(r.data.codeSet, true);
-  assert.equal((await t.api('GET', '/api/admin/owner-page', null, t.owner)).data.codeSet, true);
+  t.store.env.OWNER_PAGE_CODE = '4455';
   r = await t.api('POST', '/api/owner-page/login', { code: '4455' });
   assert.equal(r.status, 200);
   assert.equal(r.data.me.role, 'owner');
   const tok = r.data.token;
   assert.equal((await t.api('GET', '/api/admin/board', null, tok)).status, 200);
-  // changing the code ends old page logins
-  await t.api('PUT', '/api/admin/owner-page', { code: '5566' }, t.owner);
+  // the admin app has no way to see or change it
+  assert.equal((await t.api('GET', '/api/admin/owner-page', null, t.owner)).status, 404);
+  // a new code (next deploy) logs out open owner pages at the next tick
+  t.store.env.OWNER_PAGE_CODE = '5566';
+  await t.store.tick();
   assert.equal((await t.api('GET', '/api/admin/board', null, tok)).status, 401);
   for (let i = 0; i < 5; i++) r = await t.api('POST', '/api/owner-page/login', { code: '0000' });
   assert.equal(r.data.error, 'WRONG_CODE');

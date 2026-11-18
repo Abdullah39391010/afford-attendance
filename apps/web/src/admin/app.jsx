@@ -10,7 +10,7 @@ import {
 import { BackupScreen, autoBackupTick } from './backup.jsx';
 import { RulesAgreement } from './pro.jsx';
 import { Roster } from './extra.jsx';
-import { OwnerCodeLogin, OwnerPageScreen, forgetOwnerPage } from './ownerpage.jsx';
+import { OwnerCodeLogin, forgetOwnerPage } from './ownerpage.jsx';
 import { Settlement } from './ops.jsx';
 import { startNotify, stopNotify } from '../shared/notify.js';
 import { PermissionGate } from '../shared/perms.jsx';
@@ -356,7 +356,6 @@ function Shell({ me, logout, toKiosk }) {
     case 'users': screen = <Users />; break;
     case 'kiosk': screen = <KioskSetup />; break;
     case 'backup': screen = <BackupScreen />; break;
-    case 'ownerpage': screen = <OwnerPageScreen />; break;
     case 'rules': screen = <RulesAgreement />; break;
     case 'roster': screen = <Roster />; break;
     case 'settings':

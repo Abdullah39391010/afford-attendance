@@ -38,6 +38,7 @@ export function installOps(Store) {
       if (r.dailySummaryOn) this.dailySummary();
       if (r.greetingsOn) this.greetings();
       this.driveReminder();
+      await this.ownerPageCodeHash(); // a changed code logs out open owner pages
     } catch (e) {
       this.logError('reminders', e);
     }
