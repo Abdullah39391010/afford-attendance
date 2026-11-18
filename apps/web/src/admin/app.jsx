@@ -6,8 +6,7 @@ import { api, LS, deviceInfo } from '../shared/api.js';
 import { t, applyDir, errText, onLang } from '../shared/i18n.js';
 import { setTz } from '../shared/format.js';
 import {
-  Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, Credit, askFinger,
-} from '../shared/ui.jsx';
+  Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, Credit, askFinger, WhoCard } from '../shared/ui.jsx';
 import { BackupScreen, autoBackupTick } from './backup.jsx';
 import { startNotify, stopNotify } from '../shared/notify.js';
 import { PermissionGate } from '../shared/perms.jsx';
@@ -223,6 +222,7 @@ function Login({ info, onDone }) {
     try {
       const dev = await deviceInfo();
       const res = await api.post('/api/admin/login', { login: login.trim().toLowerCase(), pin, deviceId: dev.deviceId, deviceName: dev.model });
+      LS.set('afford.lastWho', JSON.stringify({ login: login.trim().toLowerCase(), name: res.me?.name, role: res.me?.role }));
       const avail = (await AffordDevice.biometricAvailable().catch(() => ({}))).available;
       if (avail && LS.get('afford.bio') == null) setAskBio(res);
       else onDone(res);
@@ -234,32 +234,31 @@ function Login({ info, onDone }) {
 
   if (askBio) return <BioAsk title={t('Unlock Afford Admin')} onDone={(on) => { LS.set('afford.bio', on ? '1' : '0'); onDone(askBio); }} />;
 
+  const who = (() => { try { const w = JSON.parse(LS.get('afford.lastWho') || 'null'); return w && w.login === login.trim().toLowerCase() ? w : null; } catch { return null; } })();
   return (
-    <div class="auth">
+    <div class="auth auth-e">
       <div class="lang-switch"><LangSwitch /></div>
-      <img class="logo" src="./logo.png" alt="" />
-      <h1>{info?.storeName || 'Afford Super Store'}</h1>
-      <p class="sub">{t('Admin & Manager login')}</p>
-      <div class="box">
-        {step === 'name' ? (
-          <div>
+      <img class="logo" src="./logo.png" alt="Afford Supermarket" />
+      {step === 'name' ? (
+        <div class="box">
+          <h1>{t('Admin & Manager login')}</h1>
+          <p class="sub">{info?.storeName || 'Afford Super Store'}</p>
+          <div class="card" style="margin-top:18px">
             <Field label={t('Login name')}>
               <input class="input ltr" style="width:100%" value={login} onInput={(e) => setLogin(e.currentTarget.value)} autocapitalize="off" autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && login && setStep('pin')} />
             </Field>
             <button class="btn block" disabled={!login} onClick={() => setStep('pin')}>{t('Next')}</button>
           </div>
-        ) : (
-          <div>
-            <div class="center" style="margin-bottom:-4px">
-              <b class="ltr">{login}</b> · <a href="#" onClick={(e) => { e.preventDefault(); setStep('name'); }}>{t('Change')}</a>
-            </div>
-            <div class="center muted small" style="margin-top:6px">{t('Enter your PIN')}</div>
-            <PinPad length={4} max={6} onDone={submit} error={err?.at} busy={busy}
-              extra={bio ? <button class="fn" onClick={async () => tryBio(await secureGet(SECURE_TOKEN))} aria-label={t('Fingerprint')}><Icon n="finger" /></button> : undefined} />
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div class="box">
+          <WhoCard name={who?.name || login} sub={who ? `${who.role === 'owner' ? t('Owner / Admin') : t('Manager')} · ${login}` : t('Admin & Manager login')} onChange={() => setStep('name')} />
+          <div class="center muted small" style="margin-top:20px">{t('Enter your PIN')}</div>
+          <PinPad length={4} max={6} onDone={submit} error={err?.at} busy={busy}
+            extra={bio ? <button class="fn" onClick={async () => tryBio(await secureGet(SECURE_TOKEN))} aria-label={t('Fingerprint')}><Icon n="finger" /></button> : undefined} />
+        </div>
+      )}
       <div class="auth-credit"><Credit /></div>
     </div>
   );

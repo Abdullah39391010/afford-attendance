@@ -1,7 +1,7 @@
 {
-  "version": "0.6.3",
+  "version": "0.6.4",
   "notes": {
-    "en": "New app icon (white shopping bag with the red A). Instant alerts switched on. Staff page now has clear Edit details and Delete buttons; managers can do this when allowed.",
-    "ur": "نیا ایپ آئیکن (سفید شاپنگ بیگ پر سرخ A)۔ فوری اطلاعات آن۔ ملازم کے صفحے پر \"تفصیل تبدیل کریں\" اور \"حذف\" کے بٹن؛ اجازت ہو تو مینیجر بھی کر سکتا ہے۔"
+    "en": "New login screen: logo on top, a card showing who is logging in, and a cleaner PIN pad. Plus the shopping-bag icon, instant alerts and the staff Edit / Delete buttons.",
+    "ur": "نئی لاگ ان اسکرین: اوپر لوگو، کون لاگ ان کر رہا ہے اس کا کارڈ، اور صاف پن پیڈ۔ ساتھ میں شاپنگ بیگ آئیکن، فوری اطلاعات اور ملازم تبدیل / حذف کے بٹن۔"
   }
 }

@@ -257,6 +257,18 @@ export function Avatar({ name, src, lg, ver }) {
   return <div class={`avatar ${lg ? 'lg' : ''}`}>{url ? <img src={url} alt="" /> : initials}</div>;
 }
 
+// ---------------------------------------------------------------- login: "who is logging in" card
+export function WhoCard({ name, sub, onChange }) {
+  const ini = String(name || '?').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  return (
+    <div class="who">
+      <div class="who-av">{ini}</div>
+      <div class="who-main"><b class="ltr">{name}</b>{sub && <span>{sub}</span>}</div>
+      {onChange && <button class="who-ch" onClick={onChange}>{t('Change')}</button>}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- PIN pad
 export function PinPad({ length = 4, max = 6, onDone, error, busy, extra }) {
   const [pin, setPin] = useState('');

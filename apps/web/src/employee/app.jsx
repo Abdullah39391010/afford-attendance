@@ -5,7 +5,7 @@ import { AffordDevice } from 'afford-device';
 import { api, LS, deviceInfo } from '../shared/api.js';
 import { t, applyDir, errText, onLang } from '../shared/i18n.js';
 import { setTz } from '../shared/format.js';
-import { Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, askFinger, Credit } from '../shared/ui.jsx';
+import { Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, askFinger, Credit, WhoCard } from '../shared/ui.jsx';
 import { UpdatePopup } from '../shared/update.jsx';
 import { flush, onQueue, queued } from '../shared/offline.js';
 import { startNotify, stopNotify } from '../shared/notify.js';
@@ -115,6 +115,7 @@ function Login({ onDone }) {
     try {
       const dev = await deviceInfo();
       const res = await api.post('/api/emp/login', { code: code.trim(), pin, deviceId: dev.deviceId, deviceName: dev.model });
+      LS.set('afford.lastWho', JSON.stringify({ code: code.trim(), name: res.employee?.name, empCode: res.employee?.code }));
       const avail = (await AffordDevice.biometricAvailable().catch(() => ({}))).available;
       if (avail && LS.get('afford.bio') == null) setAskBio(res);
       else onDone(res);
@@ -137,30 +138,31 @@ function Login({ onDone }) {
       </div>
     );
   }
+  const who = (() => { try { const w = JSON.parse(LS.get('afford.lastWho') || 'null'); return w && w.code === code.trim() ? w : null; } catch { return null; } })();
   return (
-    <div class="auth">
+    <div class="auth auth-e">
       <div class="lang-switch"><LangSwitch /></div>
-      <img class="logo" src="./logo.png" alt="" />
-      <h1>Afford Super Store</h1>
-      <p class="sub">{t('Staff login')}</p>
-      <div class="box">
-        {step === 'code' ? (
-          <div>
+      <img class="logo" src="./logo.png" alt="Afford Supermarket" />
+      {step === 'code' ? (
+        <div class="box">
+          <h1>{t('Staff login')}</h1>
+          <p class="sub">Afford Super Store</p>
+          <div class="card" style="margin-top:18px">
             <Field label={t('Employee code or phone number')} hint={t('Ask the manager if you do not know it.')}>
               <input class="input ltr" style="width:100%" value={code} onInput={(e) => setCode(e.currentTarget.value)} autocapitalize="characters"
                 onKeyDown={(e) => e.key === 'Enter' && code && setStep('pin')} />
             </Field>
             <button class="btn block" disabled={!code.trim()} onClick={() => setStep('pin')}>{t('Next')}</button>
-            <p class="small muted center" style="margin-top:12px">{t('This phone will be linked to your account. One phone = one employee.')}</p>
           </div>
-        ) : (
-          <div>
-            <div class="center" style="margin-bottom:-4px"><b class="ltr">{code}</b> · <a href="#" onClick={(e) => { e.preventDefault(); setStep('code'); }}>{t('Change')}</a></div>
-            <div class="center muted small" style="margin-top:6px">{t('Enter your PIN')}</div>
-            <PinPad length={4} max={6} onDone={submit} error={err?.at} busy={busy} />
-          </div>
-        )}
-      </div>
+          <p class="small muted center" style="margin-top:12px">{t('This phone will be linked to your account. One phone = one employee.')}</p>
+        </div>
+      ) : (
+        <div class="box">
+          <WhoCard name={who?.name || code} sub={who ? `${t('Employee')} · ${who.empCode || code}` : t('Staff login')} onChange={() => setStep('code')} />
+          <div class="center muted small" style="margin-top:20px">{t('Enter your PIN')}</div>
+          <PinPad length={4} max={6} onDone={submit} error={err?.at} busy={busy} />
+        </div>
+      )}
       <div class="auth-credit"><Credit /></div>
     </div>
   );

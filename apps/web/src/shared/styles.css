@@ -251,6 +251,20 @@ textarea.input { min-height: 80px; resize: vertical; }
 .credit .by { display: block; font-size: 11.5px; }
 .credit .by b { color: var(--red); font-weight: 700; }
 .auth-credit { margin-top: auto; padding-top: 18px; }
+/* login design E: white top with the logo, light body, "who" card, outlined keys */
+.auth-e { background: linear-gradient(180deg, #fff 0, #fff calc(var(--safe-top) + 172px), #f4f4f6 calc(var(--safe-top) + 172px), #f4f4f6 100%); padding-top: calc(var(--safe-top) + 46px); }
+.auth-e .logo { width: 200px; filter: none; }
+.auth-e .box { margin-top: 26px; }
+.auth-e h1 { margin-top: 6px; }
+.who { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 20px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.08); }
+.who-av { width: 46px; height: 46px; border-radius: 50%; background: #ffe5e7; color: var(--red); display: flex; align-items: center; justify-content: center; font-weight: 800; flex: none; }
+.who-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.who-main b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who-main span { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who-ch { border: 0; background: none; color: var(--red); font-weight: 700; font-size: 14px; font-family: inherit; padding: 8px 4px; }
+.auth-e .pinpad button:not(.fn) { box-shadow: none; border: 1px solid #ececf0; background: #fff; font-weight: 500; }
+.auth-e .pin-dots i { border-color: #c9c9d1; }
+.auth-e .pin-dots i.on { border-color: var(--red); }
 
 /* ---------- calendar */
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; direction: ltr; }
