@@ -400,6 +400,13 @@ test('salary paid: employee signature saved and shown on both statements', async
   const mine = (await t.aliApi('GET', '/api/emp/statement?month=2026-11')).data;
   const pay = (mine.statement || mine).payments[0];
   assert.equal(pay.signature, png);
+  // authorised signature: owner only, added once the employee has signed
+  r = await t.api('PUT', '/api/admin/auth-signature', { signature: png }, t.owner);
+  assert.equal(r.data.ok, true);
+  const adm2 = (await t.api('GET', `/api/admin/payroll/${t.ali.id}?month=2026-11`, null, t.owner)).data.statement;
+  assert.equal(adm2.authSignature, png);
+  const bil = (await t.api('GET', `/api/admin/payroll/${t.bilal.id}?month=2026-11`, null, t.owner)).data.statement;
+  assert.equal(bil.authSignature, undefined);
   // payroll list stays light
   const list = (await t.api('GET', '/api/admin/payroll?month=2026-11', null, t.owner)).data;
   assert.ok(!JSON.stringify(list).includes('iVBOR'));

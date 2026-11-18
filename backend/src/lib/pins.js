@@ -18,6 +18,26 @@ export function installPins(Store) {
     add('PUT', '/api/admin/default-pin', this.putDefaultPin, A('employees.edit'));
     add('GET', '/api/admin/employees/:id/pin', this.viewEmpPin, A('employees.edit'));
     add('POST', '/api/emp/me/pin', this.empChangePin, { auth: 'emp' });
+    add('GET', '/api/admin/auth-signature', this.getAuthSig, A('payroll.view'));
+    add('PUT', '/api/admin/auth-signature', this.putAuthSig, A(null, { owner: true }));
+  };
+
+  // ---------------------------------------------------------------- authorised signature (owner, drawn once)
+  P.getAuthSig = function getAuthSig() {
+    const v = this.db.kvGet('authSig', null);
+    return { signature: v?.data || null, name: v?.name || '', ts: v?.ts || null };
+  };
+  P.putAuthSig = function putAuthSig({ actor, body }) {
+    const sig = body.signature ? String(body.signature) : '';
+    if (!sig) {
+      this.db.run("DELETE FROM kv WHERE k = 'authSig'");
+      this.audit(actor, 'settings.auth_signature', null, { on: false });
+      return { ok: true };
+    }
+    if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(sig) || sig.length > 200_000) throw bad('BAD_SIGNATURE', 'The signature could not be saved. Clear it and sign again.');
+    this.db.kvSet('authSig', { data: sig, name: actor.name, ts: this.now() });
+    this.audit(actor, 'settings.auth_signature', null, { on: true });
+    return { ok: true };
   };
 
   P.pinKey = async function pinKey() {

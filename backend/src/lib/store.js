@@ -1042,6 +1042,8 @@ export class Store {
   /** Adds the employee's hand signature to each salary payment (only for one statement at a time). */
   withSigs(st) {
     for (const p of st.payments || []) if (p.signed) p.signature = this.db.get('SELECT data FROM signatures WHERE payment = ?', p.id)?.data || null;
+    // the owner's authorised signature goes on the payslip once the employee has signed for the money
+    if ((st.payments || []).some((p) => p.signature)) st.authSignature = this.db.kvGet('authSig', null)?.data || null;
     return st;
   }
   liveStatement(emp, month, preloaded) {

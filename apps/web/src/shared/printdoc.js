@@ -58,6 +58,11 @@ function receivedBy(st) {
   const img = sp ? `<img class="sigimg" src="${sp.signature}" alt="">` : '';
   return `<div class="sigbox">${img}<div class="sig">${esc(t('Received by (employee signature)'))}</div></div>`;
 }
+function authorisedBy(st) {
+  const ok = st.authSignature && SIG_RE.test(st.authSignature) && (st.payments || []).some((p) => p.signature);
+  const img = ok ? `<img class="sigimg" src="${st.authSignature}" alt="">` : '';
+  return `<div class="sigbox">${img}<div class="sig">${esc(t('Authorised signature'))}</div></div>`;
+}
 
 export async function statementDoc(st) {
   const a = await assets();
@@ -113,7 +118,7 @@ export async function statementDoc(st) {
   ${(st.payments || []).map((p) => kv(`${t('Paid')} · ${t({ cash: 'Cash', bank: 'Bank transfer', other: 'Other' }[p.method] || p.method)} · ${fmtDateTime(p.ts)}`, fmtMoney(p.amount, cur))).join('')}
   <h2>${esc(t('Daily record'))}</h2>
   <table><thead><tr><th>${esc(t('Date'))}</th><th>${esc(t('Status'))}</th><th class="n">${esc(t('In'))}</th><th class="n">${esc(t('Out'))}</th><th class="n">${esc(t('Hours'))}</th><th class="n">${esc(t('Late'))}</th><th class="n">${esc(t('Early'))}</th><th class="n">${esc(t('Cut'))}</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="foot">${receivedBy(st)}<div class="sig">${esc(t('Authorised signature'))}</div></div>
+  <div class="foot">${receivedBy(st)}${authorisedBy(st)}</div>
   </div>`;
   return { body, css: CSS(a, rtl), title: `${e.name} ${st.month}` };
 }
@@ -187,7 +192,7 @@ export async function settlementDoc(x, storeName, currency, contact) {
   ${kv(t('Security deposit returned'), `+ ${fmtMoney(x.depositBalance, cur)}`)}
   <div class="net"><span>${esc(x.total >= 0 ? t('Amount to pay the employee') : t('Amount the employee owes'))}</span><b>${esc(fmtMoney(Math.abs(x.total), cur))}</b></div>
   <p class="muted" style="margin-top:14px">${esc(t('All dues between the store and the employee are cleared with this payment.'))}</p>
-  <div class="foot">${receivedBy(st)}<div class="sig">${esc(t('Authorised signature'))}</div></div>
+  <div class="foot">${receivedBy(st)}${authorisedBy(st)}</div>
   </div>`;
   return { body, css: CSS(a, rtl), title: `${e.name} settlement` };
 }

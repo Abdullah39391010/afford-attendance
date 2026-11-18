@@ -62,6 +62,7 @@ export function Statement({ s, busy, onPrint, onShare, extra }) {
         {kv(t('Net pay'), fmtMoney(s.net, cur), 'total')}
         {s.payments?.length > 0 && s.payments.map((p) => kv(`${t('Paid')} · ${t(PAY_METHOD[p.method] || p.method)} · ${fmtDateTime(p.ts)}`, fmtMoney(p.amount, cur)))}
         {(s.payments || []).filter((p) => p.signature).map((p) => <SigImage key={`s${p.id}`} src={p.signature} label={`${t('Signed by employee')} · ${fmtDateTime(p.ts)}`} />)}
+        {s.authSignature && (s.payments || []).some((p) => p.signature) && <SigImage src={s.authSignature} label={t('Authorised signature')} />}
         {s.payments && s.net > 0 && (s.paid >= s.net
           ? <div class="pill st-approved" style="margin-top:8px">{t('Salary paid')}</div>
           : s.complete && <div class="pill st-pending" style="margin-top:8px">{s.paid ? t('{a} still to pay', { a: fmtMoney(s.net - s.paid, cur) }) : t('Not paid yet')}</div>)}

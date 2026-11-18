@@ -8,6 +8,8 @@ import { dayShort, fmtDate, todayStr, addDays } from '../shared/format.js';
 import { TopBar, Icon, Field, Toggle, Seg, Sheet, Loader, useLoad, toast, toastErr, go, Spinner, Empty, confirmBox, Banner, Pill } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
 import { resizePhoto } from './staff.jsx';
+import { SignaturePad } from './ops.jsx';
+import { SigImage } from '../shared/statement.jsx';
 import { pakistanHolidays, PK_YEARS } from './extra.jsx';
 
 function useSave() {
@@ -69,6 +71,43 @@ function DefaultPinCard() {
   );
 }
 
+/** Owner draws the authorised signature once; payslips add it after the employee signs for the salary. */
+function AuthSigCard() {
+  const [cur, setCur] = useState(undefined);
+  const [draw, setDraw] = useState(false);
+  const [sig, setSig] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = () => api.get('/api/admin/auth-signature').then((r) => setCur(r.signature)).catch(() => setCur(null));
+  useEffect(() => { load(); }, []);
+  const save = async (value) => {
+    setBusy(true);
+    try { await api.put('/api/admin/auth-signature', { signature: value }); toast(value ? t('Signature saved') : t('Signature removed'), 'ok'); setDraw(false); setSig(null); load(); } catch (e) { toastErr(e); } finally { setBusy(false); }
+  };
+  return (
+    <div class="card">
+      <h2>{t('Authorised signature')}</h2>
+      <p class="small muted" style="margin:0 0 8px">{t('Sign once. When an employee signs for their salary, the payslip adds this signature next to theirs.')}</p>
+      {cur === undefined ? <Spinner /> : draw ? (
+        <div>
+          <SignaturePad onChange={setSig} />
+          <div class="two" style="margin-top:8px">
+            <button class="btn ghost" onClick={() => { setDraw(false); setSig(null); }}>{t('Cancel')}</button>
+            <button class="btn" disabled={busy || !sig} onClick={() => save(sig)}>{busy ? <Spinner sm /> : t('Save')}</button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          {cur && <SigImage src={cur} label={t('Current signature')} />}
+          <div class="two" style="margin-top:10px">
+            <button class="btn ghost" onClick={() => setDraw(true)}><Icon n="edit" />{cur ? t('Sign again') : t('Add signature')}</button>
+            {cur && <button class="btn ghost" disabled={busy} onClick={async () => { if (await confirmBox({ title: t('Remove the authorised signature?'), yes: t('Remove'), danger: true })) save(''); }}>{t('Remove')}</button>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SettingsStore() {
   const app = useApp();
   const s = app.settings;
@@ -104,6 +143,7 @@ export function SettingsStore() {
           <button class="btn block" disabled={busy} onClick={() => save(f)}>{t('Save')}</button>
         </div>
         {app.can('employees.edit') && <DefaultPinCard />}
+        {app.me.role === 'owner' && <AuthSigCard />}
         <div class="card gap">
           <img src="./logo.png" alt="" style="width:96px;height:auto;flex:none" />
           <div class="grow"><b>{t('Logo')}</b><div class="small muted">{t('Used on printouts and the owner page.')}</div></div>

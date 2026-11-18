@@ -175,4 +175,11 @@ export const UR2 = {
   "Search name, code, phone or blood group": "نام، کوڈ، فون یا بلڈ گروپ تلاش کریں",
   "Blood group": "بلڈ گروپ",
   "Not known": "معلوم نہیں",
+  "Sign once. When an employee signs for their salary, the payslip adds this signature next to theirs.": "ایک بار دستخط کریں۔ جب ملازم تنخواہ کے لیے دستخط کرے گا تو پے سلپ پر اس کے ساتھ یہ دستخط خود لگ جائیں گے۔",
+  "Current signature": "موجودہ دستخط",
+  "Sign again": "دوبارہ دستخط کریں",
+  "Add signature": "دستخط شامل کریں",
+  "Signature saved": "دستخط محفوظ",
+  "Signature removed": "دستخط ہٹا دیے گئے",
+  "Remove the authorised signature?": "مجاز دستخط ہٹا دیں؟",
 };

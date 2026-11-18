@@ -1,7 +1,7 @@
 {
-  "version": "0.10.1",
+  "version": "0.10.2",
   "notes": {
-    "en": "Signature now prints reliably on payslips and the final settlement. Blood group in the staff file; search A+, O- etc. in Staff.",
-    "ur": "دستخط اب پے سلپ اور حتمی حساب پر صحیح چھپتے ہیں۔ عملے کی فائل میں بلڈ گروپ؛ اسٹاف میں A+، O- وغیرہ تلاش کریں۔"
+    "en": "Authorised signature: the owner signs once in Settings > Store, and payslips add it after the employee signs for the salary.",
+    "ur": "مجاز دستخط: مالک سیٹنگز > اسٹور میں ایک بار دستخط کرے، ملازم کے تنخواہ پر دستخط کے بعد پے سلپ پر یہ خود لگ جائیں گے۔"
   }
 }
