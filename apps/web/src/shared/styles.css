@@ -349,6 +349,7 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
 .punch-btn { width: 100%; margin-top: 14px; min-height: 92px; border: 0; border-radius: 22px; color: #fff; font-size: 24px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.15); cursor: pointer; }
 .punch-btn svg { width: 34px; height: 34px; }
 .punch-btn.in { background: var(--green); }
+.punch-btn.wait { opacity: .55; }
 .punch-btn.out { background: var(--red); }
 .punch-btn:active { transform: scale(.98); }
 .punch-btn:disabled { opacity: .7; }

@@ -29,6 +29,7 @@ export function policyLines(s, ur) {
   if (ur) {
     L.push('حاضری صرف ایپ، کیوسک یا مینیجر کے ذریعے لگے گی۔');
     L.push('چیک اِن اور چیک آؤٹ کے وقت آپ کی لوکیشن (GPS) چیک اور محفوظ کی جاتی ہے۔ جعلی GPS کی اجازت نہیں۔');
+    if (r.checkInWindowOn) L.push(`چیک اِن شفٹ شروع ہونے سے ${r.checkInEarlyMin} منٹ پہلے کھلتا ہے، اس سے پہلے نہیں۔ پہلے آنے کا وقت کام میں نہیں گنا جاتا۔`);
     L.push(`شفٹ شروع ہونے کے ${r.lateGraceMin} منٹ بعد آنا لیٹ ہے۔${r.lateCutOn ? ' لیٹ منٹ تنخواہ سے کٹتے ہیں۔' : ''}`);
     if (r.earlyLeaveCutOn) L.push('شفٹ ختم ہونے سے پہلے جانے کے منٹ تنخواہ سے کٹتے ہیں۔');
     L.push(`روزانہ ${r.breakAllowanceMin} منٹ کا وقفہ ہے۔${r.breakLateCutOn ? ' وقفے سے دیر سے واپسی تنخواہ سے کٹتی ہے۔' : ''}`);
@@ -40,6 +41,7 @@ export function policyLines(s, ur) {
   } else {
     L.push('Attendance is marked only through the app, the store kiosk or a manager.');
     L.push('Your location (GPS) is checked and saved when you check in and out. Fake GPS apps are not allowed.');
+    if (r.checkInWindowOn) L.push(`Check-in opens ${r.checkInEarlyMin} minutes before your shift starts, not earlier. Time before the shift does not count as work.`);
     L.push(`Arriving more than ${r.lateGraceMin} minutes after your shift starts is late.${r.lateCutOn ? ' Late minutes are cut from salary.' : ''}`);
     if (r.earlyLeaveCutOn) L.push('Leaving before your shift ends is cut from salary by the minute.');
     L.push(`You get ${r.breakAllowanceMin} minutes of break a day.${r.breakLateCutOn ? ' Coming back late from a break is cut from salary.' : ''}`);

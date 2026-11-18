@@ -301,6 +301,8 @@ export function SettingsRules() {
           <Toggle checked={r.requireInRadiusCheckIn} onChange={(v) => set('requireInRadiusCheckIn', v)} label={t('Check-in only inside the store circle')} />
           <Toggle checked={r.blockMockLocation} onChange={(v) => set('blockMockLocation', v)} label={t('Block fake GPS apps')} />
           <Toggle checked={r.kioskPhoto} onChange={(v) => set('kioskPhoto', v)} label={t('Kiosk takes a photo with every punch')} />
+          <Toggle checked={r.checkInWindowOn} onChange={(v) => set('checkInWindowOn', v)} label={t('Check-in opens only shortly before the shift')} sub={t('Not on days off and holidays. A manager can still record a check-in by hand.')} />
+          {r.checkInWindowOn && num('checkInEarlyMin', t('Check-in opens before shift start'))}
           {num('maxOfflineHours', t('Accept offline punches up to'), '', t('hours'))}
           {num('autoAbsentAfterMin', t('Show as absent after shift start'), t('Before this the board shows "Not yet in"'))}
         </div>

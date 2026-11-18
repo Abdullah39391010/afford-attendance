@@ -286,3 +286,34 @@ test('offline punches are accepted for 7 days; old 72-hour setting moves to 7 da
   t.store._settings = null;
   assert.equal(t.store.settings.rules.maxOfflineHours, 48);
 });
+
+test('check-in opens 15 minutes before the shift; off days, holidays and admin punches are not limited', async () => {
+  const t = await seeded('2026-11-16T07:30'); // morning shift 08:00
+  let home = (await t.aliApi('GET', '/api/emp/home')).data;
+  assert.equal(home.window.opensTs, Date.parse('2026-11-16T07:45:00+05:00'));
+  assert.equal(home.window.endTs, Date.parse('2026-11-16T16:00:00+05:00'));
+  let r = await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore });
+  assert.equal(r.data.error, 'TOO_EARLY');
+  assert.equal(r.data.opensAt, '07:45');
+  // a manager can still record it
+  r = await t.api('POST', '/api/admin/punch', { employeeId: t.bilal.id, type: 'in', reason: 'came early to unload' }, t.owner);
+  assert.equal(r.status, 200);
+  t.setTime('2026-11-16T07:45');
+  r = await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore });
+  assert.equal(r.status, 200);
+  // a holiday has no limit
+  await t.api('PUT', '/api/admin/settings', { holidays: [{ date: '2026-11-17', name: 'Test' }] }, t.owner);
+  t.setTime('2026-11-16T16:00');
+  await t.aliApi('POST', '/api/emp/punch', { type: 'out', loc: t.inStore });
+  t.setTime('2026-11-17T06:00');
+  r = await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore });
+  assert.equal(r.status, 200);
+  // the owner can turn it off or change the minutes
+  await t.api('PUT', '/api/admin/settings', { rules: { checkInEarlyMin: 60 } }, t.owner);
+  home = (await t.api('GET', '/api/emp/home', null, t.bilalTok, { 'x-device-id': 'phone-bilal-01' })).data;
+  assert.equal(home.window.earlyMin, 60);
+  await t.api('PUT', '/api/admin/settings', { rules: { checkInWindowOn: false } }, t.owner);
+  t.setTime('2026-11-18T05:00');
+  r = await t.api('POST', '/api/emp/punch', { type: 'in', loc: t.inStore }, t.bilalTok, { 'x-device-id': 'phone-bilal-01' });
+  assert.equal(r.status, 200);
+});

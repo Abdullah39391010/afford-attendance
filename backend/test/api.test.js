@@ -420,7 +420,7 @@ test('salary statement visibility: last 2 days of the month and the 1st', async 
 });
 
 test('backup and restore: owner only, needs PIN, brings data back', async () => {
-  const t = await seeded();
+  const t = await seeded('2026-11-16T07:50');
   await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore, clientId: 'b1' });
   // manager cannot back up
   await t.api('POST', '/api/admin/users', { name: 'Mgr', login: 'mgr', pin: '5555', role: 'manager' }, t.owner);

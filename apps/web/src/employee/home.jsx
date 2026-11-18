@@ -49,10 +49,19 @@ export function Home() {
   const worked = d.checkIn ? (isIn ? Math.max(0, Math.floor((now - d.checkIn) / 60000) - (d.breakMin || 0) - (d.awayMin || 0)) : d.workedMin) : 0;
   const onBreak = d.onBreak;
 
+  const win = home.window || {};
+  const tooEarly = !isIn && !d.checkOut && win.opensTs && now < win.opensTs;
   const punch = async () => {
     const type = isIn ? 'out' : 'in';
+    if (type === 'in' && win.opensTs && api.serverNow() < win.opensTs && !d.checkOut) {
+      toast(t('Check-in opens at {t}.', { t: fmtTime(win.opensTs) }), 'err');
+      return;
+    }
     if (type === 'out') {
-      const ok = await confirmBox({ title: t('Check out now?'), text: t('Your work time for today will end. If you are only going for a break, use "Take a break" instead.'), yes: t('Yes, check out'), danger: true });
+      const early = win.endTs ? Math.ceil((win.endTs - api.serverNow()) / 60000) : 0;
+      const ok = early > 0
+        ? await confirmBox({ title: t('Leave before your shift ends?'), text: t('Your shift ends at {t}. Leaving now cuts {m} from your salary. Check out anyway?', { t: fmtTime(win.endTs), m: fmtDur(early) }), yes: t('Yes, check out'), danger: true })
+        : await confirmBox({ title: t('Check out now?'), text: t('Your work time for today will end. If you are only going for a break, use "Take a break" instead.'), yes: t('Yes, check out'), danger: true });
       if (!ok) return;
     }
     setBusy(type);
@@ -157,10 +166,11 @@ export function Home() {
                 </div>
               )
             ) : (
-              <button class={`punch-btn ${isIn ? 'out' : 'in'}`} disabled={!!busy} onClick={punch}>
+              <button class={`punch-btn ${isIn ? 'out' : 'in'}${tooEarly ? ' wait' : ''}`} disabled={!!busy} onClick={punch}>
                 {busy === 'in' || busy === 'out' ? <Spinner /> : <><Icon n={isIn ? 'out' : 'in'} /><span>{isIn ? t('Check out') : t('Check in')}</span></>}
               </button>
             )}
+            {tooEarly && <p class="center small" style="margin:6px 0 0;font-weight:600"><Icon n="clock" /> {t('Check-in opens at {t}.', { t: fmtTime(win.opensTs) })}</p>}
             {!(!isIn && d.checkOut) && <p class="center small muted" style="margin:6px 0 0">
               {isIn && emp.checkoutAnywhere ? t('You can check out from anywhere.') : isIn ? t('You must be inside the store to check out.') : emp.fieldStaff ? t('Field staff: you can check in from anywhere. Your location is saved.') : t('You must be inside the store to check in.')}
             </p>}

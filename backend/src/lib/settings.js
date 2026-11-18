@@ -52,6 +52,8 @@ export function defaultSettings() {
       pastDayRequestDays: 3,
       requireInRadiusCheckIn: true,
       blockMockLocation: true,
+      checkInWindowOn: true, // check-in opens only shortly before the shift starts
+      checkInEarlyMin: 15,
       maxOfflineHours: 168, // a punch saved without internet is accepted for 7 days
       autoAbsentAfterMin: 120, // board shows "absent" once this long past shift start with no check-in
       kioskPhoto: true,
@@ -151,6 +153,7 @@ export function mergeSettings(cur, patch) {
     if ('paidLeavePerMonth' in p) r.paidLeavePerMonth = num(p.paidLeavePerMonth, 0, 31, 1);
     if ('pastDayRequestDays' in p) r.pastDayRequestDays = num(p.pastDayRequestDays, 0, 31, 3);
     if ('maxOfflineHours' in p) r.maxOfflineHours = num(p.maxOfflineHours, 1, 168, 168);
+    if ('checkInEarlyMin' in p) r.checkInEarlyMin = num(p.checkInEarlyMin, 0, 240, 15);
     if ('autoAbsentAfterMin' in p) r.autoAbsentAfterMin = num(p.autoAbsentAfterMin, 0, 720, 120);
     if ('overtimeRate' in p) {
       const v = Math.round(Number(p.overtimeRate) * 100) / 100;
@@ -163,7 +166,7 @@ export function mergeSettings(cur, patch) {
       r.dailySummaryAt = String(p.dailySummaryAt);
     }
     for (const k of ['lateCutOn', 'earlyLeaveCutOn', 'breakNeedsApproval', 'breakLateCutOn', 'absentCutOn',
-      'requireInRadiusCheckIn', 'blockMockLocation', 'kioskPhoto', 'overtimeOn', 'remindersOn', 'dailySummaryOn', 'holidayWorkExtra', 'greetingsOn']) {
+      'requireInRadiusCheckIn', 'blockMockLocation', 'kioskPhoto', 'overtimeOn', 'remindersOn', 'dailySummaryOn', 'holidayWorkExtra', 'greetingsOn', 'checkInWindowOn']) {
       if (k in p) r[k] = bool(p[k], r[k]);
     }
   }

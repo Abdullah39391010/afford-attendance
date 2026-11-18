@@ -93,6 +93,10 @@ export function errText(e) {
   if (code === 'LOCKED') return t(ERRORS.LOCKED, { min: Math.max(1, Math.ceil((e.data?.retryAfterSec || 60) / 60)) });
   if (code === 'OUTSIDE_RADIUS' && e.data?.branch) return t('You are {d} m away from {b}. Go inside and try again.', { d: e.data?.distance ?? '?', b: e.data.branch });
   if (code === 'OUTSIDE_RADIUS') return t(ERRORS.OUTSIDE_RADIUS, { d: e.data?.distance ?? '?' });
+  if (code === 'TOO_EARLY' && e.data?.opensAt) {
+    const [hh, mm] = e.data.opensAt.split(':').map(Number);
+    return t('Check-in opens at {t}.', { t: `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh < 12 ? t('AM') : t('PM')}` });
+  }
   if (ERRORS[code]) return t(ERRORS[code]);
   return lang === 'ur' ? t('Something went wrong. Please try again.') : e.message || String(code);
 }

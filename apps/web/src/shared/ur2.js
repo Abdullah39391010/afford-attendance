@@ -119,4 +119,10 @@ export const UR2 = {
   "This page is not turned on yet.": "یہ صفحہ ابھی چالو نہیں کیا گیا۔",
   "No internet. Your check-ins are saved on this phone. Connect to any Wi-Fi or internet in the next few days to send them.": "انٹرنیٹ نہیں ہے۔ آپ کی حاضری اس فون میں محفوظ ہے۔ اسے بھیجنے کے لیے اگلے چند دنوں میں کسی بھی وائی فائی یا انٹرنیٹ سے جڑیں۔",
   "No internet. Saved on this phone. It is sent by itself when the phone gets any Wi-Fi or internet.": "انٹرنیٹ نہیں ہے۔ اس فون میں محفوظ ہو گیا۔ فون کو کوئی بھی وائی فائی یا انٹرنیٹ ملتے ہی خود بھیج دیا جائے گا۔",
+  "Check-in opens at {t}.": "چیک اِن {t} پر کھلے گا۔",
+  "Leave before your shift ends?": "شفٹ ختم ہونے سے پہلے جانا ہے؟",
+  "Your shift ends at {t}. Leaving now cuts {m} from your salary. Check out anyway?": "آپ کی شفٹ {t} پر ختم ہوتی ہے۔ ابھی جانے سے تنخواہ سے {m} کٹیں گے۔ پھر بھی چیک آؤٹ کریں؟",
+  "Check-in opens only shortly before the shift": "چیک اِن صرف شفٹ سے تھوڑا پہلے کھلے",
+  "Not on days off and holidays. A manager can still record a check-in by hand.": "چھٹی کے دنوں اور تعطیلات پر نہیں۔ مینیجر پھر بھی ہاتھ سے چیک اِن لگا سکتا ہے۔",
+  "Check-in opens before shift start": "شفٹ شروع ہونے سے پہلے چیک اِن کھلے",
 };

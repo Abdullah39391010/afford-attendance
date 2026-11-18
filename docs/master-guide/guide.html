@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 2.3 · 18 November 2026 (apps v0.9.5)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
+  <div class="meta">Version 2.3 · 18 November 2026 (apps v0.9.6)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -291,6 +291,10 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
 </section>
 
 <section>
+  <div class="box"><b>Check-in time window (v0.9.6):</b> staff can check in only from 15 minutes before their shift starts (Settings › Rules › Check-in safety, minutes can be changed or the rule turned off). Days off and holidays have no limit, and a manager can always record a check-in by hand. Checking out before the shift ends is allowed, but the app first warns how much will be cut from salary.</div>
+</section>
+
+<section>
   <h2>10. Requests and what approval does</h2>
   <table>
     <tr><th style="width:24%">Request</th><th style="width:30%">Employee sends</th><th>When approved</th></tr>
@@ -447,7 +451,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   <h2>20. Versions and test checklist</h2>
   <table>
     <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
-    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>52 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
+    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>53 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
     <tr><td>Admin app</td><td><span class="tag done">Live</span></td><td>Login, board, requests and owner approvals, staff, money with installments, payroll with paid record and month lock, settlement, rules agreement, backups, reports, kiosk, Urdu.</td></tr>
     <tr><td>Employee app</td><td><span class="tag done">Live</span></td><td>Rules agreement, phone locking, fingerprint, check-in inside and outside the circle, check-in-again request, break, requests, reminders, offline punch, calendar, payslip, Urdu.</td></tr>
     <tr><td>iPhone web version</td><td><span class="tag done">v0.9</span></td><td>Owner allows it per person, login in Safari, check in inside the circle, Add to Home Screen.</td></tr>

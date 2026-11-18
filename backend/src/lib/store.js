@@ -672,6 +672,22 @@ export class Store {
 
   // ---------------------------------------------------------------- punching
   /** Which date a check-in at ts belongs to (handles shifts that cross midnight). */
+  /** Earliest check-in time for a day (shift start minus the allowed minutes); null = no limit (off day, holiday, rule off). */
+  checkInOpensTs(emp, date) {
+    const s = this.settings;
+    const r = empRules(emp, s);
+    if (!r.checkInWindowOn) return null;
+    if ((s.holidays || []).some((h) => h.date === date)) return null;
+    if (this.dutyOn(emp, date).off) return null;
+    const sm = shiftMins(this.shiftOn(emp, date));
+    return toTs(date, sm.start - (Number(r.checkInEarlyMin) || 0), s.tzOffsetMin);
+  }
+  /** Shift end for a day, as a time stamp. */
+  shiftEndTs(emp, date) {
+    const sm = shiftMins(this.shiftOn(emp, date));
+    return toTs(date, sm.end, this.settings.tzOffsetMin);
+  }
+
   dayForIn(emp, ts) {
     const s = this.settings;
     const l = local(ts, s.tzOffsetMin);
@@ -744,6 +760,14 @@ export class Store {
     if (last && ts <= last.ts) {
       if (offline || now - last.ts < 5000) ts = last.ts + 1000;
       else throw bad('OUT_OF_ORDER', 'Time is before the last punch');
+    }
+    if (type === 'in' && !byAdmin) {
+      const opens = this.checkInOpensTs(emp, this.dayForIn(emp, ts));
+      if (opens && ts < opens) {
+        const l = local(opens, this.settings.tzOffsetMin);
+        const at = `${String(Math.floor(l.min / 60)).padStart(2, '0')}:${String(l.min % 60).padStart(2, '0')}`;
+        throw bad('TOO_EARLY', `Check-in opens at ${at}`, { opensAt: at, opensTs: opens });
+      }
     }
     let recheck = null;
     if (type === 'in' && !byAdmin) {
@@ -1631,6 +1655,11 @@ export class Store {
         shift: shiftToday, normalShift: empShift(emp, s), branch: emp.branchId ? s.locations.find((l) => l.id === emp.branchId)?.name || null : null, fieldStaff: !!emp.fieldStaff, checkoutAnywhere: !!(emp.fieldStaff || role?.checkoutAnywhere),
         salaryVisibility: emp.salaryVisibility, hasPhoto: emp.hasPhoto, photoVer: emp.photoVer, helperCount: this.helperIds(emp).size,
       },
+      window: (() => {
+        // for the staff app: when check-in opens and when the shift ends (early check-out warning)
+        const inDay = open ? open.day : this.dayForIn(emp, this.now());
+        return { opensTs: open ? null : this.checkInOpensTs(emp, inDay), endTs: this.shiftEndTs(emp, open ? open.day : inDay), earlyMin: er.checkInEarlyMin };
+      })(),
       today: { ...pickDay(today), breakUsedMin: today.breakMin, breakLeftMin: Math.max(0, er.breakAllowanceMin - today.breakMin) },
       leave: st.leave,
       depositBalance: this.depositBalance(emp.id),

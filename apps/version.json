@@ -1,7 +1,7 @@
 {
-  "version": "0.9.5",
+  "version": "0.9.6",
   "notes": {
-    "en": "Amounts now show with commas (30,000), also while typing and in Excel. Check-ins saved without internet are kept for 7 days.",
-    "ur": "رقم اب کوما کے ساتھ دکھتی ہے (30,000)، لکھتے وقت اور ایکسل میں بھی۔ بغیر انٹرنیٹ کے محفوظ حاضری اب 7 دن تک قبول ہوتی ہے۔"
+    "en": "Check-in opens 15 minutes before the shift. Checking out early now shows how much will be cut from salary.",
+    "ur": "چیک اِن شفٹ سے 15 منٹ پہلے کھلتا ہے۔ جلدی چیک آؤٹ پر اب پہلے بتایا جاتا ہے کہ تنخواہ سے کتنا کٹے گا۔"
   }
 }
