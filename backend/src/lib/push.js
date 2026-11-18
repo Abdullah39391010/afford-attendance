@@ -37,7 +37,11 @@ async function accessToken(sa) {
  */
 export async function sendPushes(saJson, msgs, report) {
   if (!saJson || !msgs.length) return [];
-  const sa = JSON.parse(saJson);
+  let sa;
+  try { sa = JSON.parse(saJson); } catch { throw new Error('FIREBASE_SERVICE_ACCOUNT is not valid JSON'); }
+  if (!sa.private_key || !sa.client_email || !sa.project_id) {
+    throw new Error(sa.project_info ? 'FIREBASE_SERVICE_ACCOUNT holds google-services.json, not the service account key' : 'FIREBASE_SERVICE_ACCOUNT is not a service account key');
+  }
   const at = await accessToken(sa);
   const dead = [];
   await Promise.all(msgs.map(async (m) => {
