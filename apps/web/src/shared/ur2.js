@@ -117,4 +117,6 @@ export const UR2 = {
   "Wrong code. Please try again.": "غلط کوڈ۔ دوبارہ کوشش کریں۔",
   "The owner page code is not set yet.": "مالک کے صفحے کا کوڈ ابھی نہیں لگایا گیا۔",
   "This page is not turned on yet.": "یہ صفحہ ابھی چالو نہیں کیا گیا۔",
+  "No internet. Your check-ins are saved on this phone. Connect to any Wi-Fi or internet in the next few days to send them.": "انٹرنیٹ نہیں ہے۔ آپ کی حاضری اس فون میں محفوظ ہے۔ اسے بھیجنے کے لیے اگلے چند دنوں میں کسی بھی وائی فائی یا انٹرنیٹ سے جڑیں۔",
+  "No internet. Saved on this phone. It is sent by itself when the phone gets any Wi-Fi or internet.": "انٹرنیٹ نہیں ہے۔ اس فون میں محفوظ ہو گیا۔ فون کو کوئی بھی وائی فائی یا انٹرنیٹ ملتے ہی خود بھیج دیا جائے گا۔",
 };

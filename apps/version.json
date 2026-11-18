@@ -1,7 +1,7 @@
 {
-  "version": "0.9.4",
+  "version": "0.9.5",
   "notes": {
-    "en": "New glass look: frosted top bar, floating bottom menu and glass pop-ups.",
-    "ur": "نیا شیشے والا انداز: دھندلا اوپر والا حصہ، تیرتا ہوا نیچے کا مینو اور شیشے جیسے پاپ اپ۔"
+    "en": "Amounts now show with commas (30,000), also while typing and in Excel. Check-ins saved without internet are kept for 7 days.",
+    "ur": "رقم اب کوما کے ساتھ دکھتی ہے (30,000)، لکھتے وقت اور ایکسل میں بھی۔ بغیر انٹرنیٹ کے محفوظ حاضری اب 7 دن تک قبول ہوتی ہے۔"
   }
 }

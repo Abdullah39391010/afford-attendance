@@ -3,7 +3,7 @@
 //  - salary paid records (cash / bank)
 //  - advances cut in installments
 //  - final settlement when someone leaves
-import { bad, notFound, uid, isMonth, isDate, str, clampInt, local, hm, toTs, addDays, MIN } from './util.js';
+import { bad, notFound, uid, isMonth, isDate, str, clampInt, local, hm, toTs, addDays, MIN, commas } from './util.js';
 import { daySummary, empShift } from './attendance.js';
 import { shiftMins } from './settings.js';
 
@@ -135,7 +135,7 @@ export function installOps(Store) {
     this.audit(actor, 'payroll.salary_paid', emp.id, { name: emp.name, month, amount, method, note: str(body.note, 200) });
     this.queuePush('emp', [emp.id], `paid-${id}`, (ur) => ({
       title: ur ? 'تنخواہ ادا ہو گئی' : 'Salary paid',
-      body: ur ? `${month} کی تنخواہ ${this.settings.currency} ${amount} ادا کر دی گئی۔` : `${this.settings.currency} ${amount} paid for ${month}.`,
+      body: ur ? `${month} کی تنخواہ ${this.settings.currency} ${commas(amount)} ادا کر دی گئی۔` : `${this.settings.currency} ${commas(amount)} paid for ${month}.`,
     }));
     return { ok: true, id, amount };
   };

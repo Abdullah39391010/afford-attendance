@@ -75,7 +75,7 @@ export function Home() {
         const next = { ...home, today };
         LS.set('afford.home', JSON.stringify(next));
         E.loadHome(); // keeps cached copy if offline
-        toast(t('No internet. Saved on the phone, it will be sent automatically.'), 'ok');
+        toast(t('No internet. Saved on this phone. It is sent by itself when the phone gets any Wi-Fi or internet.'), 'ok');
         E.setOnline(false);
         Object.assign(home, next);
       } else toastErr(e);

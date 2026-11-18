@@ -5,8 +5,7 @@ import { api } from '../shared/api.js';
 import { t, nm, statusLabel, getLang, reqLabel, auditLabel, moneyLabel } from '../shared/i18n.js';
 import { fmtTime, fmtDur, fmtDate, fmtMoney, fmtDateTime, todayStr, fmtMonth, dayShort } from '../shared/format.js';
 import {
-  TopBar, Icon, Avatar, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, go, goBack, replace, Seg, Toggle, Spinner, Empty, confirmBox, Banner, Chips,
-} from '../shared/ui.jsx';
+  TopBar, Icon, Avatar, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, go, goBack, replace, Seg, Toggle, Spinner, Empty, confirmBox, Banner, Chips, MoneyInput } from '../shared/ui.jsx';
 import { Calendar, MonthNav } from '../shared/calendar.jsx';
 import { useApp } from './app.jsx';
 import { BranchChips, branchName, branchQ, StaffFile, NotesTab } from './extra.jsx';
@@ -194,7 +193,7 @@ export function StaffForm({ id }) {
             </Field>
           </div>
           {app.can('payroll.view') && (
-            <Field label={t('Monthly salary ({c})', { c: s.currency })}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={f.salary} onInput={inp('salary')} /></Field>
+            <Field label={t('Monthly salary ({c})', { c: s.currency })}><MoneyInput value={f.salary} onValue={(v) => set('salary', v)} /></Field>
           )}
           {(s.locations || []).length > 1 && !app.me.branchId && (
             <Field label={t('Branch')} hint={t('The employee must check in at this branch.')}>
@@ -466,7 +465,7 @@ function Money({ e }) {
       <Sheet open={add} onClose={() => setAdd(false)} title={t('Add money entry')}>
         <Field label={t('Type')}><select class="input" value={f.kind} onChange={(ev) => setF({ ...f, kind: ev.currentTarget.value })}>{KINDS.map(([k, l]) => <option key={k} value={k}>{t(l)}</option>)}</select></Field>
         <div class="two">
-          <Field label={t('Amount ({c})', { c: cur })}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={f.amount} onInput={(ev) => setF({ ...f, amount: ev.currentTarget.value })} /></Field>
+          <Field label={t('Amount ({c})', { c: cur })}><MoneyInput value={f.amount} onValue={(v) => setF({ ...f, amount: v })} /></Field>
           <Field label={t('Salary month')}><input class="input ltr" style="width:100%" type="month" value={f.month} onInput={(ev) => setF({ ...f, month: ev.currentTarget.value })} /></Field>
         </div>
         {f.kind === 'advance' && (

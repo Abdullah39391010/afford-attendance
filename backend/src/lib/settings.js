@@ -52,7 +52,7 @@ export function defaultSettings() {
       pastDayRequestDays: 3,
       requireInRadiusCheckIn: true,
       blockMockLocation: true,
-      maxOfflineHours: 72,
+      maxOfflineHours: 168, // a punch saved without internet is accepted for 7 days
       autoAbsentAfterMin: 120, // board shows "absent" once this long past shift start with no check-in
       kioskPhoto: true,
       overtimeOn: false, // pay minutes worked after the shift end
@@ -150,7 +150,7 @@ export function mergeSettings(cur, patch) {
     if ('breakAllowanceMin' in p) r.breakAllowanceMin = num(p.breakAllowanceMin, 0, 480, 30);
     if ('paidLeavePerMonth' in p) r.paidLeavePerMonth = num(p.paidLeavePerMonth, 0, 31, 1);
     if ('pastDayRequestDays' in p) r.pastDayRequestDays = num(p.pastDayRequestDays, 0, 31, 3);
-    if ('maxOfflineHours' in p) r.maxOfflineHours = num(p.maxOfflineHours, 1, 168, 72);
+    if ('maxOfflineHours' in p) r.maxOfflineHours = num(p.maxOfflineHours, 1, 168, 168);
     if ('autoAbsentAfterMin' in p) r.autoAbsentAfterMin = num(p.autoAbsentAfterMin, 0, 720, 120);
     if ('overtimeRate' in p) {
       const v = Math.round(Number(p.overtimeRate) * 100) / 100;

@@ -293,7 +293,7 @@ function Shell({ logout }) {
     <ECtx.Provider value={ctx}>
       {(!online || queue.length > 0) && (
         <div class="offline-bar" style="position:fixed;bottom:calc(var(--safe-bottom) + 62px);left:0;right:0;z-index:21">
-          {!online ? t('No internet. Punches are saved on the phone and sent later.') : t('{n} saved punch(es) waiting to send', { n: queue.length })}
+          {!online ? t('No internet. Your check-ins are saved on this phone. Connect to any Wi-Fi or internet in the next few days to send them.') : t('{n} saved punch(es) waiting to send', { n: queue.length })}
         </div>
       )}
       {!home ? <div class="auth"><Spinner /></div> : screen}

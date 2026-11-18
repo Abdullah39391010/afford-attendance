@@ -4,7 +4,7 @@ import { useState } from 'preact/hooks';
 import { api } from '../shared/api.js';
 import { t, nm } from '../shared/i18n.js';
 import { fmtMoney, fmtMonth, fmtDate, fmtDateTime, todayStr } from '../shared/format.js';
-import { TopBar, Icon, Field, Loader, useLoad, toast, toastErr, Spinner, Banner, Sheet, Seg, confirmBox, go } from '../shared/ui.jsx';
+import { TopBar, Icon, Field, Loader, useLoad, toast, toastErr, Spinner, Banner, Sheet, Seg, confirmBox, go, MoneyInput } from '../shared/ui.jsx';
 import { PAY_METHOD } from '../shared/statement.jsx';
 import { settlementDoc, printDoc, shareDocPdf } from '../shared/printdoc.js';
 import { useApp } from './app.jsx';
@@ -41,7 +41,7 @@ export function PaidBox({ s, onChanged }) {
         ? <button class="btn block green" style="margin-top:8px" onClick={() => { setF({ ...f, amount: String(left) }); setOpen(true); }}><Icon n="check" />{t('Mark salary as paid')} · {fmtMoney(left, cur)}</button>
         : <p class="small" style="margin:6px 0 0;color:var(--green)"><Icon n="check" /> {t('Salary paid in full')}</p>}
       <Sheet open={open} onClose={() => setOpen(false)} title={t('Mark salary as paid')}>
-        <Field label={t('Amount ({c})', { c: cur })}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={f.amount} onInput={(e) => setF({ ...f, amount: e.currentTarget.value })} /></Field>
+        <Field label={t('Amount ({c})', { c: cur })}><MoneyInput value={f.amount} onValue={(v) => setF({ ...f, amount: v })} /></Field>
         <Field label={t('Paid by')}><Seg value={f.method} onChange={(v) => setF({ ...f, method: v })} options={[['cash', t('Cash')], ['bank', t('Bank transfer')], ['other', t('Other')]]} /></Field>
         <Field label={t('Note (optional)')}><input class="input" value={f.note} onInput={(e) => setF({ ...f, note: e.currentTarget.value })} placeholder={t('e.g. JazzCash / cheque no.')} /></Field>
         <button class="btn block" disabled={busy || !Number(f.amount)} onClick={save}>{busy ? <Spinner sm /> : t('Save')}</button>

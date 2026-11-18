@@ -4,7 +4,7 @@
 //  - owner approval for money and salary changes made by managers
 //  - locked (paid) months with a frozen salary statement
 //  - server error log + alert to the owner
-import { HttpError, bad, forbidden, notFound, uid, isMonth, str, local } from './util.js';
+import { HttpError, bad, forbidden, notFound, uid, isMonth, str, local, commas } from './util.js';
 import { makeBackup, checkBackup } from './backup.js';
 
 const DAY = 24 * 3600 * 1000;
@@ -224,8 +224,8 @@ export function installPro(Store) {
     this.db.run("INSERT INTO approvals (id, kind, emp, data, status, created, by_admin, by_name) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)",
       id, kind, emp.id, JSON.stringify(data), this.now(), actor.id, actor.name);
     const what = {
-      money_add: [`${MONEY_EN[data.kind] || data.kind} ${this.settings.currency} ${data.amount}`, `${MONEY_UR[data.kind] || data.kind} ${this.settings.currency} ${data.amount}`],
-      money_void: [`Remove ${MONEY_EN[data.kind] || data.kind} ${this.settings.currency} ${data.amount}`, `${MONEY_UR[data.kind] || data.kind} ${this.settings.currency} ${data.amount} ہٹانا`],
+      money_add: [`${MONEY_EN[data.kind] || data.kind} ${this.settings.currency} ${commas(data.amount)}`, `${MONEY_UR[data.kind] || data.kind} ${this.settings.currency} ${commas(data.amount)}`],
+      money_void: [`Remove ${MONEY_EN[data.kind] || data.kind} ${this.settings.currency} ${commas(data.amount)}`, `${MONEY_UR[data.kind] || data.kind} ${this.settings.currency} ${commas(data.amount)} ہٹانا`],
       salary: [`Salary ${data.from} → ${data.to}`, `تنخواہ ${data.from} → ${data.to}`],
     }[kind];
     this.queuePush('admin', this.ownerIds(), `appr-${id}`, (ur) => ({

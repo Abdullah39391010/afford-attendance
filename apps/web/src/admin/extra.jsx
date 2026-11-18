@@ -6,7 +6,7 @@ import { AffordDevice } from 'afford-device';
 import { api } from '../shared/api.js';
 import { t, nm, getLang, statusLabel } from '../shared/i18n.js';
 import { fmtDate, fmtMoney, fmtMonth, fmtDateTime, todayStr, addDays, dayShort } from '../shared/format.js';
-import { TopBar, Icon, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Spinner, Empty, confirmBox, Banner, Chips, Pill } from '../shared/ui.jsx';
+import { TopBar, Icon, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Spinner, Empty, confirmBox, Banner, Chips, Pill, MoneyInput } from '../shared/ui.jsx';
 import { tableDoc, printDoc, shareDocPdf } from '../shared/printdoc.js';
 import { makeXlsx, toBase64 } from '../shared/xlsx.js';
 import { useApp } from './app.jsx';
@@ -187,7 +187,7 @@ export function BulkMoney({ month, onDone }) {
         <Field label={t('How much')}><Seg value={f.by} onChange={(v) => setF({ ...f, by: v })} options={[['amount', t('Same amount')], ['percent', t('% of salary')]]} /></Field>
         <div class="two">
           <Field label={f.by === 'percent' ? t('Percent of salary') : t('Amount ({c})', { c: cur })}>
-            <input class="input ltr" style="width:100%" type="number" inputmode="decimal" value={f.value} onInput={(e) => setF({ ...f, value: e.currentTarget.value })} placeholder={f.by === 'percent' ? '50' : '2000'} />
+            <MoneyInput decimal value={f.value} onValue={(v) => setF({ ...f, value: v })} placeholder={f.by === 'percent' ? '50' : '2,000'} />
           </Field>
           <Field label={t('Salary month')}><input class="input ltr" style="width:100%" value={fmtMonth(month)} disabled /></Field>
         </div>
@@ -262,7 +262,7 @@ export function MonthReport({ month, branch }) {
         [],
         ['P = Present, L = Late, A = Absent, LV = Paid leave, UL = Unpaid leave, O = Weekly off, H = Holiday, D = Out-of-town duty, X = Left'],
       ];
-      const bytes = makeXlsx([{ name: 'Salary', rows: salary }, { name: 'Attendance', rows: att }]);
+      const bytes = makeXlsx([{ name: 'Salary', rows: salary, moneyCols: [3, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22] }, { name: 'Attendance', rows: att }]);
       await AffordDevice.shareFile({ filename: `afford-report-${month}.xlsx`, base64: toBase64(bytes), mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', title: t('Share Excel') });
     } catch (e) { toastErr(e); } finally { setBusy(null); }
   };

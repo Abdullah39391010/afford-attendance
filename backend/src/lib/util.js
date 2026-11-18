@@ -96,3 +96,9 @@ export function csv(rows) {
   };
   return '﻿' + rows.map((r) => r.map(esc).join(',')).join('\r\n');
 }
+
+/** 30000 -> "30,000" (amounts in alert texts) */
+export const commas = (n) => {
+  const v = Math.round(Math.abs(Number(n) || 0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return Number(n) < 0 ? `-${v}` : v;
+};

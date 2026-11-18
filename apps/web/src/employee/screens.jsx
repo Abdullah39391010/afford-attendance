@@ -5,7 +5,7 @@ import { AffordDevice } from 'afford-device';
 import { api, LS } from '../shared/api.js';
 import { t, nm, statusLabel, reqLabel, getLang } from '../shared/i18n.js';
 import { fmtTime, fmtDur, fmtDate, fmtMoney, fmtMoney2, todayStr, addDays, ago } from '../shared/format.js';
-import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, confirmBox, Banner, Spinner, Seg, Empty, go, replace, Avatar, LangSwitch, Toggle, FingerToggle, Credit } from '../shared/ui.jsx';
+import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, confirmBox, Banner, Spinner, Seg, Empty, go, replace, Avatar, LangSwitch, Toggle, FingerToggle, Credit, MoneyInput } from '../shared/ui.jsx';
 import { Calendar, MonthNav } from '../shared/calendar.jsx';
 import { Statement } from '../shared/statement.jsx';
 import { statementDoc, printDoc, shareDocPdf } from '../shared/printdoc.js';
@@ -182,7 +182,7 @@ function NewRequest({ type, date0, onClose, onDone }) {
           {type === 'leave' && <p class="small muted" style="margin:-4px 0 8px">{t('Paid leave left this month: {n}. Extra days are unpaid.', { n: E.home.leave?.left ?? 0 })}</p>}
         </div>
       )}
-      {type === 'advance' && <Field label={t('Amount ({c})', { c: E.home.store.currency })}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={f.amount} onInput={set('amount')} /></Field>}
+      {type === 'advance' && <Field label={t('Amount ({c})', { c: E.home.store.currency })}><MoneyInput value={f.amount} onValue={(v) => setF({ ...f, amount: v })} /></Field>}
       {type === 'undo_checkout' && <p class="small muted">{t('Your last check-out will be removed after the admin or manager approves, so you are checked in again.')}</p>}
       <Field label={t('Reason')}><input class="input" value={f.reason} onInput={set('reason')} placeholder={t('Write a short reason')} /></Field>
       <button class="btn block" disabled={busy || (type === 'advance' && !(Number(f.amount) > 0))} onClick={send}>{busy ? <Spinner sm /> : t('Send to admin / manager')}</button>

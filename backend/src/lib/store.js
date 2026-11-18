@@ -54,6 +54,14 @@ export class Store {
     if (!this._settings) this._settings = { ...defaultSettings(), ...this.db.kvGet('settings', {}) };
     // keep rules complete when new defaults are added
     this._settings.rules = { ...defaultSettings().rules, ...this._settings.rules };
+    // v0.9.5: offline punches are kept for 7 days (was 3); only moves stores still on the old default
+    if (!this.db.kvGet('mig.offline7', false)) {
+      this.db.kvSet('mig.offline7', true);
+      if (this._settings.rules.maxOfflineHours === 72) {
+        this._settings.rules.maxOfflineHours = 168;
+        if (this.db.kvGet('settings', null)) this.db.kvSet('settings', this._settings);
+      }
+    }
     return this._settings;
   }
   saveSettings(s) {

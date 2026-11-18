@@ -270,3 +270,19 @@ test('owner web page: own code from the server secret, wrong codes locked out, l
   r = await t.api('POST', '/api/owner-page/login', { code: '5566' });
   assert.equal(r.status, 200);
 });
+
+test('offline punches are accepted for 7 days; old 72-hour setting moves to 7 days once', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  assert.equal(t.store.settings.rules.maxOfflineHours, 168);
+  // a store still on the old default
+  const s = t.store.db.kvGet('settings', {});
+  s.rules = { ...(s.rules || {}), maxOfflineHours: 72 };
+  t.store.db.kvSet('settings', s);
+  t.store.db.kvSet('mig.offline7', false);
+  t.store._settings = null;
+  assert.equal(t.store.settings.rules.maxOfflineHours, 168);
+  // the owner's own choice is kept afterwards
+  await t.api('PUT', '/api/admin/settings', { rules: { maxOfflineHours: 48 } }, t.owner);
+  t.store._settings = null;
+  assert.equal(t.store.settings.rules.maxOfflineHours, 48);
+});

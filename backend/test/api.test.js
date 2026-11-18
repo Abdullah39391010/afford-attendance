@@ -256,8 +256,8 @@ test('offline punches use the phone estimate, are flagged, and are not duplicate
   // a "future" timestamp from a wrong phone clock is capped at server time
   const c = await t.aliApi('POST', '/api/emp/punch', { type: 'out', loc: t.inStore, clientId: 'x2', offlineTs: t.now() + 3600000 });
   assert.equal(c.data.ts, t.now());
-  // too old
-  t.setTime('2026-11-20T09:30');
+  // too old (more than 7 days)
+  t.setTime('2026-11-24T09:30');
   const d = await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore, clientId: 'x3', offlineTs: Date.parse('2026-11-16T10:00:00+05:00') });
   assert.equal(d.data.error, 'OFFLINE_TOO_OLD');
 });

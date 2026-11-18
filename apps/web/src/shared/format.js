@@ -55,15 +55,18 @@ export function fmtDateTime(ts) {
   const p = parts(ts);
   return `${p.d} ${monthName(p.m).slice(0, getLang() === 'ur' ? 20 : 3)} ${fmtTime(ts)}`;
 }
+/** 30000 -> "30,000" (same on every phone, whatever its language settings) */
+export const commas = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 export function fmtMoney(n, currency = 'Rs.') {
   if (n == null || Number.isNaN(n)) return '—';
   const neg = n < 0;
-  const v = Math.abs(Math.round(n)).toLocaleString('en-PK');
+  const v = commas(Math.abs(Math.round(n)));
   return `${neg ? '−' : ''}${currency} ${v}`;
 }
 export function fmtMoney2(n, currency = 'Rs.') {
   if (n == null) return '—';
-  return `${currency} ${Number(n).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const [i, d] = Math.abs(Number(n)).toFixed(2).split('.');
+  return `${Number(n) < 0 ? '−' : ''}${currency} ${commas(i)}.${d}`;
 }
 export function addMonths(month, n) {
   const [y, m] = month.split('-').map(Number);

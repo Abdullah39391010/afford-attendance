@@ -8,7 +8,7 @@
 import { bad, forbidden, notFound, uid, isDate, isMonth, str, clampInt, local, hm, addDays, dateRange } from './util.js';
 import { shiftFor, empShift, empWeeklyOff } from './attendance.js';
 import { hashPin, validPin, sha256 } from './crypto.js';
-import { HttpError } from './util.js';
+import { HttpError, commas } from './util.js';
 
 const DOC_KINDS = ['cnic_front', 'cnic_back', 'contract', 'photo', 'other'];
 const NOTE_KINDS = ['warning', 'praise', 'note'];
@@ -279,7 +279,7 @@ export function installExtra(Store) {
     const cur = this.settings.currency;
     this.queuePush('emp', [emp.id], `money-${id}`, (ur) => ({
       title: ur ? MONEY_UR[kind] : MONEY_EN[kind],
-      body: `${kind === 'fine' ? '−' : '+'} ${cur} ${amount}${note ? ` · ${note}` : ''}`,
+      body: `${kind === 'fine' ? '−' : '+'} ${cur} ${commas(amount)}${note ? ` · ${note}` : ''}`,
     }));
   };
   P.bulkMoney = function bulkMoney({ actor, body }) {

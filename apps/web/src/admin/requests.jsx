@@ -4,7 +4,7 @@ import { useState, useEffect } from 'preact/hooks';
 import { api } from '../shared/api.js';
 import { t, nm, reqLabel } from '../shared/i18n.js';
 import { fmtDate, fmtTime, fmtMoney, ago } from '../shared/format.js';
-import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Empty, Spinner, Toggle, Chips, Dialog } from '../shared/ui.jsx';
+import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Empty, Spinner, Toggle, Chips, Dialog, MoneyInput } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
 import { describe } from '../shared/describe.js';
 import { OwnerApprovals } from './pro.jsx';
@@ -109,7 +109,7 @@ function Decide({ r, onClose, onDone }) {
           )}
           {r.type === 'advance' && (
             <div>
-              <Field label={t('Amount to give')}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={amount} onInput={(e) => setAmount(e.currentTarget.value)} /></Field>
+              <Field label={t('Amount to give')}><MoneyInput value={amount} onValue={setAmount} /></Field>
               <Field label={t('Cut from salary in')}>
                 <Chips value={String(inst)} onChange={(v) => setInst(Number(v))} options={[1, 2, 3, 4, 6].map((n) => [String(n), n === 1 ? t('1 month') : t('{n} months', { n })])} />
               </Field>

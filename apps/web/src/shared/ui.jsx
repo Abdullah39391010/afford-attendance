@@ -163,6 +163,25 @@ export function ConfirmHost() {
   );
 }
 
+/** Amount box that shows 30,000 while typing. onValue gets the plain number text ("30000"). */
+export function MoneyInput({ value, onValue, decimal, style = 'width:100%', ...rest }) {
+  const raw = value == null ? '' : String(value);
+  const [i, d] = raw.split('.');
+  const shown = i === '' && d == null ? '' : `${String(i || '').replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${d != null ? `.${d}` : ''}`;
+  return (
+    <input class="input ltr" style={style} type="text" inputmode={decimal ? 'decimal' : 'numeric'} autocomplete="off" value={shown} {...rest}
+      onInput={(e) => {
+        let v = e.currentTarget.value.replace(/[^\d.]/g, '');
+        if (!decimal) v = v.replace(/\./g, '');
+        else { const k = v.indexOf('.'); if (k >= 0) v = v.slice(0, k + 1) + v.slice(k + 1).replace(/\./g, '').slice(0, 2); }
+        v = v.replace(/^0+(?=\d)/, '');
+        onValue(v);
+        const pretty = v === '' ? '' : v.split('.')[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (v.includes('.') ? `.${v.split('.')[1]}` : '');
+        if (e.currentTarget.value !== pretty) e.currentTarget.value = pretty;
+      }} />
+  );
+}
+
 export function Field({ label, hint, children }) {
   return (
     <div class="field">
