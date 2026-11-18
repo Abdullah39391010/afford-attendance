@@ -209,14 +209,16 @@ test('checking in again after check-out needs an approved request, and the time 
   assert.equal(home.recheckin.needed, true);
   assert.equal(home.recheckin.status, null);
   // ask, get declined, still refused
-  let r = (await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin', reason: 'Bank work done' })).data.request;
-  assert.equal((await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin' })).data.error, 'DUPLICATE');
+  assert.equal((await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin' })).data.error, 'NO_LOCATION');
+  assert.equal((await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin', loc: { lat: 31.5, lng: 74.3 } })).data.error, 'OUTSIDE_RADIUS');
+  let r = (await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin', reason: 'Bank work done', loc: t.inStore })).data.request;
+  assert.equal((await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin', loc: t.inStore })).data.error, 'DUPLICATE');
   assert.equal((await t.aliApi('GET', '/api/emp/home')).data.recheckin.status, 'pending');
   await decide(r.id, false);
   assert.equal((await t.aliApi('GET', '/api/emp/home')).data.recheckin.status, 'declined');
   assert.equal((await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore })).data.error, 'RECHECKIN_NEEDED');
   // ask again, approved
-  r = (await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin' })).data.request;
+  r = (await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin', loc: t.inStore })).data.request;
   await decide(r.id);
   assert.equal((await t.aliApi('GET', '/api/emp/home')).data.recheckin.status, 'approved');
   t.setTime('2026-11-16T13:00');

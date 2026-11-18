@@ -246,7 +246,9 @@ function RecheckinSheet({ outTs, onClose, onDone }) {
   const send = async () => {
     setBusy(true);
     try {
-      await api.post('/api/emp/requests', { type: 'recheckin', reason });
+      const loc = await getLoc();
+      if (loc.mock) throw Object.assign(new Error('MOCK_LOCATION'), { code: 'MOCK_LOCATION' });
+      await api.post('/api/emp/requests', { type: 'recheckin', reason, loc });
       toast(t('Check-in request sent. Waiting for the admin or manager.'), 'ok');
       onDone();
     } catch (e) { toastErr(e); } finally { setBusy(false); }

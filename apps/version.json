@@ -1,7 +1,7 @@
 {
-  "version": "0.6.8",
+  "version": "0.6.9",
   "notes": {
-    "en": "After check-out, staff must ask the admin or manager before checking in again the same day. The time away is counted as late.",
-    "ur": "چیک آؤٹ کے بعد اسی دن دوبارہ چیک اِن کے لیے ایڈمن یا مینیجر سے اجازت ضروری ہے۔ باہر رہنے کا وقت لیٹ میں گنا جائے گا۔"
+    "en": "\"Ask to check in again\" now works only from inside the store, the same as a check-in.",
+    "ur": "\"دوبارہ چیک اِن کی اجازت\" اب صرف اسٹور کے اندر سے بھیجی جا سکتی ہے، بالکل چیک اِن کی طرح۔"
   }
 }

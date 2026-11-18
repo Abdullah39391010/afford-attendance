@@ -1053,6 +1053,9 @@ export class Store {
         const last = this.db.get("SELECT * FROM punches WHERE emp = ? AND day = ? AND type = 'out' AND voided = 0 ORDER BY ts DESC LIMIT 1", emp.id, day);
         if (!last) throw bad('NOT_CHECKED_OUT', 'You have not checked out today, so you can check in normally');
         if (this.approvedRecheckin(emp.id, day, last.ts)) throw bad('ALREADY_APPROVED', 'Already approved. You can check in now.');
+        // same location rule as a check-in: must be at the store unless this person may check in from anywhere
+        const g = this.geo(emp, 'in', body.loc);
+        data.dist = g.dist;
         data.date = day;
         data.outTs = last.ts;
         break;
