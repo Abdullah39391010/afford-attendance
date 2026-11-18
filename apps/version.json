@@ -1,7 +1,7 @@
 {
-  "version": "0.9.6",
+  "version": "0.9.7",
   "notes": {
-    "en": "Check-in opens 15 minutes before the shift. Checking out early now shows how much will be cut from salary.",
-    "ur": "چیک اِن شفٹ سے 15 منٹ پہلے کھلتا ہے۔ جلدی چیک آؤٹ پر اب پہلے بتایا جاتا ہے کہ تنخواہ سے کتنا کٹے گا۔"
+    "en": "Check in again: when approved, the time counts from when the employee asked, not from the approval.",
+    "ur": "دوبارہ چیک اِن: منظوری پر وقت درخواست بھیجنے کے لمحے سے گنا جاتا ہے، منظوری کے وقت سے نہیں۔"
   }
 }

@@ -217,15 +217,17 @@ test('checking in again after check-out needs an approved request, and the time 
   await decide(r.id, false);
   assert.equal((await t.aliApi('GET', '/api/emp/home')).data.recheckin.status, 'declined');
   assert.equal((await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore })).data.error, 'RECHECKIN_NEEDED');
-  // ask again, approved
+  // ask again at 12:30; the manager approves at 13:00 -> checked in from 12:30 (the time of the request)
   r = (await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin', loc: t.inStore })).data.request;
-  await decide(r.id);
-  assert.equal((await t.aliApi('GET', '/api/emp/home')).data.recheckin.status, 'approved');
   t.setTime('2026-11-16T13:00');
-  res = await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore });
-  assert.equal(res.data.ok, true);
-  assert.equal(res.data.today.awayMin, 60);
-  assert.equal(res.data.today.lateMin, 60);
+  const dec = (await decide(r.id)).data;
+  assert.equal(dec.checkedIn, Date.parse('2026-11-16T12:30:00+05:00'));
+  home = (await t.aliApi('GET', '/api/emp/home')).data;
+  assert.equal(home.today.isOpen, true);
+  assert.equal(home.recheckin, null);
+  res = { data: { today: home.today } };
+  assert.equal(res.data.today.awayMin, 30);
+  assert.equal(res.data.today.lateMin, 30);
   assert.equal(res.data.today.arriveLateMin, 0);
   assert.equal(res.data.today.status, 'late');
   assert.equal(res.data.today.gaps.length, 1);

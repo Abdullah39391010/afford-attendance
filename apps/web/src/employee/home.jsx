@@ -158,7 +158,7 @@ export function Home() {
                   <button class="btn block" style="margin-top:10px" disabled={!!busy} onClick={punch}>{busy ? <Spinner sm /> : <><Icon n="in" />{t('Check in again')}</>}</button>
                 </div>
               ) : rc?.status === 'pending' ? (
-                <Banner kind="info" icon="clock">{t('Check-in request sent. Waiting for the admin or manager.')}</Banner>
+                <Banner kind="info" icon="clock">{t('Check-in request sent. Waiting for the admin or manager.')} {t('When it is approved, your time counts from when you asked.')}</Banner>
               ) : (
                 <div>
                   {rc?.status === 'declined' && <Banner kind="err" icon="x">{t('Your request to check in again was declined.')}{rc.note ? ` ${rc.note}` : ''}</Banner>}

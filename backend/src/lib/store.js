@@ -1192,6 +1192,9 @@ export class Store {
         // same location rule as a check-in: must be at the store unless this person may check in from anywhere
         const g = this.geo(emp, 'in', body.loc);
         data.dist = g.dist;
+        data.lat = g.lat;
+        data.lng = g.lng;
+        data.acc = g.acc;
         data.date = day;
         data.outTs = last.ts;
         break;
@@ -1437,6 +1440,24 @@ export class Store {
         case 'swap':
           this.applySwap(actor, emp, data);
           break;
+        case 'recheckin': {
+          // The employee asked from inside the store, so work time starts again from the moment they asked.
+          const last = this.db.get('SELECT * FROM punches WHERE emp = ? AND voided = 0 ORDER BY ts DESC LIMIT 1', emp.id);
+          if (last && last.type === 'in' && last.ts > data.outTs) { data.used = true; data.inTs = last.ts; break; } // already back in
+          if (!last || last.type !== 'out' || last.ts !== data.outTs) throw bad('RECHECKIN_STALE', 'The check-out this request is about has changed');
+          const ts = Math.max(r.created, data.outTs + 1000);
+          const id = uid();
+          this.db.run(
+            `INSERT INTO punches (id, emp, day, type, ts, client_id, offline, source, lat, lng, acc, dist, by_admin, reason, created)
+             VALUES (?, ?, ?, 'in', ?, NULL, 0, 'request', ?, ?, ?, ?, ?, ?, ?)`,
+            id, emp.id, data.date, ts, data.lat ?? null, data.lng ?? null, data.acc ?? null, data.dist ?? null, actor.id,
+            `Check in again (asked ${new Date(ts).toISOString()})${note ? `: ${note}` : ''}`, this.now(),
+          );
+          data.used = true;
+          data.inTs = ts;
+          result.checkedIn = ts;
+          break;
+        }
         case 'pin_reset':
           if (!this.can(actor, 'employees.edit')) throw forbidden('NO_PERMISSION', 'You need the "employees.edit" permission');
           await this.applyPinReset(actor, emp, body, data, result);

@@ -125,4 +125,7 @@ export const UR2 = {
   "Check-in opens only shortly before the shift": "چیک اِن صرف شفٹ سے تھوڑا پہلے کھلے",
   "Not on days off and holidays. A manager can still record a check-in by hand.": "چھٹی کے دنوں اور تعطیلات پر نہیں۔ مینیجر پھر بھی ہاتھ سے چیک اِن لگا سکتا ہے۔",
   "Check-in opens before shift start": "شفٹ شروع ہونے سے پہلے چیک اِن کھلے",
+  "asked at": "درخواست کا وقت",
+  "Approving checks them in from {t}, the time they asked from inside the store.": "منظوری پر ان کا چیک اِن {t} سے لگے گا، جب انہوں نے اسٹور کے اندر سے درخواست بھیجی تھی۔",
+  "When it is approved, your time counts from when you asked.": "منظوری کے بعد آپ کا وقت درخواست بھیجنے کے وقت سے گنا جائے گا۔",
 };

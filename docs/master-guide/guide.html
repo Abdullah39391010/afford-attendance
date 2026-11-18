@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 2.3 · 18 November 2026 (apps v0.9.6)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
+  <div class="meta">Version 2.3 · 18 November 2026 (apps v0.9.7)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -305,7 +305,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
     <tr><td>Advance salary</td><td>Amount, reason</td><td>The advance is recorded and cut from pay this month, or split over 2 to 6 months. Admin can change the amount. If a manager approves, it also waits for the owner.</td></tr>
     <tr><td>Break</td><td>Minutes</td><td>The break starts. The employee taps Resume when back, and late return is cut.</td></tr>
     <tr><td>Checked out by mistake</td><td>(one tap)</td><td>The last check-out is removed and the employee is "in" again (no late time).</td></tr>
-    <tr><td>Check in again</td><td>Reason (sent from inside the store)</td><td>The employee may check in once more today. The time between check-out and the new check-in counts as late.</td></tr>
+    <tr><td>Check in again</td><td>Reason (sent from inside the store)</td><td>The employee is checked in again automatically, from the time they sent the request (they were inside the store then). Only the time between check-out and the request counts as late. They don't need to tap Check in again.</td></tr>
     <tr><td>Out-of-town duty</td><td>Dates, reason</td><td>The days count as present, with no time cuts.</td></tr>
     <tr><td>Forgot PIN</td><td>Employee code or phone number, from the "Forgot PIN?" button on the login screen (no login needed)</td><td>The admin types a new PIN (a random one is filled in) and tells it to the employee in person or by phone. The old PIN stops working. Only someone with "edit staff" permission can approve it. Make sure it is really that employee before approving.</td></tr>
   </table>

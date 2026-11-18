@@ -116,6 +116,7 @@ function Decide({ r, onClose, onDone }) {
             </div>
           )}
           {r.type === 'leave' && <Toggle checked={paid} onChange={setPaid} label={t('Paid leave (within monthly allowance)')} sub={t('Turn off to approve as unpaid leave')} />}
+          {r.type === 'recheckin' && <p class="small muted">{t('Approving checks them in from {t}, the time they asked from inside the store.', { t: fmtTime(r.created) })}</p>}
           {r.type === 'break' && <p class="small muted">{t('The break starts when you approve. Coming back late is cut from salary.')}</p>}
           {r.type === 'pin_reset' && (app.can('employees.edit') ? (
             <div>

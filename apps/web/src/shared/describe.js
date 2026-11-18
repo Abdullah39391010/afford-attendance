@@ -15,7 +15,7 @@ export function describe(r, currency) {
     case 'undo_checkout': return `${t('Checked out at')} ${fmtTime(d.outTs)}`;
     case 'recheckin': return d.inTs
       ? `${t('Out')} ${fmtTime(d.outTs)} → ${t('In')} ${fmtTime(d.inTs)} · ${t('counted as late')}`
-      : `${t('Checked out at')} ${fmtTime(d.outTs)} · ${t('time away counts as late')}`;
+      : `${t('Out')} ${fmtTime(d.outTs)} → ${t('asked at')} ${fmtTime(r.created)} · ${t('time away counts as late')}`;
     case 'swap': return `${fmtDate(d.date)} · ${t('with')} ${d.withName || ''}`;
     case 'pin_reset': return d.pinSet ? t('New PIN set') : t('Asked from the login screen');
     default: return '';
