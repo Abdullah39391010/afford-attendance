@@ -24,7 +24,7 @@ const CSS = (a, rtl) => `
 @page{size:A4;margin:12mm}
 .doc{font-family:${rtl ? 'Naskh,' : ''}system-ui,'Segoe UI',Roboto,Arial,sans-serif;color:#1f2023;font-size:12.5px;line-height:${rtl ? 1.7 : 1.45};direction:${rtl ? 'rtl' : 'ltr'};background:#fff}
 .doc .hd{display:flex;align-items:center;gap:14px;border-bottom:3px solid #C62032;padding-bottom:10px;margin-bottom:12px}
-.doc .hd img{width:62px;height:62px;border-radius:50%}
+.doc .hd img{width:110px;height:auto}
 .doc .hd h1{font-size:20px;margin:0}
 .doc .hd .s{color:#666;font-size:12px}
 .doc .hd .r{margin-inline-start:auto;text-align:end;font-size:12px;color:#444}

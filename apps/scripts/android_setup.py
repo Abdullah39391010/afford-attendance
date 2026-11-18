@@ -8,7 +8,18 @@ import json, os, re
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # apps/
-LOGO = Image.open(os.path.join(ROOT, 'web/public/logo.png')).convert('RGBA')
+MARK = Image.open(os.path.join(ROOT, '../assets/logo-mark-src.png')).convert('RGBA')  # the red A (icons)
+WORD = Image.open(os.path.join(ROOT, 'web/public/logo.png')).convert('RGBA')  # full wordmark (splash)
+MARK = MARK.crop(MARK.getbbox())
+
+
+def mark(s):
+    """The A fitted in an s x s square, centred."""
+    m = MARK.copy()
+    m.thumbnail((s, s), Image.LANCZOS)
+    out = Image.new('RGBA', (s, s), (0, 0, 0, 0))
+    out.alpha_composite(m, ((s - m.width) // 2, (s - m.height) // 2))
+    return out
 RED = (198, 32, 50, 255)
 DENS = {'mdpi': 1, 'hdpi': 1.5, 'xhdpi': 2, 'xxhdpi': 3, 'xxxhdpi': 4}
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
@@ -42,16 +53,18 @@ def legacy_icon(px, label, round_):
     ImageDraw.Draw(m).ellipse([0, 0, px - 1, px - 1], fill=255) if round_ else ImageDraw.Draw(m).rounded_rectangle([0, 0, px - 1, px - 1], radius=px // 5, fill=255)
     bg = Image.new('RGBA', (px, px), (255, 255, 255, 255))
     img.paste(bg, (0, 0), m)
-    s = int(px * 0.86)
-    img.alpha_composite(LOGO.resize((s, s), Image.LANCZOS), ((px - s) // 2, (px - s) // 2))
+    s = int(px * (0.56 if label else 0.66))
+    y = int(px * 0.10) if label else (px - s) // 2
+    img.alpha_composite(mark(s), ((px - s) // 2, y))
     return badge(img, label)
 
 
 def foreground(px, label):
     # adaptive icon: 108dp canvas, safe zone is the middle 66dp
     img = Image.new('RGBA', (px, px), (0, 0, 0, 0))
-    s = int(px * 0.62)
-    img.alpha_composite(LOGO.resize((s, s), Image.LANCZOS), ((px - s) // 2, (px - s) // 2))
+    s = int(px * (0.40 if label else 0.46))
+    y = int(px * 0.24) if label else (px - s) // 2
+    img.alpha_composite(mark(s), ((px - s) // 2, y))
     if label:
         inner = img.crop((int(px * 0.17), int(px * 0.17), int(px * 0.83), int(px * 0.83)))
         inner = badge(inner, label)
@@ -61,8 +74,9 @@ def foreground(px, label):
 
 def splash(w, h):
     img = Image.new('RGBA', (w, h), (255, 255, 255, 255))
-    s = int(min(w, h) * 0.38)
-    img.alpha_composite(LOGO.resize((s, s), Image.LANCZOS), ((w - s) // 2, (h - s) // 2))
+    lw = int(min(w, h) * 0.62)
+    lh = int(lw * WORD.height / WORD.width)
+    img.alpha_composite(WORD.resize((lw, lh), Image.LANCZOS), ((w - lw) // 2, (h - lh) // 2))
     return img.convert('RGB')
 
 

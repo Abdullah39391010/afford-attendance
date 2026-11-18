@@ -12,7 +12,7 @@ export function Statement({ s, busy, onPrint, onShare }) {
   return (
     <div>
       <div class="card gap">
-        <img src="./logo.png" alt="" style="width:46px;height:46px;border-radius:50%" />
+        <img src="./logo.png" alt="" style="width:84px;height:auto;flex:none" />
         <div class="grow">
           <b>{nm(s.employee)}</b> <span class="muted small ltr">{s.employee.code}</span>
           <div class="small muted">{s.employee.role} · {fmtMonth(s.month)}</div>

@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "notes": {
     "en": "Request alerts now ring with the notification tone and show on the lock screen. While the app is open, alerts come within 20 seconds. Instant alerts (Firebase) are ready once the owner finishes the setup. Also: in-app update download, permissions popup.",
     "ur": "درخواستوں کی اطلاع اب نوٹیفکیشن ٹون کے ساتھ آتی ہے اور لاک اسکرین پر نظر آتی ہے۔ ایپ کھلی ہو تو 20 سیکنڈ میں اطلاع۔ فوری اطلاع (Firebase) مالک کے سیٹ اپ کے بعد چلے گی۔ ساتھ میں: ایپ کے اندر اپڈیٹ ڈاؤن لوڈ، اجازتوں کا پاپ اپ۔"

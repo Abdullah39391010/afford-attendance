@@ -79,7 +79,7 @@ export function SettingsStore() {
           <button class="btn block" disabled={busy} onClick={() => save(f)}>{t('Save')}</button>
         </div>
         <div class="card gap">
-          <img src="./logo.png" alt="" style="width:64px;height:64px;border-radius:50%" />
+          <img src="./logo.png" alt="" style="width:96px;height:auto;flex:none" />
           <div class="grow"><b>{t('Logo')}</b><div class="small muted">{t('Used on printouts and the owner page.')}</div></div>
           <label class="btn small ghost"><Icon n="edit" />{t('Change')}<input type="file" accept="image/*" style="display:none" onChange={uploadLogo} /></label>
         </div>

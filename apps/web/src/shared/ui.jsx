@@ -85,7 +85,7 @@ export function TopBar({ title, back, right, logo }) {
             <Icon n="back" cls="flip" />
           </button>
         )}
-        {logo && <img class="logo-sm" src="./logo.png" alt="" />}
+        {logo && <img class="logo-sm" src="./logo-mark.png" alt="" />}
         <h1>{title}</h1>
         {right}
       </div>
@@ -321,7 +321,8 @@ export function Credit({ app }) {
 }
 
 // ---------------------------------------------------------------- splash
-export function Splash({ title, sub, onDone, minMs = 2700 }) {
+const GLEAM = { WebkitMaskImage: 'url(./logo.png)', maskImage: 'url(./logo.png)' };
+export function Splash({ title, sub, onDone, minMs = 3100 }) {
   const [out, setOut] = useState(false);
   useEffect(() => {
     const t1 = setTimeout(() => setOut(true), minMs);
@@ -331,30 +332,15 @@ export function Splash({ title, sub, onDone, minMs = 2700 }) {
   return (
     <div class={`splash ${out ? 'out' : ''}`}>
       <div class="sp-glow" />
-      <div class="sp-stage">
-        <svg class="sp-orbit" viewBox="0 0 220 220" aria-hidden="true">
-          <circle cx="110" cy="110" r="104" />
-        </svg>
-        <svg class="sp-ring" viewBox="0 0 220 220" aria-hidden="true">
-          <defs>
-            <linearGradient id="spg" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#e23b4e" />
-              <stop offset="1" stop-color="#8f0f1f" />
-            </linearGradient>
-          </defs>
-          <circle class="track" cx="110" cy="110" r="92" />
-          <circle class="draw" cx="110" cy="110" r="92" />
-        </svg>
-        <div class="sp-spark"><i /></div>
-        <div class="sp-ripple" /><div class="sp-ripple r2" />
-        <div class="sp-disc">
-          <img src="./logo.png" alt="Afford" />
-          <div class="sp-shine" />
-        </div>
+      <div class="sp-logo" role="img" aria-label={title}>
+        <img class="sp-a" src="./sp-a.png" alt="" />
+        <div class="sp-fford-wrap"><img class="sp-fford" src="./sp-fford.png" alt="" /></div>
+        <img class="sp-super" src="./sp-super.png" alt="" />
+        <div class="sp-sweep" />
+        <img class="sp-dot" src="./sp-dot.png" alt="" />
+        <div class="sp-dot-ring" />
+        <div class="sp-gleam" style={GLEAM} />
       </div>
-      <h1 class="sp-title" aria-label={title}>
-        {[...title].map((ch, i) => <span key={i} style={`animation-delay:${(1.05 + i * 0.035).toFixed(3)}s`}>{ch === ' ' ? '\u00a0' : ch}</span>)}
-      </h1>
       <p class="sp-sub">{sub}</p>
       <div class="sp-bar"><i style={`animation-duration:${minMs - 300}ms`} /></div>
       <div class="sp-foot">

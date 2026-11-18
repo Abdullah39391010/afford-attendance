@@ -125,7 +125,7 @@ export function KioskMode({ onExit }) {
     <div class="screen no-nav kiosk">
       <header class="topbar">
         <div class="in">
-          <img class="logo-sm" src="./logo.png" alt="" />
+          <img class="logo-sm" src="./logo-mark.png" alt="" />
           <h1>{data?.storeName || 'Afford Super Store'}<div class="small muted" style="font-weight:400">{fmtDate(todayStr(now))}</div></h1>
           <div class="kiosk-clock ltr">{fmtTime(now)}</div>
           <button class="iconbtn" onClick={() => setExit(true)} aria-label={t('Exit kiosk')}><Icon n="lock" /></button>
