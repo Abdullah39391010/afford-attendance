@@ -60,28 +60,25 @@ def red_fill(size):
 
 
 def bag_art(W, label):
-    """White shopping bag with the red A, drawn on a transparent W x W canvas (icon design 1)."""
+    """Flat red shopping bag with the white A, on a transparent W x W canvas (system-app style: no shadow, no gradient)."""
     img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
-    up = 0.06 if label else 0.0
-    x0, y0, x1, y1 = W * 0.22, W * (0.33 - up), W * 0.78, W * (0.84 - up)
+    RED_FLAT = (226, 27, 38, 255)
+    x0, y0, x1, y1 = W * 0.25, W * 0.36, W * 0.75, W * 0.80
     w = x1 - x0
-    sh = Image.new('RGBA', (W, W), (0, 0, 0, 0))
-    ImageDraw.Draw(sh).rounded_rectangle([x0, y0 + W * 0.02, x1, y1 + W * 0.02], radius=int(W * 0.04), fill=(0, 0, 0, 45))
-    img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(W * 0.02)))
     d = ImageDraw.Draw(img)
-    hh = (y1 - y0) * 0.32
-    d.arc([x0 + w * 0.28, y0 - hh, x1 - w * 0.28, y0 + hh], 180, 360, fill=(150, 10, 22, 255), width=max(1, int(W * 0.04)))
+    hh = (y1 - y0) * 0.30
+    d.arc([x0 + w * 0.27, y0 - hh, x1 - w * 0.27, y0 + hh], 180, 360, fill=RED_FLAT, width=max(1, int(W * 0.045)))
     m = Image.new('L', (W, W), 0)
     dm = ImageDraw.Draw(m)
-    dm.polygon([(x0 + w * 0.06, y0), (x1 - w * 0.06, y0), (x1, y1 - w * 0.08), (x0, y1 - w * 0.08)], fill=255)
-    dm.rounded_rectangle([x0, y1 - w * 0.2, x1, y1], radius=int(w * 0.08), fill=255)
-    img.paste(red_fill((W, W)), (0, 0), m)
-    d.line([(x0 + w * 0.07, y0 + w * 0.07), (x1 - w * 0.07, y0 + w * 0.07)], fill=(255, 255, 255, 90), width=max(1, int(w * 0.012)))
-    s = int(W * 0.34)
+    dm.polygon([(x0 + w * 0.05, y0), (x1 - w * 0.05, y0), (x1, y1 - w * 0.1), (x0, y1 - w * 0.1)], fill=255)
+    dm.rounded_rectangle([x0, y1 - w * 0.25, x1, y1], radius=int(w * 0.1), fill=255)
+    dm.rounded_rectangle([x0 + w * 0.05, y0, x1 - w * 0.05, y0 + w * 0.2], radius=int(w * 0.04), fill=255)
+    img.paste(Image.new('RGBA', (W, W), RED_FLAT), (0, 0), m)
+    s = int(W * 0.30)
     k = s / max(MARK.size)
     a = MARK.resize((max(1, int(MARK.width * k)), max(1, int(MARK.height * k))), Image.LANCZOS)
     wa = Image.new('RGBA', a.size, (255, 255, 255, 255)); wa.putalpha(a.split()[3]); a = wa
-    img.alpha_composite(a, (int(W * 0.5 - a.width / 2), int(W * (0.6 - up) - a.height / 2)))
+    img.alpha_composite(a, (int(W * 0.5 - a.width / 2), int(W * 0.6 - a.height / 2)))
     return img
 
 
@@ -99,7 +96,7 @@ def legacy_icon(px, label, round_):
 def foreground(px, label):
     # adaptive icon: 108dp canvas, safe zone is the middle 66dp; the red comes from the background layer
     W = px * 4
-    inner = int(W * 0.9)
+    inner = int(W * 0.72)
     img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
     img.alpha_composite(bag_art(inner, label), ((W - inner) // 2, (W - inner) // 2))
     img = img.resize((px, px), Image.LANCZOS)
