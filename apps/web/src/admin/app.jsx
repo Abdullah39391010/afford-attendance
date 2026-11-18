@@ -9,6 +9,7 @@ import {
   Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, Credit, askFinger, WhoCard } from '../shared/ui.jsx';
 import { BackupScreen, autoBackupTick } from './backup.jsx';
 import { RulesAgreement } from './pro.jsx';
+import { Roster } from './extra.jsx';
 import { Settlement } from './ops.jsx';
 import { startNotify, stopNotify } from '../shared/notify.js';
 import { PermissionGate } from '../shared/perms.jsx';
@@ -351,6 +352,7 @@ function Shell({ me, logout, toKiosk }) {
     case 'kiosk': screen = <KioskSetup />; break;
     case 'backup': screen = <BackupScreen />; break;
     case 'rules': screen = <RulesAgreement />; break;
+    case 'roster': screen = <Roster />; break;
     case 'settings':
       screen = { location: <SettingsLocation />, shifts: <SettingsShifts />, roles: <SettingsRoles />, rules: <SettingsRules />, holidays: <SettingsHolidays />, store: <SettingsStore /> }[p[1]] || <SettingsHome />;
       break;

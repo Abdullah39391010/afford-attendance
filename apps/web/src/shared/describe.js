@@ -16,6 +16,7 @@ export function describe(r, currency) {
     case 'recheckin': return d.inTs
       ? `${t('Out')} ${fmtTime(d.outTs)} → ${t('In')} ${fmtTime(d.inTs)} · ${t('counted as late')}`
       : `${t('Checked out at')} ${fmtTime(d.outTs)} · ${t('time away counts as late')}`;
+    case 'swap': return `${fmtDate(d.date)} · ${t('with')} ${d.withName || ''}`;
     default: return '';
   }
 }

@@ -17,7 +17,8 @@ export class ApiError extends Error {
 }
 
 const state = {
-  base: (LS.get('afford.api') || __API_URL__ || '').replace(/\/+$/, ''),
+  // the iPhone web version is served by the server itself, so it always talks to the same address
+  base: (typeof __WEB_APP__ !== 'undefined' && __WEB_APP__ ? location.origin : LS.get('afford.api') || __API_URL__ || '').replace(/\/+$/, ''),
   token: null,
   deviceId: null,
   offset: Number(LS.get('afford.offset') || 0), // serverTime - Date.now()

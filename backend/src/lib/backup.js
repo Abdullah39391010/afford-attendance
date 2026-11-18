@@ -18,6 +18,9 @@ export const TABLES = {
   audit: ['id', 'ts', 'actor', 'actor_name', 'action', 'target', 'detail'],
   payments: ['id', 'emp', 'month', 'amount', 'method', 'note', 'ts', 'by_admin', 'voided'],
   approvals: ['id', 'kind', 'emp', 'data', 'status', 'created', 'by_admin', 'by_name', 'decided', 'note'],
+  roster: ['emp', 'day', 'shift_id', 'off', 'note', 'by_admin', 'ts'],
+  staff_notes: ['id', 'emp', 'kind', 'text', 'ts', 'by_admin', 'by_name', 'seen', 'voided'],
+  docs: ['id', 'emp', 'kind', 'name', 'mime', 'data', 'size', 'ts', 'by_admin'],
 };
 
 export function makeBackup(db, meta) {

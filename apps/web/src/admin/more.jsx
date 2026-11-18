@@ -14,6 +14,7 @@ import { CheckUpdateButton } from '../shared/update.jsx';
 export function More() {
   const app = useApp();
   const items = [
+    app.can('employees.view') && ['roster', 'cal', 'Duty roster', 'Weekly shifts and days off · shift swaps'],
     app.can('reports.view') && ['reports', 'report', 'Reports', 'Daily, weekly, monthly · late & absent lists'],
     app.can('settings.edit') && ['settings', 'gear', 'Settings', 'Location, shifts, rules, holidays, logo'],
     app.me.role === 'owner' && ['users', 'key', 'Managers', 'Add managers and set what they can do'],

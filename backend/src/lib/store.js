@@ -8,6 +8,7 @@ import { makeBackup, checkBackup, applyBackup } from './backup.js';
 import { sendPushes } from './push.js';
 import { installPro } from './pro.js';
 import { installOps } from './ops.js';
+import { installExtra } from './extra.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -15,13 +16,13 @@ const ADMIN_TTL = 30 * 24 * 3600 * 1000;
 const EMP_TTL = 365 * 24 * 3600 * 1000;
 const KIOSK_TTL = 365 * 24 * 3600 * 1000;
 const OPEN_MAX_MS = 20 * 3600 * 1000; // a check-in older than this no longer counts as "inside"
-const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'advance', 'break', 'undo_checkout', 'field_duty', 'recheckin'];
-const MONEY_KINDS = ['advance', 'deposit', 'deposit_cut', 'deposit_return', 'bonus'];
+const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'advance', 'break', 'undo_checkout', 'field_duty', 'recheckin', 'swap'];
+const MONEY_KINDS = ['advance', 'deposit', 'deposit_cut', 'deposit_return', 'bonus', 'commission', 'fine'];
 const MAX_BODY = 1_500_000;
 const REQ_EN = { forgot_in: 'Forgot check-in', forgot_out: 'Forgot check-out', past_day: 'Fix a past day', leave: 'Leave', advance: 'Advance salary',
-  break: 'Extra break', undo_checkout: 'Undo check-out', field_duty: 'Out-of-town duty', recheckin: 'Check in again' };
+  break: 'Extra break', undo_checkout: 'Undo check-out', field_duty: 'Out-of-town duty', recheckin: 'Check in again', swap: 'Shift swap' };
 const REQ_UR = { forgot_in: 'چیک اِن بھول گئے', forgot_out: 'چیک آؤٹ بھول گئے', past_day: 'پچھلے دن کی درستی', leave: 'چھٹی', advance: 'ایڈوانس تنخواہ',
-  break: 'اضافی وقفہ', undo_checkout: 'چیک آؤٹ واپس', field_duty: 'شہر سے باہر ڈیوٹی', recheckin: 'دوبارہ چیک اِن' };
+  break: 'اضافی وقفہ', undo_checkout: 'چیک آؤٹ واپس', field_duty: 'شہر سے باہر ڈیوٹی', recheckin: 'دوبارہ چیک اِن', swap: 'شفٹ کی تبدیلی' };
 
 const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
@@ -108,7 +109,7 @@ export class Store {
     const key = (e, d) => `${e}|${d}`;
     const slot = (e, d) => {
       const k = key(e, d);
-      if (!map.has(k)) map.set(k, { punches: [], breaks: [], mark: null });
+      if (!map.has(k)) map.set(k, { punches: [], breaks: [], mark: null, roster: null });
       return map.get(k);
     };
     const filt = empIds ? `AND emp IN (${empIds.map(() => '?').join(',')})` : '';
@@ -116,7 +117,8 @@ export class Store {
     for (const p of this.db.all(`SELECT * FROM punches WHERE day BETWEEN ? AND ? ${filt}`, from, to, ...args)) slot(p.emp, p.day).punches.push(p);
     for (const b of this.db.all(`SELECT * FROM breaks WHERE day BETWEEN ? AND ? ${filt}`, from, to, ...args)) slot(b.emp, b.day).breaks.push(b);
     for (const m of this.db.all(`SELECT * FROM day_marks WHERE day BETWEEN ? AND ? ${filt}`, from, to, ...args)) slot(m.emp, m.day).mark = m;
-    return (empId, date) => map.get(key(empId, date)) || { punches: [], breaks: [], mark: null };
+    for (const x of this.db.all(`SELECT * FROM roster WHERE day BETWEEN ? AND ? ${filt}`, from, to, ...args)) slot(x.emp, x.day).roster = x;
+    return (empId, date) => map.get(key(empId, date)) || { punches: [], breaks: [], mark: null, roster: null };
   }
   day(emp, date) {
     const get = this.loadDays([emp.id], date, date);
@@ -190,7 +192,8 @@ export class Store {
     if (kind === 'admin') {
       const a = this.db.get('SELECT * FROM admins WHERE id = ?', s.sub);
       if (!a || !a.active) throw new HttpError(401, 'BAD_TOKEN', 'Account disabled');
-      return { id: a.id, name: a.name, login: a.login, role: a.role, perms: JSON.parse(a.perms), kind: 'admin' };
+      const branchId = a.role === 'owner' ? '' : this.db.kvGet('adminBranches', {})[a.id] || '';
+      return { id: a.id, name: a.name, login: a.login, role: a.role, perms: JSON.parse(a.perms), kind: 'admin', branchId };
     }
     if (kind === 'emp') {
       const r = this.db.get('SELECT * FROM employees WHERE id = ?', s.sub);
@@ -335,6 +338,7 @@ export class Store {
     add('POST', '/api/kiosk/punch', this.kioskPunch, { auth: 'kiosk' });
     this.proRoutes(add, A);
     this.opsRoutes(add, A);
+    this.extraRoutes(add, A);
     return R;
   }
 
@@ -404,6 +408,9 @@ export class Store {
       this.lockFail(keys);
       throw new HttpError(401, 'WRONG_PIN', 'Wrong employee code or PIN');
     }
+    if (deviceId.startsWith('web-') && !JSON.parse(r.data).webAllowed) {
+      throw forbidden('WEB_NOT_ALLOWED', 'The web version is not turned on for you. Ask the owner.');
+    }
     if (r.device && r.device !== deviceId) {
       throw forbidden('BOUND_TO_OTHER_PHONE', 'Your account is linked to another phone. Ask the owner to reset it.');
     }
@@ -441,7 +448,7 @@ export class Store {
   listUsers() {
     return {
       users: this.db.all('SELECT id, name, login, role, perms, active, created FROM admins ORDER BY created')
-        .map((u) => ({ ...u, perms: JSON.parse(u.perms), active: !!u.active })),
+        .map((u) => ({ ...u, perms: JSON.parse(u.perms), active: !!u.active, branchId: this.db.kvGet('adminBranches', {})[u.id] || '' })),
       permissions: PERMISSIONS,
     };
   }
@@ -470,7 +477,14 @@ export class Store {
     } else {
       this.db.run('INSERT INTO admins (id, name, login, role, perms, pin, active, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, name, login, role, JSON.stringify(perms), pin, active, this.now());
     }
-    this.audit(actor, existing ? 'user.updated' : 'user.added', id, { name, login, role, perms, active: !!active, pinChanged: body.pin ? true : undefined });
+    if ('branchId' in body) {
+      const br = str(body.branchId, 40);
+      if (br && !this.settings.locations.some((l) => l.id === br)) throw bad('BAD_BRANCH', 'Unknown branch');
+      const map = this.db.kvGet('adminBranches', {});
+      if (br && role !== 'owner') map[id] = br; else delete map[id];
+      this.db.kvSet('adminBranches', map);
+    }
+    this.audit(actor, existing ? 'user.updated' : 'user.added', id, { name, login, role, perms, active: !!active, pinChanged: body.pin ? true : undefined, branchId: body.branchId });
     return { id };
   }
   deleteUser({ actor, params }) {
@@ -488,6 +502,7 @@ export class Store {
     const before = this.settings;
     const next = mergeSettings(before, body);
     this.saveSettings(next);
+    if ('holidays' in body) this.pushNewHolidays(before.holidays || [], next.holidays);
     const changed = Object.keys(body);
     this.audit(actor, 'settings.updated', null, { changed, rules: body.rules, locations: body.locations });
     return next;
@@ -505,10 +520,11 @@ export class Store {
   // ---------------------------------------------------------------- admin: employees
   listEmployees({ actor, q }) {
     const all = q.get('all') === '1';
-    return { employees: this.employees({ activeOnly: !all }).map((e) => this.empOut(e, actor)) };
+    return { employees: this.inBranch(actor, q, this.employees({ activeOnly: !all })).map((e) => this.empOut(e, actor)) };
   }
   getEmployee({ actor, params }) {
     const e = this.empRow(params.id);
+    this.assertBranch(actor, e);
     const out = this.empOut(e, actor);
     if (this.can(actor, 'payroll.view')) out.depositBalance = this.depositBalance(e.id);
     const ps = this.db.get("SELECT data FROM approvals WHERE kind = 'salary' AND status = 'pending' AND emp = ? ORDER BY created DESC LIMIT 1", e.id);
@@ -538,10 +554,20 @@ export class Store {
       weeklyOff: pick('weeklyOff', null) === null ? null : normDows(pick('weeklyOff', null)),
       fieldStaff: !!pick('fieldStaff', false),
       kioskAllowed: !!pick('kioskAllowed', true),
+      // may use the web version (iPhone): no phone binding by hardware id, so the owner turns it on per person
+      webAllowed: !!pick('webAllowed', false),
       paidLeavePerMonth: pick('paidLeavePerMonth', null) === null || pick('paidLeavePerMonth', null) === '' ? null : clampInt(pick('paidLeavePerMonth', null), 0, 31, null),
       salaryVisibility: ['last7', 'window'].includes(pick('salaryVisibility', 'always')) ? pick('salaryVisibility', 'always') : 'always',
       joinDate: pick('joinDate', '') && isDate(pick('joinDate', '')) ? pick('joinDate', '') : null,
       notes: str(pick('notes', ''), 300),
+      // staff file
+      fatherName: str(pick('fatherName', ''), 60),
+      dob: pick('dob', '') && isDate(pick('dob', '')) ? pick('dob', '') : null,
+      address: str(pick('address', ''), 200),
+      emergencyName: str(pick('emergencyName', ''), 60),
+      emergencyPhone: str(pick('emergencyPhone', ''), 20).replace(/[^\d+]/g, ''),
+      // branch = one of the store locations; '' = any location
+      branchId: str(pick('branchId', ''), 40),
       // co-workers this employee may check in/out on their own phone (each one types their own PIN)
       helperFor: (Array.isArray(pick('helperFor', [])) ? pick('helperFor', []) : []).map((x) => str(x, 40)).filter(Boolean).slice(0, 30),
       // set by the final settlement; cleared when the employee is made active again
@@ -551,6 +577,8 @@ export class Store {
     if (!data.name) throw bad('MISSING', 'Name is required');
     if (!s.roles.some((r) => r.id === data.roleId)) throw bad('BAD_ROLE', 'Unknown role');
     if (!s.shifts.some((r) => r.id === data.shiftId)) throw bad('BAD_SHIFT', 'Unknown shift');
+    if (data.branchId && !s.locations.some((l) => l.id === data.branchId)) throw bad('BAD_BRANCH', 'Unknown branch');
+    if (actor.branchId) data.branchId = actor.branchId; // a branch manager adds staff to their own branch
     if (existing && !this.can(actor, 'payroll.view')) data.salary = existing.salary; // cannot change what they cannot see
     // a manager's salary change waits for the owner
     let salaryAsk = null;
@@ -637,9 +665,9 @@ export class Store {
   dayForIn(emp, ts) {
     const s = this.settings;
     const l = local(ts, s.tzOffsetMin);
-    const sm = shiftMins(empShift(emp, s));
+    const prev = addDays(l.date, -1);
+    const sm = shiftMins(this.shiftOn(emp, prev));
     if (sm.end > 1440) {
-      const prev = addDays(l.date, -1);
       // early-morning check-in still inside yesterday's shift (e.g. night shift 22:00-06:00)
       if (ts < toTs(prev, sm.end, s.tzOffsetMin) && l.min < sm.start - 120) return prev;
     }
@@ -659,9 +687,11 @@ export class Store {
     if (has && loc.mock && r.blockMockLocation) throw forbidden('MOCK_LOCATION', 'Fake GPS apps are not allowed. Turn them off and try again.');
     let dist = null;
     let inside = false;
-    if (has && s.locations.length) {
+    const branch = emp.branchId && s.locations.find((L) => L.id === emp.branchId);
+    const places = branch ? [branch] : s.locations;
+    if (has && places.length) {
       const acc = Math.min(Math.max(0, Number(loc.acc) || 0), 50);
-      for (const L of s.locations) {
+      for (const L of places) {
         const d = metres({ lat, lng }, L);
         if (dist == null || d < dist) dist = d;
         if (d - acc <= L.radius) inside = true;
@@ -670,7 +700,7 @@ export class Store {
     if (!anywhere) {
       if (!s.locations.length) throw forbidden('NO_STORE_LOCATION', 'The store location is not set yet. Ask the admin.');
       if (!has) throw bad('NO_LOCATION', 'Location is needed. Turn on GPS and try again.');
-      if (!inside) throw forbidden('OUTSIDE_RADIUS', `You are ${Math.round(dist)} m away from the store.`, { distance: Math.round(dist) });
+      if (!inside) throw forbidden('OUTSIDE_RADIUS', `You are ${Math.round(dist)} m away from ${branch ? branch.name : 'the store'}.`, { distance: Math.round(dist), branch: branch?.name });
     }
     return { lat: has ? lat : null, lng: has ? lng : null, acc: has ? Number(loc.acc) || null : null, dist: dist == null ? null : Math.round(dist) };
   }
@@ -815,9 +845,9 @@ export class Store {
       ownerPending: this.isOwner(actor) ? this.pendingApprovals() : 0 };
   }
 
-  board({ q }) {
+  board({ actor, q }) {
     const date = q.get('date') && isDate(q.get('date')) ? q.get('date') : this.today();
-    const emps = this.employees({ activeOnly: true });
+    const emps = this.inBranch(actor, q, this.employees({ activeOnly: true }));
     const get = this.loadDays(null, date, date);
     const s = this.settings;
     const counts = { total: emps.length, in: 0, late: 0, break: 0, out: 0, absent: 0, leave: 0, notyet: 0, off: 0, duty: 0 };
@@ -839,11 +869,12 @@ export class Store {
       const role = empRole(e, s);
       return {
         id: e.id, code: e.code, name: e.name, nameUr: e.nameUr, roleId: e.roleId, role: role?.name, shiftId: d.shiftId,
-        fieldStaff: e.fieldStaff, hasPhoto: e.hasPhoto, photoVer: e.photoVer, live, pending: pendingByEmp[e.id] || 0,
+        fieldStaff: e.fieldStaff, hasPhoto: e.hasPhoto, photoVer: e.photoVer, live, pending: pendingByEmp[e.id] || 0, branchId: e.branchId || '',
         ...pickDay(d),
       };
     });
-    return { date, serverTime: this.now(), counts, pending: this.db.get("SELECT COUNT(*) AS n FROM requests WHERE status = 'pending'").n, rows };
+    return { date, serverTime: this.now(), counts, pending: this.db.get("SELECT COUNT(*) AS n FROM requests WHERE status = 'pending'").n, rows,
+      celebrations: date === this.today() ? this.celebrations(emps, date) : [] };
   }
 
   async adminPunch({ actor, body }) {
@@ -982,15 +1013,18 @@ export class Store {
     const month = isMonth(q.get('month')) ? q.get('month') : this.month();
     return { statement: this.statement(this.empRow(params.id, { withDeleted: true }), month) };
   }
-  payrollAll({ q }) {
+  payrollAll({ actor, q }) {
     const month = isMonth(q.get('month')) ? q.get('month') : this.month();
     const dates = monthDates(month);
     const get = this.loadDays(null, dates[0], dates[dates.length - 1]);
-    const rows = this.employees({ activeOnly: false })
+    const withDays = q.get('days') === '1';
+    const rows = this.inBranch(actor, q, this.employees({ activeOnly: false }))
       .filter((e) => q.get('all') === '1' || e.active || (e.leaveDate && e.leaveDate >= `${month}-01`))
       .map((e) => {
       const st = this.statement(e, month, get);
+      if (withDays) st.dayCodes = st.days.map((d) => d.status);
       delete st.days;
+      st.employee.branchId = e.branchId || '';
       return st;
     });
     const totals = rows.reduce((a, r) => ({ salary: a.salary + r.salary, cuts: a.cuts + r.totalCuts, advances: a.advances + r.advances, net: a.net + r.net,
@@ -998,9 +1032,11 @@ export class Store {
     { salary: 0, cuts: 0, advances: 0, net: 0, paid: 0, unpaid: 0 });
     if (q.get('format') === 'csv') {
       return new Response(csv([
-        ['Code', 'Name', 'Salary', 'Present', 'Late days', 'Late min', 'Absent', 'Leave paid', 'Leave unpaid', 'Total cuts', 'Advances', 'Deposit cut', 'Bonus', 'Net pay', 'Paid', 'Deposit balance'],
+        ['Code', 'Name', 'Salary', 'Present', 'Late days', 'Late min', 'Absent', 'Leave paid', 'Leave unpaid', 'Total cuts', 'Advances', 'Deposit cut',
+          'Fines', 'Bonus', 'Commission', 'Overtime pay', 'Holiday pay', 'Net pay', 'Paid', 'Deposit balance'],
         ...rows.map((r) => [r.employee.code, r.employee.name, r.salary, r.counts.present, r.counts.late, r.counts.lateMin, r.counts.absent,
-          r.leave.paid, r.leave.unpaid, r.totalCuts, r.advances, r.depositCut, r.bonus, r.net, r.paid, r.depositBalance]),
+          r.leave.paid, r.leave.unpaid, r.totalCuts, r.advances, r.depositCut, r.fines || 0, r.bonus, r.commission || 0, r.overtime?.pay || 0, r.holidayPay || 0,
+          r.net, r.paid, r.depositBalance]),
       ]), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="payroll-${month}.csv"` } });
     }
     return { month, totals, rows, locked: this.locks()[month] ? { ts: this.locks()[month].ts, by: this.locks()[month].byName } : null };
@@ -1014,6 +1050,7 @@ export class Store {
     const amount = clampInt(body.amount, 1, 100_000_000, 0);
     if (!amount) throw bad('BAD_AMOUNT', 'Amount must be more than 0');
     const month = isMonth(body.month) ? body.month : this.month();
+    if (kind === 'fine' && !str(body.note, 200)) throw bad('NEED_REASON', 'Write the reason for the fine');
     this.assertMonthOpen(month);
     const id = uid();
     // a manager's entry waits for the owner (voided = 2: not counted yet)
@@ -1027,6 +1064,7 @@ export class Store {
     }
     this.audit(actor, `money.${kind}`, emp.id, { name: emp.name, amount, month, note: str(body.note, 200), installments: n, waitingForOwner: wait });
     if (wait) this.askOwner(actor, 'money_add', emp, { moneyId: ids[0], moneyIds: ids, kind, amount, month, installments: n, note: str(body.note, 200) });
+    else this.pushMoney(emp, kind, amount, str(body.note, 200), ids[0]);
     return { id: ids[0], ids, pendingOwner: wait, depositBalance: this.depositBalance(emp.id) };
   }
   voidMoney({ actor, params }) {
@@ -1124,6 +1162,9 @@ export class Store {
         data.outTs = last.ts;
         break;
       }
+      case 'swap':
+        Object.assign(data, this.validateSwap(emp, body));
+        break;
       case 'field_duty':
         if (!isDate(body.date)) throw bad('BAD_DATE', 'Pick a date');
         data.date = body.date;
@@ -1160,7 +1201,11 @@ export class Store {
     const args = [];
     if (status !== 'all') { where.push('status = ?'); args.push(status); }
     if (emp) { where.push('emp = ?'); args.push(emp); }
-    const rows = this.db.all(`SELECT * FROM requests ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY created DESC LIMIT ?`, ...args, limit);
+    let rows = this.db.all(`SELECT * FROM requests ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY created DESC LIMIT ?`, ...args, limit);
+    if (actor.branchId) {
+      const mine = new Set(this.inBranch(actor, q, this.employees()).map((e) => e.id));
+      rows = rows.filter((r) => mine.has(r.emp));
+    }
     const names = {};
     for (const e of this.db.all('SELECT id, code, data FROM employees')) names[e.id] = { code: e.code, name: JSON.parse(e.data).name, nameUr: JSON.parse(e.data).nameUr };
     const showMoney = this.can(actor, 'payroll.view') || this.can(actor, 'money.edit');
@@ -1292,7 +1337,7 @@ export class Store {
     if (body.approve) {
       if (data.date && isDate(data.date)) this.assertDatesOpen(data.toDate ? dateRange(data.date, data.toDate) : [data.date]);
       const meta = { source: 'request', byAdmin: actor.id, reason: `Request ${r.type}${note ? `: ${note}` : ''}` };
-      const sm = shiftMins(empShift(emp, this.settings));
+      const sm = shiftMins(data.date && isDate(data.date) ? this.shiftOn(emp, data.date) : empShift(emp, this.settings));
       const at = (date, t) => {
         const m = hm(t);
         return toTs(date, sm.end > 1440 && m < sm.start - 120 ? m + 1440 : m, this.off);
@@ -1354,6 +1399,9 @@ export class Store {
         }
         case 'break':
           result.break = this.startBreak(emp, data.minutes, r.id, body.allowedMin);
+          break;
+        case 'swap':
+          this.applySwap(actor, emp, data);
           break;
         case 'undo_checkout': {
           const p = this.db.get('SELECT * FROM punches WHERE id = ?', data.punchId);
@@ -1551,6 +1599,7 @@ export class Store {
     const open = this.openSession(emp.id);
     const date = open ? open.day : this.today();
     const today = this.day(emp, date);
+    const shiftToday = this.shiftOn(emp, date);
     const month = this.month();
     const st = this.statement(emp, month);
     const role = empRole(emp, s);
@@ -1565,7 +1614,7 @@ export class Store {
       },
       employee: {
         id: emp.id, code: emp.code, name: emp.name, nameUr: emp.nameUr, role: role?.name, roleUr: role?.nameUr,
-        shift: empShift(emp, s), fieldStaff: !!emp.fieldStaff, checkoutAnywhere: !!(emp.fieldStaff || role?.checkoutAnywhere),
+        shift: shiftToday, normalShift: empShift(emp, s), branch: emp.branchId ? s.locations.find((l) => l.id === emp.branchId)?.name || null : null, fieldStaff: !!emp.fieldStaff, checkoutAnywhere: !!(emp.fieldStaff || role?.checkoutAnywhere),
         salaryVisibility: emp.salaryVisibility, hasPhoto: emp.hasPhoto, photoVer: emp.photoVer, helperCount: this.helperIds(emp).size,
       },
       today: { ...pickDay(today), breakUsedMin: today.breakMin, breakLeftMin: Math.max(0, er.breakAllowanceMin - today.breakMin) },
@@ -1573,12 +1622,15 @@ export class Store {
       depositBalance: this.depositBalance(emp.id),
       pendingRequests: this.db.all("SELECT * FROM requests WHERE emp = ? AND status = 'pending' ORDER BY created DESC", emp.id).map(reqOut),
       recheckin: this.recheckinState(emp),
+      holidays: (s.holidays || []).filter((h) => h.date >= this.today() && h.date <= addDays(this.today(), 60)).slice(0, 10),
+      unseenNotes: this.db.get('SELECT COUNT(*) AS n FROM staff_notes WHERE emp = ? AND voided = 0 AND seen IS NULL', emp.id).n,
+      celebrate: this.celebrations([emp], this.today())[0] || null,
       policy: (() => { const p = this.policyFor(emp); return p.needed ? p : { ver: p.ver, needed: false, accepted: p.accepted }; })(),
     };
   }
   empPunch({ actor, body }) {
     const res = this.punch(actor, {
-      type: body.type, source: 'app', loc: body.loc, offlineTs: body.offlineTs ?? null, clientId: str(body.clientId, 60) || null,
+      type: body.type, source: String(actor.device || '').startsWith('web-') ? 'web' : 'app', loc: body.loc, offlineTs: body.offlineTs ?? null, clientId: str(body.clientId, 60) || null,
     });
     return { ok: true, duplicate: !!res.duplicate, ts: res.punch.ts, offline: !!res.punch.offline, today: pickDay(this.day(actor, res.punch.day)) };
   }
@@ -1691,3 +1743,4 @@ export { paidLeaveQuota };
 
 installPro(Store);
 installOps(Store);
+installExtra(Store);

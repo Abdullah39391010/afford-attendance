@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 2.0 · 18 November 2026 (apps v0.8)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
+  <div class="meta">Version 2.1 · 18 November 2026 (apps v0.9)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -79,6 +79,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
     <li>Requests and what approval does</li>
     <li>Owner controls: approvals, locked months, backups, alerts</li>
     <li>Salary day: payslips, payment record, settlement</li>
+    <li>Roster, holidays, staff file, branches, iPhone</li>
     <li>Calendar colours</li>
     <li>Security and privacy</li>
     <li>Weak internet (offline punches)</li>
@@ -334,8 +335,25 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
     <li>The owner taps <b>Finish settlement</b>: remaining advances are cut now, the deposit is marked returned, and the employee is made inactive and logged out of their phone.</li>
   </ol>
 
+<section>
+  <h2>13. Roster, holidays, staff file, branches, iPhone</h2>
+  <table>
+    <tr><th style="width:24%">Feature</th><th style="width:30%">Where</th><th>How it works</th></tr>
+    <tr><td>Duty roster</td><td>More → Duty roster</td><td>A week grid of all staff. Tap a box to give another shift or a day off; Save tells the staff on their phones. The roster wins over the normal shift and weekly off, so late minutes and reminders follow it. "Copy this week to next week" repeats a week.</td></tr>
+    <tr><td>Shift swap</td><td>Staff app → More → My duty roster</td><td>The employee taps a day and picks a colleague. When approved, the two duties are swapped for that day and the colleague is told.</td></tr>
+    <tr><td>Holidays</td><td>Settings → Holidays</td><td>One tap adds Pakistan's national days and the expected Eid, Ashura and Milad dates (fix Islamic dates when the moon is sighted). Date ranges for 3-day Eid. Staff see the next holiday on their home screen. Optional rule: one extra day's pay for working on a holiday.</td></tr>
+    <tr><td>Bonus, commission, fines</td><td>Staff → Money, or Payroll → for many staff</td><td>Bonus and commission add to net pay; a fine cuts it and needs a reason. The reason is printed on the payslip. "For many staff" adds the same amount or a % of salary to everyone (e.g. Eid bonus 50%). A manager's entries wait for the owner.</td></tr>
+    <tr><td>Staff file</td><td>Staff → profile</td><td>Father's name, date of birth, address, emergency contact, and up to 12 files (CNIC front/back, contract) as photos or PDF. Only people who can edit staff can open the files.</td></tr>
+    <tr><td>Warnings and good-work notes</td><td>Staff → profile → Notes</td><td>The employee gets an alert and reads it under More → Messages from admin. You see when it was read.</td></tr>
+    <tr><td>Birthdays</td><td>Automatic, 9 AM</td><td>Birthday and work-anniversary wishes go to the employee, a list goes to the owner, and the board shows them.</td></tr>
+    <tr><td>Monthly report</td><td>Payroll</td><td>PDF (print or share) and Excel with two sheets: salary of everyone and a day-by-day attendance grid (P, L, A, LV…).</td></tr>
+    <tr><td>Branches</td><td>Settings → Location, then each employee</td><td>Each location is a branch. An employee with a branch must check in at that branch. Board, Staff, Payroll and Roster can be filtered by branch, and a manager can be limited to one branch.</td></tr>
+    <tr><td>iPhone web version</td><td>Staff → Edit → "Allow the web version"</td><td>The employee opens <b>afford-attendance.abdullah6763939.workers.dev</b> in Safari and adds it to the Home Screen. Same PIN, same location circle; the browser is linked like a phone (reset it if they clear Safari). No fingerprint and no background alerts on iPhone.</td></tr>
+  </table>
+</section>
+
   <section class="flow">
-    <h2>13. Calendar colours</h2>
+    <h2>14. Calendar colours</h2>
     <div class="legend">
       <div><span class="sw" style="background:var(--present)"></span>Present</div>
       <div><span class="sw" style="background:var(--late)"></span>Late</div>
@@ -352,7 +370,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
 </section>
 
 <section>
-  <h2>14. Security and privacy</h2>
+  <h2>15. Security and privacy</h2>
   <ul>
     <li><b>PINs are never stored.</b> Only a one-way hash is kept, mixed with a secret held by the server.</li>
     <li><b>Wrong PINs:</b> after 5 wrong tries the login is locked for 5 minutes, then 10, 20 and up to 60 minutes.</li>
@@ -367,7 +385,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   </ul>
 
   <section class="flow">
-    <h2>15. Weak internet (offline punches)</h2>
+    <h2>16. Weak internet (offline punches)</h2>
     <ul>
       <li>If there's no internet when an employee taps Check In, the punch is <b>saved on the phone</b> and sent as soon as the internet is back.</li>
       <li>The phone remembers the difference between its clock and the <b>server's clock</b>, so a wrong phone clock can't change the time. The server makes the final decision.</li>
@@ -377,7 +395,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   </section>
 
   <section class="flow">
-    <h2>16. Setup and going live</h2>
+    <h2>17. Setup and going live</h2>
     <ol>
       <li><b>Cloudflare (free):</b> create an account and an API token with the "Edit Cloudflare Workers" template.</li>
       <li><b>GitHub secrets:</b> add <code>CLOUDFLARE_API_TOKEN</code>, <code>CLOUDFLARE_ACCOUNT_ID</code>, <code>SETUP_CODE</code> and <code>PIN_PEPPER</code>. Never change <code>PIN_PEPPER</code> later. For alerts, also <code>GOOGLE_SERVICES_JSON</code> and <code>FIREBASE_SERVICE_ACCOUNT</code> (Firebase, free). The app signing key is locked by <code>ANDROID_KEY_PASSWORD</code>.</li>
@@ -392,7 +410,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
 </section>
 
 <section>
-  <h2>17. Daily use, step by step</h2>
+  <h2>18. Daily use, step by step</h2>
   <div class="grid2">
     <div class="card"><h3>Employee</h3>
       <ol><li>Open the app and unlock with your fingerprint.</li><li>At the store, tap <b>Check In</b>.</li><li>For a break, tap <b>Break</b>, choose minutes and wait for approval. Tap <b>Resume</b> when back.</li><li>Forgot something? Open <b>Requests</b>.</li><li>Tap <b>Check Out</b> and confirm. Coming back later needs "Ask to check in again".</li></ol>
@@ -410,7 +428,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   </div>
 
   <section class="flow">
-    <h2>18. Free plan limits</h2>
+    <h2>19. Free plan limits</h2>
     <table>
       <tr><th>Service</th><th>Free allowance</th><th>Expected use (70 staff)</th></tr>
       <tr><td>Cloudflare Workers + Durable Objects</td><td>100,000 requests a day</td><td>About 3,000–6,000 a day</td></tr>
@@ -423,12 +441,13 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
 </section>
 
 <section>
-  <h2>19. Versions and test checklist</h2>
+  <h2>20. Versions and test checklist</h2>
   <table>
     <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
-    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>39 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
+    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>46 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
     <tr><td>Admin app</td><td><span class="tag done">Live</span></td><td>Login, board, requests and owner approvals, staff, money with installments, payroll with paid record and month lock, settlement, rules agreement, backups, reports, kiosk, Urdu.</td></tr>
     <tr><td>Employee app</td><td><span class="tag done">Live</span></td><td>Rules agreement, phone locking, fingerprint, check-in inside and outside the circle, check-in-again request, break, requests, reminders, offline punch, calendar, payslip, Urdu.</td></tr>
+    <tr><td>iPhone web version</td><td><span class="tag done">v0.9</span></td><td>Owner allows it per person, login in Safari, check in inside the circle, Add to Home Screen.</td></tr>
     <tr><td>Owner web page</td><td><span class="tag">Next</span></td><td>PIN login, today's view, approve a request, monthly totals, Urdu.</td></tr>
   </table>
   <h3>Before each release</h3>

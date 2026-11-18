@@ -10,7 +10,7 @@ export class HttpError extends Error {
 }
 
 export const bad = (code, message, extra) => new HttpError(400, code, message, extra);
-export const forbidden = (code = 'FORBIDDEN', message = 'Not allowed') => new HttpError(403, code, message);
+export const forbidden = (code = 'FORBIDDEN', message = 'Not allowed', extra) => new HttpError(403, code, message, extra);
 export const notFound = (what = 'Item') => new HttpError(404, 'NOT_FOUND', `${what} not found`);
 
 export const uid = () => crypto.randomUUID().replace(/-/g, '').slice(0, 16);

@@ -36,6 +36,7 @@ export function installOps(Store) {
       const r = this.settings.rules;
       if (r.remindersOn) this.reminders();
       if (r.dailySummaryOn) this.dailySummary();
+      if (r.greetingsOn) this.greetings();
     } catch (e) {
       this.logError('reminders', e);
     }
@@ -63,9 +64,9 @@ export function installOps(Store) {
     const get = this.loadDays(emps.map((e) => e.id), yday, today);
     for (const e of emps) {
       const before = (this.empRulesOf(e).remindBeforeMin || s.rules.remindBeforeMin || 15) * MIN;
-      const sm = shiftMins(empShift(e, s));
-      // 1) shift starts soon and not checked in
+      // 1) shift starts soon and not checked in (the duty roster can change the shift)
       const d = daySummary(e, s, today, get(e.id, today), now);
+      const sm = shiftMins(this.shiftOn(e, today));
       if (!d.punches.length && !d.mark && !d.holiday && !d.weeklyOff && d.status !== 'notjoined' && d.status !== 'left'
         && now >= d.shiftStart - before && now < d.shiftStart && this.reminderOnce(`start:${e.id}:${today}`)) {
         const at = fmtClock(sm.start);
@@ -77,7 +78,7 @@ export function installOps(Store) {
       // 2) still checked in long after the shift ended
       const open = this.openSession(e.id);
       if (open) {
-        const endTs = toTs(open.day, sm.end, s.tzOffsetMin);
+        const endTs = toTs(open.day, shiftMins(this.shiftOn(e, open.day)).end, s.tzOffsetMin);
         if (now > endTs + 30 * MIN && this.reminderOnce(`out:${e.id}:${open.day}`)) {
           this.queuePush('emp', [e.id], `rem-out-${e.id}-${open.day}`, (ur) => ({
             title: ur ? 'چیک آؤٹ بھول گئے؟' : 'Forgot to check out?',

@@ -54,7 +54,10 @@ export function Statement({ s, busy, onPrint, onShare, extra }) {
         {kv(t('Late break cut'), `− ${fmtMoney2(s.cuts.breakLate, cur)}`)}
         {s.advances > 0 && kv(t('Advances'), `− ${fmtMoney(s.advances, cur)}`)}
         {s.depositCut > 0 && kv(t('Security deposit cut'), `− ${fmtMoney(s.depositCut, cur)}`)}
+        {s.fines > 0 && kv(t('Fines'), `− ${fmtMoney(s.fines, cur)}`)}
         {s.bonus > 0 && kv(t('Bonus'), `+ ${fmtMoney(s.bonus, cur)}`)}
+        {s.commission > 0 && kv(t('Commission'), `+ ${fmtMoney(s.commission, cur)}`)}
+        {s.holidayPay > 0 && kv(t('Holiday work pay ({n} days)', { n: c.holidayWorked }), `+ ${fmtMoney2(s.holidayPay, cur)}`)}
         {s.overtime?.pay > 0 && kv(t('Overtime ({m} min × {r})', { m: s.overtime.min, r: s.overtime.rate }), `+ ${fmtMoney2(s.overtime.pay, cur)}`)}
         {kv(t('Net pay'), fmtMoney(s.net, cur), 'total')}
         {s.payments?.length > 0 && s.payments.map((p) => kv(`${t('Paid')} · ${t(PAY_METHOD[p.method] || p.method)} · ${fmtDateTime(p.ts)}`, fmtMoney(p.amount, cur)))}
@@ -90,7 +93,7 @@ export function Statement({ s, busy, onPrint, onShare, extra }) {
       {s.money?.length > 0 && <div class="section-title">{t('Money this month')}</div>}
       {s.money?.length > 0 && (
         <div class="list">
-          {s.money.map((m) => <div key={m.id} class="row"><div class="main"><div class="title">{moneyLabel(m.kind)}</div><div class="sub">{m.note}</div></div><div class="end">{fmtMoney(m.amount, cur)}</div></div>)}
+          {s.money.map((m) => <div key={m.id} class="row"><div class="main"><div class="title">{moneyLabel(m.kind)}</div><div class="sub">{m.note}</div></div><div class="end" style={m.kind === 'fine' ? 'color:var(--red)' : ''}>{m.kind === 'fine' ? '− ' : ''}{fmtMoney(m.amount, cur)}</div></div>)}
         </div>
       )}
     </div>

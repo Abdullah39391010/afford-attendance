@@ -1,7 +1,7 @@
 // Printable documents (salary statement, reports) with the logo, in English or Urdu.
 // Print uses Android's own print dialog (which also offers "Save as PDF"); Share builds a PDF file.
 import { AffordDevice } from 'afford-device';
-import { t, getLang, statusLabel } from './i18n.js';
+import { t, getLang, statusLabel, moneyLabel } from './i18n.js';
 import { fmtMoney, fmtMoney2, fmtTime, fmtDate, fmtMonth, fmtDur, fmtDateTime } from './format.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -91,12 +91,16 @@ export async function statementDoc(st) {
     <div>
       ${kv(t('Advances'), `− ${fmtMoney(st.advances, cur)}`)}
       ${kv(t('Security deposit cut'), `− ${fmtMoney(st.depositCut, cur)}`)}
+      ${st.fines ? kv(t('Fines'), `− ${fmtMoney(st.fines, cur)}`) : ''}
       ${kv(t('Bonus'), `+ ${fmtMoney(st.bonus, cur)}`)}
+      ${st.commission ? kv(t('Commission'), `+ ${fmtMoney(st.commission, cur)}`) : ''}
+      ${st.holidayPay ? kv(t('Holiday work pay ({n} days)', { n: st.counts.holidayWorked }), `+ ${fmtMoney2(st.holidayPay, cur)}`) : ''}
       ${st.overtime?.pay ? kv(t('Overtime ({m} min × {r})', { m: st.overtime.min, r: st.overtime.rate }), `+ ${fmtMoney2(st.overtime.pay, cur)}`) : ''}
       ${kv(t('Security deposit balance'), fmtMoney(st.depositBalance, cur))}
     </div>
   </div>
   <div class="net"><span>${esc(t('Net pay'))}</span><b>${esc(fmtMoney(st.net, cur))}</b></div>
+  ${(st.money || []).filter((m) => ['bonus', 'commission', 'fine'].includes(m.kind) && m.note).map((m) => kv(`${moneyLabel(m.kind)} · ${m.note}`, `${m.kind === 'fine' ? '− ' : '+ '}${fmtMoney(m.amount, cur)}`)).join('')}
   ${(st.payments || []).map((p) => kv(`${t('Paid')} · ${t({ cash: 'Cash', bank: 'Bank transfer', other: 'Other' }[p.method] || p.method)} · ${fmtDateTime(p.ts)}`, fmtMoney(p.amount, cur))).join('')}
   <h2>${esc(t('Daily record'))}</h2>
   <table><thead><tr><th>${esc(t('Date'))}</th><th>${esc(t('Status'))}</th><th class="n">${esc(t('In'))}</th><th class="n">${esc(t('Out'))}</th><th class="n">${esc(t('Hours'))}</th><th class="n">${esc(t('Late'))}</th><th class="n">${esc(t('Early'))}</th><th class="n">${esc(t('Cut'))}</th></tr></thead><tbody>${rows}</tbody></table>

@@ -1,6 +1,8 @@
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
 // Browser fallback so the apps can be tested in a normal browser.
+// The real iPhone web version turns the test shortcuts off.
+const testing = () => !globalThis.__AFFORD_WEB_APP__;
 const web = {
   async getInfo() {
     let id = localStorage.getItem('afford.webDeviceId');
@@ -11,7 +13,7 @@ const web = {
     return { deviceId: id, model: navigator.userAgent.slice(0, 40), manufacturer: 'browser', osVersion: '', platform: 'web' };
   },
   async getLocation({ timeoutMs = 15000 } = {}) {
-    const fake = localStorage.getItem('afford.fakeLocation');
+    const fake = testing() && localStorage.getItem('afford.fakeLocation');
     if (fake) return JSON.parse(fake);
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) return reject(new Error('NO_GPS'));
@@ -23,8 +25,8 @@ const web = {
     });
   },
   async ensureGps() { return { enabled: true }; },
-  async biometricAvailable() { return { available: localStorage.getItem('afford.fakeBiometric') === '1', reason: 'web' }; },
-  async biometricAuth() { return { ok: localStorage.getItem('afford.fakeBiometric') === '1' }; },
+  async biometricAvailable() { return { available: testing() && localStorage.getItem('afford.fakeBiometric') === '1', reason: 'web' }; },
+  async biometricAuth() { return { ok: testing() && localStorage.getItem('afford.fakeBiometric') === '1' }; },
   async secureSet({ key, value }) { localStorage.setItem(`afford.secure.${key}`, value); },
   async secureGet({ key }) { return { value: localStorage.getItem(`afford.secure.${key}`) }; },
   async secureRemove({ key }) { localStorage.removeItem(`afford.secure.${key}`); },
@@ -62,7 +64,7 @@ const web = {
   async downloadUpdate({ url }) { window.open(url, '_blank'); return { path: null, web: true }; },
   async installUpdate() { return { needsPermission: false }; },
   async permissionStatus() {
-    const fake = localStorage.getItem('afford.fakePerms');
+    const fake = testing() && localStorage.getItem('afford.fakePerms');
     if (fake) return JSON.parse(fake);
     return { location: true, camera: true, notifications: true, installs: true };
   },

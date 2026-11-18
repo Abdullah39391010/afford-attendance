@@ -4,10 +4,11 @@ import { useState } from 'preact/hooks';
 import { AffordDevice } from 'afford-device';
 import { api } from '../shared/api.js';
 import { t, nm, errText } from '../shared/i18n.js';
-import { dayShort, fmtDate } from '../shared/format.js';
+import { dayShort, fmtDate, todayStr, addDays } from '../shared/format.js';
 import { TopBar, Icon, Field, Toggle, Seg, Sheet, Loader, useLoad, toast, toastErr, go, Spinner, Empty, confirmBox, Banner, Pill } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
 import { resizePhoto } from './staff.jsx';
+import { pakistanHolidays, PK_YEARS } from './extra.jsx';
 
 function useSave() {
   const app = useApp();
@@ -113,6 +114,7 @@ export function SettingsLocation() {
       <TopBar back title={t('Store location')} />
       <div class="wrap">
         <Banner kind="info">{t('Stand inside the store and tap "Use my current location". Staff can check in only inside the circle.')}</Banner>
+        <p class="small muted" style="margin:0 4px 10px">{t('Have a second branch? Add its location here with the branch name. Then pick the branch for each employee and manager.')}</p>
         {locs.map((l, i) => (
           <div key={i} class="card">
             <Field label={t('Name')}><input class="input" value={l.name} onInput={(e) => upd(i, 'name', e.currentTarget.value)} /></Field>
@@ -310,29 +312,70 @@ export function SettingsRules() {
 
 export function SettingsHolidays() {
   const app = useApp();
+  const today = todayStr(api.serverNow());
   const [list, setList] = useState(app.settings.holidays.map((x) => ({ ...x })));
-  const [d, setD] = useState({ date: '', name: '' });
+  const [d, setD] = useState({ date: '', toDate: '', name: '', nameUr: '' });
+  const [extra, setExtra] = useState(!!app.settings.rules.holidayWorkExtra);
+  const [showPast, setShowPast] = useState(false);
   const [save, busy] = useSave();
+  const merge = (items) => {
+    const have = new Set(list.map((x) => x.date));
+    const add = items.filter((x) => !have.has(x.date));
+    setList([...list, ...add].sort((a, b) => a.date.localeCompare(b.date)));
+    return add.length;
+  };
+  const addOne = () => {
+    const to = d.toDate && d.toDate > d.date ? d.toDate : d.date;
+    const items = [];
+    for (let x = d.date, i = 1; x <= to && i <= 15; x = addDays(x, 1), i++) {
+      const multi = to !== d.date;
+      items.push({ date: x, name: multi && d.name ? `${d.name} (${i})` : d.name, nameUr: multi && d.nameUr ? `${d.nameUr} (${i})` : d.nameUr });
+    }
+    merge(items);
+    setD({ date: '', toDate: '', name: '', nameUr: '' });
+  };
+  const preset = (y) => {
+    const n = merge(pakistanHolidays(y).filter((x) => x.date >= today));
+    toast(n ? t('{n} holidays added. Tap Save.', { n }) : t('Already added'), 'ok');
+  };
+  const shown = list.filter((x) => showPast || x.date >= today);
   return (
     <div class="screen">
       <TopBar back title={t('Holidays')} />
       <div class="wrap">
-        <Banner kind="info">{t('Holidays are paid days off for everyone, e.g. Eid.')}</Banner>
+        <Banner kind="info">{t('Holidays are paid days off for everyone, e.g. Eid. Staff are told on their phones when you add one.')}</Banner>
         <div class="card">
+          <h2>{t('Pakistan public holidays')}</h2>
+          <p class="small muted" style="margin:0 0 8px">{t('Adds national days and the expected Eid, Ashura and Milad dates. Islamic dates depend on the moon, so check them when the moon is sighted.')}</p>
+          <div class="btn-row" style="margin:0">{PK_YEARS.filter((y) => y >= Number(today.slice(0, 4))).map((y) => <button key={y} class="btn ghost" onClick={() => preset(y)}><Icon n="plus" />{y}</button>)}</div>
+        </div>
+        <div class="card">
+          <h2>{t('Add a holiday')}</h2>
           <div class="two">
-            <Field label={t('Date')}><input class="input ltr" style="width:100%" type="date" value={d.date} onInput={(e) => setD({ ...d, date: e.currentTarget.value })} /></Field>
-            <Field label={t('Name')}><input class="input" value={d.name} placeholder={t('e.g. Eid ul Fitr')} onInput={(e) => setD({ ...d, name: e.currentTarget.value })} /></Field>
+            <Field label={t('From')}><input class="input ltr" style="width:100%" type="date" value={d.date} onInput={(e) => setD({ ...d, date: e.currentTarget.value })} /></Field>
+            <Field label={t('To (optional)')}><input class="input ltr" style="width:100%" type="date" value={d.toDate} min={d.date} onInput={(e) => setD({ ...d, toDate: e.currentTarget.value })} /></Field>
           </div>
-          <button class="btn block ghost" disabled={!d.date} onClick={() => { setList([...list, d].sort((a, b) => a.date.localeCompare(b.date))); setD({ date: '', name: '' }); }}><Icon n="plus" />{t('Add holiday')}</button>
+          <div class="two">
+            <Field label={t('Name')}><input class="input" value={d.name} placeholder={t('e.g. Eid ul Fitr')} onInput={(e) => setD({ ...d, name: e.currentTarget.value })} /></Field>
+            <Field label={t('Name in Urdu (optional)')}><input class="input" dir="rtl" value={d.nameUr} onInput={(e) => setD({ ...d, nameUr: e.currentTarget.value })} /></Field>
+          </div>
+          <button class="btn block ghost" disabled={!d.date} onClick={addOne}><Icon n="plus" />{t('Add holiday')}</button>
+        </div>
+        <div class="card">
+          <Toggle checked={extra} onChange={setExtra} label={t('Extra pay for working on a holiday')} sub={t('Staff who work on a holiday get one extra day of salary for it.')} />
+        </div>
+        <div class="gap" style="justify-content:space-between;margin:4px 4px 0">
+          <span class="small muted">{t('{n} holidays', { n: shown.length })}</span>
+          <button class="link small" onClick={() => setShowPast(!showPast)}>{showPast ? t('Hide past') : t('Show past')}</button>
         </div>
         <div class="list">
-          {!list.length && <Empty icon="cal" text={t('No holidays added')} />}
-          {list.map((x, i) => (
-            <div key={x.date} class="row"><div class="main"><div class="title">{x.name || t('Holiday')}</div><div class="sub">{fmtDate(x.date)}</div></div>
-              <button class="iconbtn" onClick={() => setList(list.filter((_, j) => j !== i))}><Icon n="trash" /></button></div>
+          {!shown.length && <Empty icon="cal" text={t('No holidays added')} />}
+          {shown.map((x) => (
+            <div key={x.date} class="row"><div class="main"><div class="title">{nm(x) || t('Holiday')}</div><div class="sub">{fmtDate(x.date)}</div></div>
+              <button class="iconbtn" onClick={() => setList(list.filter((y) => y.date !== x.date))}><Icon n="trash" /></button></div>
           ))}
         </div>
-        <button class="btn block" disabled={busy} onClick={() => save({ holidays: list })}>{t('Save holidays')}</button>
+        <button class="btn block" style="margin-bottom:20px" disabled={busy} onClick={() => save({ holidays: list, rules: { holidayWorkExtra: extra } })}>{t('Save holidays')}</button>
       </div>
     </div>
   );
@@ -394,6 +437,14 @@ export function Users() {
                   <Toggle key={p} checked={edit.perms.includes(p)} label={t(PERM_LABELS[p])}
                     onChange={(v) => setEdit({ ...edit, perms: v ? [...edit.perms, p] : edit.perms.filter((x) => x !== p) })} />
                 ))}
+                {(app.settings.locations || []).length > 1 && (
+                  <Field label={t('Branch')} hint={t('A branch manager only sees staff of that branch.')}>
+                    <select class="input" value={edit.branchId || ''} onChange={(e) => setEdit({ ...edit, branchId: e.currentTarget.value })}>
+                      <option value="">{t('All branches')}</option>
+                      {app.settings.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                  </Field>
+                )}
                 <Toggle checked={edit.active} onChange={(v) => setEdit({ ...edit, active: v })} label={t('Active')} />
               </div>
             )}

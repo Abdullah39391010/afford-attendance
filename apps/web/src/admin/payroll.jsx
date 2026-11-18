@@ -11,18 +11,20 @@ import { statementDoc, printDoc, shareDocPdf, shareCsv } from '../shared/printdo
 import { useApp } from './app.jsx';
 import { MonthLock } from './pro.jsx';
 import { PaidBox } from './ops.jsx';
+import { BranchChips, branchQ, BulkMoney, MonthReport } from './extra.jsx';
 
 export function Payroll({ q }) {
   const app = useApp();
   const cur = app.settings.currency;
   const today = todayStr(api.serverNow());
   const [month, setMonth] = useState(q.get('month') || today.slice(0, 7));
-  const st = useLoad(() => api.get(`/api/admin/payroll?month=${month}`), [month]);
+  const [branch, setBranch] = useState('');
+  const st = useLoad(() => api.get(`/api/admin/payroll?month=${month}${branchQ(branch)}`), [month, branch]);
   const [busy, setBusy] = useState(false);
   const exportCsv = async () => {
     setBusy(true);
     try {
-      const res = await api.call('GET', `/api/admin/payroll?month=${month}&format=csv`, null, { raw: true });
+      const res = await api.call('GET', `/api/admin/payroll?month=${month}&format=csv${branchQ(branch)}`, null, { raw: true });
       await shareCsv(await res.text(), `payroll-${month}.csv`);
     } catch (e) { toastErr(e); } finally { setBusy(false); }
   };
@@ -31,6 +33,7 @@ export function Payroll({ q }) {
       <TopBar logo title={t('Payroll')} right={<button class="iconbtn" onClick={exportCsv} aria-label="CSV">{busy ? <Spinner sm /> : <Icon n="download" />}</button>} />
       <div class="wrap">
         <MonthNav month={month} onChange={setMonth} max={today.slice(0, 7)} />
+        <BranchChips value={branch} onChange={setBranch} />
         <Loader st={st}>{(data) => (
           <div>
             {month === today.slice(0, 7) && <Banner kind="info">{t('This month is still running. Figures are up to today.')}</Banner>}
@@ -43,6 +46,8 @@ export function Payroll({ q }) {
               {data.totals.paid > 0 && <div class="kv"><span class="k">{t('Paid so far')}</span><span class="v">{fmtMoney(data.totals.paid, cur)}</span></div>}
               {month < today.slice(0, 7) && <div class="kv"><span class="k">{t('Staff not paid yet')}</span><span class="v">{data.totals.unpaid}</span></div>}
             </div>
+            {!data.locked && <BulkMoney month={month} onDone={() => st.reload(true)} />}
+            <MonthReport month={month} branch={branch} />
             <div class="list">
               {!data.rows.length && <Empty icon="money" text={t('No staff yet')} />}
               {data.rows.map((r) => (

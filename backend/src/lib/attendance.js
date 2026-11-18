@@ -7,6 +7,14 @@ export const MARKS = ['present', 'absent', 'leave', 'leave_unpaid', 'duty', 'off
 export function empShift(emp, s) {
   return s.shifts.find((x) => x.id === emp.shiftId) || s.shifts[0];
 }
+/** Shift for one date: the duty roster wins over the employee's normal shift. */
+export function shiftFor(emp, s, roster) {
+  if (roster?.shift_id) {
+    const x = s.shifts.find((y) => y.id === roster.shift_id);
+    if (x) return x;
+  }
+  return empShift(emp, s);
+}
 export function empWeeklyOff(emp, s) {
   return Array.isArray(emp.weeklyOff) ? emp.weeklyOff : s.weeklyOff;
 }
@@ -33,7 +41,7 @@ export function paidLeaveQuota(emp, s) {
 export function daySummary(emp, s, date, d, now) {
   const off = s.tzOffsetMin;
   const r = empRules(emp, s);
-  const shift = empShift(emp, s);
+  const shift = shiftFor(emp, s, d.roster);
   const sm = shiftMins(shift);
   const startTs = toTs(date, sm.start, off);
   const endTs = toTs(date, sm.end, off);
@@ -91,7 +99,8 @@ export function daySummary(emp, s, date, d, now) {
   }
 
   const holiday = (s.holidays || []).find((h) => h.date === date);
-  const weeklyOff = empWeeklyOff(emp, s).includes(new Date(`${date}T00:00:00Z`).getUTCDay());
+  // roster: a day off, or a working shift on a normal weekly off day
+  const weeklyOff = d.roster ? !!d.roster.off : empWeeklyOff(emp, s).includes(new Date(`${date}T00:00:00Z`).getUTCDay());
   const mark = d.mark?.status || null;
   let status;
   if (mark === 'present') status = punches.length && lateMin ? 'late' : 'present';
@@ -117,6 +126,7 @@ export function daySummary(emp, s, date, d, now) {
     status,
     mark,
     shiftId: shift.id,
+    rostered: !!d.roster,
     shiftStart: startTs,
     shiftEnd: endTs,
     checkIn,
@@ -159,7 +169,7 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
   const quota = paidLeaveQuota(emp, s);
 
   const c = { present: 0, late: 0, absent: 0, leavePaid: 0, leaveUnpaid: 0, off: 0, holiday: 0, duty: 0, notJoined: 0, left: 0, pending: 0, overtimeMin: 0,
-    lateMin: 0, earlyMin: 0, breakLateMin: 0, workedMin: 0, missingOut: 0, offWorked: 0 };
+    lateMin: 0, earlyMin: 0, breakLateMin: 0, workedMin: 0, missingOut: 0, offWorked: 0, holidayWorked: 0 };
   let leaveSeen = 0;
   const rows = [];
   for (const d of days) {
@@ -172,6 +182,7 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
       case 'present': case 'late':
         c.present++; if (d.status === 'late') c.late++;
         if (d.weeklyOff || d.holiday) c.offWorked++;
+        if (d.holiday) c.holidayWorked++;
         break;
       case 'duty': c.duty++; break;
       case 'off': c.off++; break;
@@ -212,10 +223,14 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
   const advances = sum('advance');
   const depositCut = sum('deposit_cut');
   const bonus = sum('bonus');
+  const commission = sum('commission');
+  const fines = sum('fine');
+  // working on a public holiday earns one extra day's pay (when the rule is on)
+  const holidayPay = r.holidayWorkExtra ? round2(c.holidayWorked * daily) : 0;
   const totalCuts = round2(Object.values(cuts).reduce((a, b) => a + b, 0));
   const otRate = Number(r.overtimeRate) || 1;
   const overtime = { on: !!r.overtimeOn, min: c.overtimeMin, rate: otRate, pay: r.overtimeOn ? round2(c.overtimeMin * perMin * otRate) : 0 };
-  const net = Math.round(salary - totalCuts - advances - depositCut + bonus + overtime.pay);
+  const net = Math.round(salary - totalCuts - advances - depositCut - fines + bonus + commission + holidayPay + overtime.pay);
 
   return {
     month,
@@ -230,6 +245,9 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
     advances,
     depositCut,
     bonus,
+    commission,
+    fines,
+    holidayPay,
     overtime,
     net,
     depositBalance,

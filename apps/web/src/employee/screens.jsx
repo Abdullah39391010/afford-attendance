@@ -15,6 +15,7 @@ import { getLoc } from './home.jsx';
 import { useEmp } from './app.jsx';
 import { TestAlert } from '../shared/perms.jsx';
 import { CheckUpdateButton } from '../shared/update.jsx';
+import { IS_WEB } from './extra.jsx';
 
 // ---------------------------------------------------------------- calendar
 export function MyCalendar() {
@@ -261,6 +262,8 @@ export function MyMore() {
         </div>
         <div class="list">
           {emp.helperCount > 0 && <button class="row" onClick={() => go('helper')}><Icon n="users" /><div class="main"><div class="title">{t('Check in other staff')}</div><div class="sub">{t('{n} people', { n: emp.helperCount })}</div></div><Icon n="fwd" cls="flip" /></button>}
+          <button class="row" onClick={() => go('roster')}><Icon n="cal" /><div class="main"><div class="title">{t('My duty roster')}</div><div class="sub">{t('Next 2 weeks · swap a shift')}</div></div><Icon n="fwd" cls="flip" /></button>
+          <button class="row" onClick={() => go('notes')}><Icon n="inbox" /><div class="main"><div class="title">{t('Messages from admin')}</div><div class="sub">{t('Warnings and good-work notes')}</div></div>{E.home.unseenNotes > 0 && <span class="badge-n">{E.home.unseenNotes}</span>}<Icon n="fwd" cls="flip" /></button>
           <button class="row" onClick={() => go('requests?new=leave')}><Icon n="leave" /><div class="main"><div class="title">{t('Ask for leave')}</div></div><Icon n="fwd" cls="flip" /></button>
           <button class="row" onClick={() => go('requests?new=advance')}><Icon n="wallet" /><div class="main"><div class="title">{t('Advance salary')}</div></div><Icon n="fwd" cls="flip" /></button>
         </div>
@@ -269,8 +272,8 @@ export function MyMore() {
           <FingerToggle title={t('Unlock Afford Staff')} />
         </div>
         <TestAlert kind="emp" />
-        <CheckUpdateButton />
-        <Banner kind="info" icon="phone">{t('This app is linked to this phone. If you change your phone, ask the owner to reset it.')}</Banner>
+        {!IS_WEB && <CheckUpdateButton />}
+        <Banner kind="info" icon="phone">{IS_WEB ? t('This web app is linked to this browser. If you change your phone or clear Safari data, ask the owner to reset it.') : t('This app is linked to this phone. If you change your phone, ask the owner to reset it.')}</Banner>
         <button class="btn block ghost" onClick={async () => { if (await confirmBox({ title: t('Log out?'), text: t('You will need your PIN to log in again.'), yes: t('Log out'), danger: true })) E.logout(); }}><Icon n="logout" />{t('Log out')}</button>
         <Credit app="Afford Staff" />
       </div>

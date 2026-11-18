@@ -10,3 +10,4 @@ local.properties
 !apps/signing/afford-release.p12
 apps/web/dist-admin/
 apps/web/dist-employee/
+owner/staff/

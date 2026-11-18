@@ -16,6 +16,11 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm test
+      - name: Build the staff web version (for iPhones), served at /staff/
+        working-directory: apps
+        run: |
+          npm ci
+          cd web && WEB_APP=1 OUT_DIR=../../owner/staff npx vite build --mode employee
       - name: Deploy worker
         run: npx wrangler deploy
         env:

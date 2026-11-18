@@ -12,6 +12,7 @@ import { startNotify, stopNotify } from '../shared/notify.js';
 import { PermissionGate } from '../shared/perms.jsx';
 import { Home } from './home.jsx';
 import { MyCalendar, MyRequests, MyPay, MyMore, Helper } from './screens.jsx';
+import { MyRoster, MyNotes } from './extra.jsx';
 
 export const ECtx = createContext(null);
 export const useEmp = () => useContext(ECtx);
@@ -82,7 +83,7 @@ export function App() {
       {phase === 'app' && <Shell logout={logout} />}
       <ToastHost />
       <ConfirmHost />
-      {phase === 'app' && <UpdatePopup />}
+      {phase === 'app' && !(typeof __WEB_APP__ !== 'undefined' && __WEB_APP__) && <UpdatePopup />}
     </div>
   );
 }
@@ -238,6 +239,8 @@ function Shell({ logout }) {
     case 'pay': screen = <MyPay />; break;
     case 'more': screen = <MyMore />; break;
     case 'helper': screen = <Helper />; break;
+    case 'roster': screen = <MyRoster />; break;
+    case 'notes': screen = <MyNotes />; break;
     default: screen = <Home />;
   }
   const nav = [

@@ -9,6 +9,7 @@ import { TopBar, Icon, Pill, Sheet, Field, toast, toastErr, confirmBox, Banner, 
 import { enqueue } from '../shared/offline.js';
 import { describe } from '../shared/describe.js';
 import { useEmp } from './app.jsx';
+import { HomeExtras, WebInstallHint } from './extra.jsx';
 
 /** distance in metres */
 function metres(a, b) {
@@ -109,13 +110,15 @@ export function Home() {
           <div class="grow">
             <div class="small muted">{greet}</div>
             <b style="font-size:17px">{nm(emp)}</b>
-            <div class="small muted">{getLang() === 'ur' && emp.roleUr ? emp.roleUr : emp.role} · <span class="ltr">{emp.code}</span></div>
+            <div class="small muted">{getLang() === 'ur' && emp.roleUr ? emp.roleUr : emp.role} · <span class="ltr">{emp.code}</span>{emp.branch ? ` · ${emp.branch}` : ''}</div>
           </div>
         </div>
+        <WebInstallHint />
+        <HomeExtras />
 
         <div class={`today-card ${isIn ? (onBreak ? 'brk' : 'in') : d.checkOut ? 'done' : ''}`}>
           <div class="small" style="opacity:.85">{fmtDate(d.date || todayStr(now))}</div>
-          <div class="tc-shift">{t('Shift')} {nm(emp.shift)} · <span class="ltr">{emp.shift.start}–{emp.shift.end}</span></div>
+          <div class="tc-shift">{t('Shift')} {nm(emp.shift)} · <span class="ltr">{emp.shift.start}–{emp.shift.end}</span>{emp.normalShift && emp.normalShift.id !== emp.shift.id ? ` · ${t('from roster')}` : ''}</div>
           <div class="tc-status">
             {onBreak ? t('On break') : isIn ? t('You are checked in') : d.checkOut ? t('Day finished') : t('Not checked in yet')}
           </div>

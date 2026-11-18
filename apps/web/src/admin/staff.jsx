@@ -9,12 +9,14 @@ import {
 } from '../shared/ui.jsx';
 import { Calendar, MonthNav } from '../shared/calendar.jsx';
 import { useApp } from './app.jsx';
+import { BranchChips, branchName, branchQ, StaffFile, NotesTab } from './extra.jsx';
 
 export function StaffList() {
   const app = useApp();
   const [q, setQ] = useState('');
   const [showAll, setShowAll] = useState(false);
-  const st = useLoad(() => api.get(`/api/admin/employees${showAll ? '?all=1' : ''}`), [showAll]);
+  const [branch, setBranch] = useState('');
+  const st = useLoad(() => api.get(`/api/admin/employees?all=${showAll ? 1 : 0}${branchQ(branch)}`), [showAll, branch]);
   useEffect(() => { st.reload(true); }, [app.ver]);
   const roleName = (id) => nm(app.settings.roles.find((r) => r.id === id)) || id;
   return (
@@ -25,6 +27,7 @@ export function StaffList() {
           <div class="search grow"><Icon n="search" /><input class="input" placeholder={t('Search name, code or phone')} value={q} onInput={(e) => setQ(e.currentTarget.value)} /></div>
         </div>
         <div style="margin-top:10px"><Seg value={showAll ? 'all' : 'active'} onChange={(v) => setShowAll(v === 'all')} options={[['active', t('Active')], ['all', t('All (with inactive)')]]} /></div>
+        <BranchChips value={branch} onChange={setBranch} />
         <Loader st={st}>{(data) => {
           const ql = q.toLowerCase();
           const rows = data.employees.filter((e) => !ql || `${e.name} ${e.nameUr} ${e.code} ${e.phone}`.toLowerCase().includes(ql));
@@ -38,7 +41,7 @@ export function StaffList() {
                     <Avatar name={e.name} src={e.hasPhoto ? `/api/admin/employees/${e.id}/photo` : null} ver={e.photoVer} />
                     <div class="main">
                       <div class="title">{nm(e)} <span class="muted small ltr">{e.code}</span></div>
-                      <div class="sub">{roleName(e.roleId)}{e.fieldStaff ? ` · ${t('Field staff')}` : ''}{e.phone ? ` · ` : ''}<span class="ltr">{e.phone}</span></div>
+                      <div class="sub">{roleName(e.roleId)}{e.branchId && (app.settings.locations || []).length > 1 ? ` · ${branchName(app, e.branchId)}` : ''}{e.fieldStaff ? ` · ${t('Field staff')}` : ''}{e.phone ? ` · ` : ''}<span class="ltr">{e.phone}</span></div>
                     </div>
                     <div class="end">
                       {!e.active && <Pill s="absent">{t('Inactive')}</Pill>}
@@ -118,7 +121,8 @@ export function StaffForm({ id }) {
   useEffect(() => {
     if (!id) {
       setF({ name: '', nameUr: '', code: '', phone: '', cnic: '', roleId: s.roles[1]?.id || s.roles[0].id, shiftId: s.shifts[0].id, salary: '', weeklyOff: null,
-        fieldStaff: false, kioskAllowed: true, helperFor: [], paidLeavePerMonth: '', salaryVisibility: 'always', joinDate: todayStr(api.serverNow()), notes: '', active: true, pin: '' });
+        fieldStaff: false, kioskAllowed: true, helperFor: [], paidLeavePerMonth: '', salaryVisibility: 'always', joinDate: todayStr(api.serverNow()), notes: '', active: true, pin: '',
+        fatherName: '', dob: '', address: '', emergencyName: '', emergencyPhone: '', branchId: app.me.branchId || '', webAllowed: false });
     } else {
       api.get(`/api/admin/employees/${id}`).then((r) => setF({ ...r.employee, helperFor: r.employee.helperFor || [], paidLeavePerMonth: r.employee.paidLeavePerMonth ?? '', pin: '' })).catch(toastErr);
     }
@@ -168,6 +172,18 @@ export function StaffForm({ id }) {
         </div>
 
         <div class="card">
+          <h2>{t('Staff file')}</h2>
+          <Field label={t("Father's name")}><input class="input" value={f.fatherName || ''} onInput={inp('fatherName')} /></Field>
+          <Field label={t('Date of birth')} hint={t('Used for the birthday wish')}><input class="input ltr" style="width:100%" type="date" value={f.dob || ''} onInput={inp('dob')} /></Field>
+          <Field label={t('Address')}><input class="input" value={f.address || ''} onInput={inp('address')} /></Field>
+          <div class="two">
+            <Field label={t('Emergency contact name')}><input class="input" value={f.emergencyName || ''} onInput={inp('emergencyName')} /></Field>
+            <Field label={t('Emergency phone')}><input class="input ltr" style="width:100%" inputmode="tel" value={f.emergencyPhone || ''} onInput={inp('emergencyPhone')} placeholder="03xx xxxxxxx" /></Field>
+          </div>
+          {id && <p class="small muted" style="margin:0">{t('CNIC photos and the contract are added on the profile page.')}</p>}
+        </div>
+
+        <div class="card">
           <h2>{t('Job')}</h2>
           <div class="two">
             <Field label={t('Role')}>
@@ -179,6 +195,14 @@ export function StaffForm({ id }) {
           </div>
           {app.can('payroll.view') && (
             <Field label={t('Monthly salary ({c})', { c: s.currency })}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={f.salary} onInput={inp('salary')} /></Field>
+          )}
+          {(s.locations || []).length > 1 && !app.me.branchId && (
+            <Field label={t('Branch')} hint={t('The employee must check in at this branch.')}>
+              <select class="input" value={f.branchId || ''} onChange={inp('branchId')}>
+                <option value="">{t('Any branch')}</option>
+                {s.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            </Field>
           )}
           <Field label={t('Joining date')}><input class="input ltr" style="width:100%" type="date" value={f.joinDate || ''} onInput={inp('joinDate')} /></Field>
           <Field label={t('Weekly off')}>
@@ -195,6 +219,7 @@ export function StaffForm({ id }) {
           </Field>
           <Toggle checked={f.fieldStaff} onChange={(v) => set('fieldStaff', v)} label={t('Field staff (works out of store)')} sub={t('Can check in and out from anywhere. Location is saved.')} />
           <Toggle checked={f.active} onChange={(v) => set('active', v)} label={t('Active')} sub={t('Inactive staff cannot log in and are not counted')} />
+          <Toggle checked={!!f.webAllowed} onChange={(v) => set('webAllowed', v)} label={t('Allow the web version (iPhone)')} sub={t('For staff without an Android phone. They open the staff web page in Safari. Same PIN and location rules.')} />
         </div>
 
         <div class="card">
@@ -227,7 +252,7 @@ export function StaffDetail({ id, tab, q }) {
   const app = useApp();
   const st = useLoad(() => api.get(`/api/admin/employees/${id}`), [id]);
   useEffect(() => { st.reload(true); }, [app.ver]);
-  const tabs = [['info', t('Profile')], ['cal', t('Calendar')], app.can('payroll.view') && ['money', t('Money')], app.can('audit.view') && ['log', t('History')]].filter(Boolean);
+  const tabs = [['info', t('Profile')], ['cal', t('Calendar')], ['notes', t('Notes')], app.can('payroll.view') && ['money', t('Money')], app.can('audit.view') && ['log', t('History')]].filter(Boolean);
   return (
     <div class="screen">
       <TopBar back={() => go('staff')} title={st.data ? nm(st.data.employee) : t('Employee')}
@@ -243,6 +268,8 @@ export function StaffDetail({ id, tab, q }) {
                 <div class="gap" style="margin-top:6px">
                   {!e.active && <Pill s="absent">{t('Inactive')}</Pill>}
                   {e.fieldStaff && <Pill s="duty">{t('Field staff')}</Pill>}
+                  {e.branchId && (app.settings.locations || []).length > 1 && <span class="pill st-notyet"><Icon n="map" />{branchName(app, e.branchId)}</span>}
+                  {e.webAllowed && <span class="pill st-notyet">{t('Web version')}</span>}
                   {e.deviceBound ? <span class="pill st-in"><Icon n="phone" />{t('Phone linked')}</span> : <span class="pill st-notyet">{t('No phone linked')}</span>}
                 </div>
               </div>
@@ -257,6 +284,7 @@ export function StaffDetail({ id, tab, q }) {
             {tab === 'info' && <Info e={e} reload={() => st.reload(true)} />}
             {tab === 'cal' && <EmpCalendar e={e} />}
             {tab === 'money' && <Money e={e} />}
+            {tab === 'notes' && <NotesTab e={e} />}
             {tab === 'log' && <EmpLog e={e} />}
           </div>
         )}</Loader>
@@ -297,6 +325,7 @@ function Info({ e, reload }) {
         <div class="kv"><span class="k">{t('Rules agreement')}</span><span class="v">{e.rulesAccepted?.current ? `${t('Accepted')} · ${fmtDateTime(e.rulesAccepted.ts)}` : e.rulesAccepted ? t('Accepted an older version') : t('Not accepted yet')}</span></div>
         {e.notes && <div class="kv"><span class="k">{t('Notes')}</span><span class="v">{e.notes}</span></div>}
       </div>
+      <StaffFile e={e} />
       <div style="display:grid;gap:10px;margin-bottom:20px">
         {app.can('payroll.view') && <button class="btn ghost" onClick={() => go(`payroll/${e.id}?month=${month}`)}><Icon n="money" />{t('Salary statement')}</button>}
         {app.can('payroll.view') && <button class="btn ghost" onClick={() => go(`staff/${e.id}/settle`)}><Icon n="out" />{e.active ? t('Final settlement (leaving)') : t('Final settlement')}</button>}
@@ -384,7 +413,7 @@ export function DayDetail({ e, date, onClose, onChanged }) {
   );
 }
 
-const KINDS = [['advance', 'Advance'], ['deposit', 'Security deposit (paid in)'], ['deposit_cut', 'Deposit cut from salary'], ['deposit_return', 'Deposit returned'], ['bonus', 'Bonus']];
+const KINDS = [['advance', 'Advance'], ['bonus', 'Bonus'], ['commission', 'Commission'], ['fine', 'Fine'], ['deposit', 'Security deposit (paid in)'], ['deposit_cut', 'Deposit cut from salary'], ['deposit_return', 'Deposit returned']];
 function Money({ e }) {
   const app = useApp();
   const cur = app.settings.currency;
@@ -417,13 +446,13 @@ function Money({ e }) {
             <div><div class="muted small">{t('Security deposit balance')}</div><div class="big-number">{fmtMoney(data.depositBalance, cur)}</div></div>
             <Icon n="shield" />
           </div>
-          {app.can('money.edit') && <button class="btn block" onClick={() => setAdd(true)}><Icon n="plus" />{t('Add advance / deposit / bonus')}</button>}
+          {app.can('money.edit') && <button class="btn block" onClick={() => setAdd(true)}><Icon n="plus" />{t('Add advance / bonus / fine / deposit')}</button>}
           <div class="list">
             {!data.entries.length && <Empty icon="wallet" text={t('No money entries yet')} />}
             {data.entries.map((m) => (
               <div key={m.id} class="row" style={m.voided ? 'opacity:.45;text-decoration:line-through' : ''}>
                 <div class="main">
-                  <div class="title">{label(m.kind)} · {fmtMoney(m.amount, cur)}</div>
+                  <div class="title">{label(m.kind)} · {m.kind === 'fine' ? '− ' : ''}{fmtMoney(m.amount, cur)}</div>
                   <div class="sub">{fmtMonth(m.month)} · {fmtDateTime(m.ts)}{m.note ? ` · ${m.note}` : ''}</div>
                   {m.pendingOwner && <div style="margin-top:4px"><Pill s="pending">{t('Waiting for owner')}</Pill></div>}
                   {m.removalPending && <div style="margin-top:4px"><Pill s="pending">{t('Removal waits for owner')}</Pill></div>}
@@ -445,8 +474,8 @@ function Money({ e }) {
             <Chips value={String(f.installments)} onChange={(v) => setF({ ...f, installments: Number(v) })} options={[1, 2, 3, 4, 6].map((n) => [String(n), n === 1 ? t('1 month') : t('{n} months', { n })])} />
           </Field>
         )}
-        <Field label={t('Note')}><input class="input" value={f.note} onInput={(ev) => setF({ ...f, note: ev.currentTarget.value })} /></Field>
-        <button class="btn block" disabled={!f.amount} onClick={save}>{t('Save')}</button>
+        <Field label={f.kind === 'fine' ? t('Reason (required)') : ['bonus', 'commission'].includes(f.kind) ? t('Note (shown on payslip)') : t('Note')}><input class="input" value={f.note} onInput={(ev) => setF({ ...f, note: ev.currentTarget.value })} /></Field>
+        <button class="btn block" disabled={!f.amount || (f.kind === 'fine' && !f.note.trim())} onClick={save}>{t('Save')}</button>
       </Sheet>
     </div>
   );

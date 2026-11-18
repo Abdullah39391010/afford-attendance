@@ -1,7 +1,7 @@
 {
-  "version": "0.8.0",
+  "version": "0.9.0",
   "notes": {
-    "en": "Shift and check-out reminders, nightly summary for the owner, payslip with store details, salary paid record, overtime pay, advance installments, final settlement.",
-    "ur": "شفٹ اور چیک آؤٹ کی یاد دہانی، مالک کے لیے رات کا خلاصہ، اسٹور تفصیل کے ساتھ تنخواہ کی پرچی، تنخواہ ادائیگی کا ریکارڈ، اوور ٹائم، ایڈوانس اقساط، حتمی حساب۔"
+    "en": "Duty roster and shift swaps, holiday calendar, bonus / commission / fines, staff file with documents, warnings and good-work notes, birthday wishes, monthly report in PDF and Excel, branches, iPhone web version.",
+    "ur": "ڈیوٹی روسٹر اور شفٹ کی تبدیلی، تعطیلات کا کیلنڈر، بونس / کمیشن / جرمانے، کاغذات کے ساتھ ملازم کی فائل، وارننگ اور شاباش کے نوٹس، سالگرہ کی مبارکباد، PDF اور ایکسل میں ماہانہ رپورٹ، برانچیں، آئی فون کے لیے ویب ورژن۔"
   }
 }

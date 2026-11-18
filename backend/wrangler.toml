@@ -31,7 +31,7 @@ WIPE_TOKEN = "fresh-2026-11-17"
 [assets]
 directory = "../owner"
 binding = "ASSETS"
-run_worker_first = ["/api/*", "/"]
+run_worker_first = ["/api/*", "/", "/staff"]
 
 # Secrets (set with `npx wrangler secret put NAME`, never committed):
 #   SETUP_CODE  - one-time code used to create the owner account

@@ -1,5 +1,8 @@
 // English / Urdu. Strings are written in English in the code; ur.js maps them to Urdu.
-import { UR } from './ur.js';
+import { UR as UR1 } from './ur.js';
+import { UR2 } from './ur2.js';
+
+const UR = { ...UR1, ...UR2 };
 
 let lang = (() => { try { return localStorage.getItem('afford.lang') || 'en'; } catch { return 'en'; } })();
 const listeners = new Set();
@@ -57,6 +60,13 @@ const ERRORS = {
   OFFLINE_TOO_OLD: 'This saved punch is too old. Please send a "forgot" request instead.',
   NEED_REASON: 'Please write a reason.',
   NO_PERMISSION: 'You do not have permission for this.',
+  WEB_NOT_ALLOWED: 'The web version is not turned on for you. Ask the owner.',
+  OTHER_BRANCH: 'This employee belongs to another branch.',
+  PICK_COLLEAGUE: 'Pick the colleague to swap with.',
+  SAME_DUTY: 'You both have the same duty that day.',
+  BAD_FILE: 'File must be a photo (JPEG / PNG) or a PDF.',
+  TOO_LARGE: 'The file is too large.',
+  TOO_MANY: 'At most 12 files per employee.',
   OWNER_ONLY: 'Only the owner can do this.',
   BAD_SETUP_CODE: 'Wrong setup code.',
   GPS_OFF: 'Location (GPS) is off. Please turn it on.',
@@ -79,6 +89,7 @@ export function errText(e) {
   if (!e) return '';
   const code = e.code || e.message;
   if (code === 'LOCKED') return t(ERRORS.LOCKED, { min: Math.max(1, Math.ceil((e.data?.retryAfterSec || 60) / 60)) });
+  if (code === 'OUTSIDE_RADIUS' && e.data?.branch) return t('You are {d} m away from {b}. Go inside and try again.', { d: e.data?.distance ?? '?', b: e.data.branch });
   if (code === 'OUTSIDE_RADIUS') return t(ERRORS.OUTSIDE_RADIUS, { d: e.data?.distance ?? '?' });
   if (ERRORS[code]) return t(ERRORS[code]);
   return lang === 'ur' ? t('Something went wrong. Please try again.') : e.message || String(code);
@@ -92,12 +103,12 @@ export const statusLabel = (s) => t(STATUS[s] || s);
 
 export const REQ_TYPES = {
   forgot_in: 'Forgot check-in', forgot_out: 'Forgot check-out', past_day: 'Past-day attendance', leave: 'Leave',
-  advance: 'Advance salary', break: 'Break', undo_checkout: 'Checked out by mistake', field_duty: 'Out-of-town duty', recheckin: 'Check in again',
+  advance: 'Advance salary', break: 'Break', undo_checkout: 'Checked out by mistake', field_duty: 'Out-of-town duty', recheckin: 'Check in again', swap: 'Shift swap',
 };
 export const reqLabel = (s) => t(REQ_TYPES[s] || s);
 
 export const MONEY_KINDS = {
-  advance: 'Advance', deposit: 'Security deposit (paid in)', deposit_cut: 'Deposit cut from salary', deposit_return: 'Deposit returned', bonus: 'Bonus',
+  advance: 'Advance', deposit: 'Security deposit (paid in)', deposit_cut: 'Deposit cut from salary', deposit_return: 'Deposit returned', bonus: 'Bonus', commission: 'Commission', fine: 'Fine',
 };
 export const moneyLabel = (k) => t(MONEY_KINDS[k] || k);
 
@@ -113,5 +124,9 @@ export const AUDIT = {
   'request.approved': 'Request approved', 'request.declined': 'Request declined',
   'settings.logo': 'Logo changed', 'settings.updated': 'Settings changed',
   'user.added': 'Manager added', 'user.updated': 'Manager updated', 'user.deleted': 'Manager removed',
+  'money.commission': 'Commission given', 'money.fine': 'Fine', 'roster.updated': 'Duty roster changed', 'roster.copied': 'Duty roster copied',
+  'note.warning': 'Warning given', 'note.praise': 'Good work note', 'note.note': 'Note added', 'note.removed': 'Note removed',
+  'employee.doc_added': 'File added', 'employee.doc_removed': 'File removed', 'employee.settled': 'Final settlement',
+  'payroll.salary_paid': 'Salary paid', 'payroll.payment_removed': 'Payment removed',
 };
 export const auditLabel = (a) => t(AUDIT[a] || a);

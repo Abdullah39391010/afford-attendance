@@ -159,7 +159,8 @@ export default {
       return withCors(await stub.fetch(request));
     }
     if (env.ASSETS) {
-      if (url.pathname === '/' ) return Response.redirect(`${url.origin}/owner/`, 302);
+      // the main address opens the staff web version (for iPhones)
+      if (url.pathname === '/' || url.pathname === '/staff') return Response.redirect(`${url.origin}/staff/`, 302);
       return env.ASSETS.fetch(request);
     }
     return new Response('Afford attendance API', { status: 200 });

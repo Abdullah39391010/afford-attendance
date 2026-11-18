@@ -62,6 +62,8 @@ export function defaultSettings() {
       remindBeforeMin: 15,
       dailySummaryOn: true, // nightly attendance summary to the owner
       dailySummaryAt: '22:00',
+      holidayWorkExtra: false, // working on a public holiday pays one extra day
+      greetingsOn: true, // birthday + work anniversary wishes
     },
     storeAddress: '',
     storePhone: '',
@@ -90,7 +92,8 @@ export function mergeSettings(cur, patch) {
       const lng = Number(l.lng);
       if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180) || (lat === 0 && lng === 0))
         throw bad('BAD_LOCATION', `Bad GPS point for "${l.name}"`);
-      return { id: str(l.id, 40) || uid(), name: str(l.name, 60) || 'Store', lat, lng, radius: num(l.radius, 10, 5000, 100) };
+      return { id: str(l.id, 40) || uid(), name: str(l.name, 60) || 'Store', lat, lng, radius: num(l.radius, 10, 5000, 100),
+        address: str(l.address, 160), phone: str(l.phone, 40) };
     });
   }
 
@@ -126,11 +129,11 @@ export function mergeSettings(cur, patch) {
   if ('weeklyOff' in patch) s.weeklyOff = normDows(patch.weeklyOff);
 
   if ('holidays' in patch) {
-    if (!Array.isArray(patch.holidays) || patch.holidays.length > 100) throw bad('BAD_HOLIDAYS', 'Holidays must be a list');
+    if (!Array.isArray(patch.holidays) || patch.holidays.length > 200) throw bad('BAD_HOLIDAYS', 'Holidays must be a list');
     s.holidays = patch.holidays.map((h) => {
       if (!isDate(h.date)) throw bad('BAD_DATE', 'Bad holiday date');
-      return { date: h.date, name: str(h.name, 60) };
-    });
+      return { date: h.date, name: str(h.name, 60), nameUr: str(h.nameUr, 60) };
+    }).filter((h, i, a) => a.findIndex((x) => x.date === h.date) === i).sort((a, b) => a.date.localeCompare(b.date));
   }
 
   if (patch.rules) {
@@ -160,7 +163,7 @@ export function mergeSettings(cur, patch) {
       r.dailySummaryAt = String(p.dailySummaryAt);
     }
     for (const k of ['lateCutOn', 'earlyLeaveCutOn', 'breakNeedsApproval', 'breakLateCutOn', 'absentCutOn',
-      'requireInRadiusCheckIn', 'blockMockLocation', 'kioskPhoto', 'overtimeOn', 'remindersOn', 'dailySummaryOn']) {
+      'requireInRadiusCheckIn', 'blockMockLocation', 'kioskPhoto', 'overtimeOn', 'remindersOn', 'dailySummaryOn', 'holidayWorkExtra', 'greetingsOn']) {
       if (k in p) r[k] = bool(p[k], r[k]);
     }
   }

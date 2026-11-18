@@ -43,6 +43,15 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS payments (id TEXT PRIMARY KEY, emp TEXT NOT NULL, month TEXT NOT NULL, amount INTEGER NOT NULL,
      method TEXT NOT NULL, note TEXT, ts INTEGER NOT NULL, by_admin TEXT, voided INTEGER NOT NULL DEFAULT 0)`,
   `CREATE INDEX IF NOT EXISTS payments_month ON payments(month, emp)`,
+  `CREATE TABLE IF NOT EXISTS roster (emp TEXT NOT NULL, day TEXT NOT NULL, shift_id TEXT, off INTEGER NOT NULL DEFAULT 0,
+     note TEXT, by_admin TEXT, ts INTEGER NOT NULL, PRIMARY KEY (emp, day))`,
+  `CREATE INDEX IF NOT EXISTS roster_day ON roster(day)`,
+  `CREATE TABLE IF NOT EXISTS staff_notes (id TEXT PRIMARY KEY, emp TEXT NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL,
+     ts INTEGER NOT NULL, by_admin TEXT, by_name TEXT, seen INTEGER, voided INTEGER NOT NULL DEFAULT 0)`,
+  `CREATE INDEX IF NOT EXISTS staff_notes_emp ON staff_notes(emp, ts)`,
+  `CREATE TABLE IF NOT EXISTS docs (id TEXT PRIMARY KEY, emp TEXT NOT NULL, kind TEXT NOT NULL, name TEXT, mime TEXT NOT NULL,
+     data TEXT NOT NULL, size INTEGER NOT NULL, ts INTEGER NOT NULL, by_admin TEXT)`,
+  `CREATE INDEX IF NOT EXISTS docs_emp ON docs(emp)`,
   `CREATE TABLE IF NOT EXISTS photos (id TEXT PRIMARY KEY, punch TEXT NOT NULL, data TEXT NOT NULL, ts INTEGER NOT NULL)`,
 ];
 

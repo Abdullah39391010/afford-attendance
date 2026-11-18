@@ -6,6 +6,7 @@ import { t, nm, statusLabel } from '../shared/i18n.js';
 import { fmtTime, fmtDur, fmtDate, todayStr, addDays } from '../shared/format.js';
 import { TopBar, Icon, Avatar, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, go, Seg, Spinner } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
+import { BranchChips, branchQ, Celebrations } from './extra.jsx';
 
 const TILES = [
   ['in', 'In'], ['late', 'Late'], ['break', 'On break'], ['absent', 'Absent'],
@@ -18,7 +19,8 @@ export function Board() {
   const [filter, setFilter] = useState(null);
   const [qtext, setQ] = useState('');
   const [sel, setSel] = useState(null);
-  const st = useLoad(() => api.get(`/api/admin/board?date=${date}`), [date]);
+  const [branch, setBranch] = useState('');
+  const st = useLoad(() => api.get(`/api/admin/board?date=${date}${branchQ(branch)}`), [date, branch]);
   useEffect(() => { st.reload(true); }, [app.ver]);
   useEffect(() => {
     const iv = setInterval(() => st.reload(true), 60000); // keep "not yet in" / worked hours fresh
@@ -40,6 +42,7 @@ export function Board() {
           </div>
           <button class="iconbtn" disabled={date >= today} onClick={() => setDate(addDays(date, 1))} aria-label={t('Next day')}><Icon n="fwd" cls="flip" /></button>
         </div>
+        <BranchChips value={branch} onChange={setBranch} />
         <Loader st={st}>{(data) => {
           const counts = { ...data.counts, off: (data.counts.off || 0) + (data.counts.duty || 0) };
           let rows = data.rows;
@@ -52,6 +55,7 @@ export function Board() {
           }
           return (
             <div>
+              <Celebrations list={data.celebrations} />
               <div class="counts">
                 {TILES.map(([k, label]) => (
                   <button key={k} class={`count c-${k} ${filter === k ? 'on' : ''}`} onClick={() => setFilter(filter === k ? null : k)}>

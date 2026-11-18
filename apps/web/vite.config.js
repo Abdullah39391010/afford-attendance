@@ -17,8 +17,9 @@ export default defineConfig(({ mode }) => {
       __APP_VERSION__: JSON.stringify(version.version),
       __APP_BUILD__: JSON.stringify(process.env.BUILD_NUMBER || ''),
       __API_URL__: JSON.stringify(process.env.API_URL || ''),
+      __WEB_APP__: JSON.stringify(process.env.WEB_APP === '1'),
     },
     server: { fs: { allow: [resolve(__dirname, '..')] }, port: app === 'admin' ? 5173 : 5174 },
-    build: { outDir: resolve(__dirname, `dist-${app}`), emptyOutDir: true, chunkSizeWarningLimit: 1500 },
+    build: { outDir: process.env.OUT_DIR ? resolve(process.env.OUT_DIR) : resolve(__dirname, `dist-${app}`), emptyOutDir: true, chunkSizeWarningLimit: 1500 },
   };
 });
