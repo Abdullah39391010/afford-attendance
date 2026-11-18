@@ -1,7 +1,7 @@
 {
-  "version": "0.9.8",
+  "version": "0.9.9",
   "notes": {
-    "en": "Delete employee: remove from list, clear records, or delete everything, after owner PIN or fingerprint. Urdu names for branches and the store.",
-    "ur": "ملازم حذف کریں: فہرست سے ہٹائیں، ریکارڈ صاف کریں یا سب کچھ حذف کریں، مالک کے PIN یا فنگر پرنٹ کے بعد۔ برانچ اور اسٹور کے اردو نام۔"
+    "en": "Fix: Urdu (and other) text typed with some phone keyboards was cleared on Save. It now saves.",
+    "ur": "درستی: کچھ فون کی بورڈز سے لکھا اردو متن محفوظ کرنے پر مٹ جاتا تھا۔ اب محفوظ ہوتا ہے۔"
   }
 }
