@@ -3,9 +3,9 @@
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { AffordDevice } from 'afford-device';
-import { LS } from './api.js';
-import { t } from './i18n.js';
-import { Dialog, Icon, toast } from './ui.jsx';
+import { LS, api } from './api.js';
+import { t, getLang } from './i18n.js';
+import { Dialog, Icon, Spinner, toast } from './ui.jsx';
 
 const INFO = {
   location: { icon: 'map', title: 'Location', why: 'To check that you are at the store when you check in or out.' },
@@ -63,5 +63,41 @@ export function PermissionGate({ need }) {
         <button class="btn ghost" onClick={() => { hiddenThisRun = true; setOpen(false); }}>{t('Later')}</button>
       </div>
     </Dialog>
+  );
+}
+
+/** "Test alerts on this phone": sends a real alert through the server to this phone and says what went wrong, if anything. */
+export function TestAlert({ kind }) {
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState(null); // { ok, text }
+  const run = async () => {
+    setBusy(true);
+    try {
+      const s = await AffordDevice.permissionStatus().catch(() => ({ notifications: true }));
+      if (!s.notifications) {
+        setRes({ ok: false, text: t('Notifications are turned off for this app. Tap "Open settings" and turn them on.'), settings: true });
+        return;
+      }
+      const { token } = await AffordDevice.getPushToken().catch(() => ({ token: null }));
+      const r = await api.post(`/api/${kind}/push-test`, { token, lang: getLang() });
+      if (!token && !r.phones) setRes({ ok: false, text: t('This phone could not get an alert address from Google. Check the internet and Google Play services, then try again.') });
+      else if (!r.configured) setRes({ ok: false, text: t('Instant alerts are not switched on at the server yet.') });
+      else if (r.results.length && r.results.every((x) => x.status === 200)) setRes({ ok: true, text: t('Test alert sent. It should appear on this phone in a few seconds. If it does not, allow the app to run in the background (battery settings).'), settings: true });
+      else setRes({ ok: false, text: `${t('Google did not accept the alert.')} ${r.results.map((x) => `${x.status || ''} ${x.error || ''}`.trim()).join(' · ')}` });
+    } catch (e) {
+      setRes({ ok: false, text: e.message || String(e) });
+    } finally { setBusy(false); }
+  };
+  return (
+    <>
+      <button class="btn block ghost" disabled={busy} onClick={run}>{busy ? <Spinner sm /> : <><Icon n="inbox" />{t('Test alerts on this phone')}</>}</button>
+      <Dialog open={!!res} title={res?.ok ? t('Alert sent') : t('Alert problem')} onClose={() => setRes(null)}>
+        <p class="small" style="margin:0 0 12px;white-space:pre-wrap">{res?.text}</p>
+        <div class="btn-row">
+          {res?.settings && <button class="btn ghost" onClick={() => AffordDevice.openAppSettings().catch(() => {})}>{t('Open settings')}</button>}
+          <button class="btn" onClick={() => setRes(null)}>{t('OK')}</button>
+        </div>
+      </Dialog>
+    </>
   );
 }

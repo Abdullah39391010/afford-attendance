@@ -30,32 +30,50 @@ async function accessToken(sa) {
 }
 
 /**
- * Sends each message; returns the device tokens Firebase says are gone (to delete).
+ * Sends each message. Returns the device tokens Firebase says are gone (to delete).
+ * When `report` is given, one {status, error} per message is pushed into it.
  * @param {string} saJson service-account JSON
  * @param {{token:string,id:string,title:string,body:string}[]} msgs
  */
-export async function sendPushes(saJson, msgs) {
+export async function sendPushes(saJson, msgs, report) {
   if (!saJson || !msgs.length) return [];
   const sa = JSON.parse(saJson);
   const at = await accessToken(sa);
   const dead = [];
   await Promise.all(msgs.map(async (m) => {
-    const res = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${at}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        message: {
-          token: m.token,
-          // data-only + high priority: the app shows it itself (sound, lock screen) even when closed
-          data: { id: String(m.id), title: m.title, body: m.body },
-          android: { priority: 'HIGH', ttl: '86400s' },
-        },
-      }),
-    }).catch(() => null);
-    if (res && (res.status === 404 || res.status === 400)) {
-      const txt = await res.text().catch(() => '');
-      if (/UNREGISTERED|registration-token-not-registered/.test(txt)) dead.push(m.token);
+    let status = 0;
+    let txt = '';
+    try {
+      const res = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${at}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message: {
+            token: m.token,
+            // A notification message: Android shows it itself even when the app is closed or asleep
+            // (phone makers' battery savers can block data-only messages). Sound follows the phone's
+            // ring mode, so a phone on silent only shows it.
+            notification: { title: m.title, body: m.body },
+            data: { id: String(m.id), title: m.title, body: m.body },
+            android: {
+              priority: 'HIGH',
+              ttl: '86400s',
+              notification: {
+                channel_id: 'afford_alerts', icon: 'ic_afford_notify', color: '#C62032', tag: String(m.id),
+                default_sound: true, default_vibrate_timings: true, notification_priority: 'PRIORITY_HIGH', visibility: 'PUBLIC',
+              },
+            },
+          },
+        }),
+      });
+      status = res.status;
+      if (!res.ok) txt = await res.text().catch(() => '');
+    } catch (e) {
+      txt = String(e?.message || e);
     }
+    if ((status === 404 || status === 400) && /UNREGISTERED|registration-token-not-registered/.test(txt)) dead.push(m.token);
+    if (status && status !== 200) console.warn('push', status, txt.slice(0, 300));
+    if (report) report.push({ status, error: txt ? (txt.match(/"message":\s*"([^"]+)"/)?.[1] || txt).slice(0, 200) : '' });
   }));
   return dead;
 }

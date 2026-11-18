@@ -446,3 +446,22 @@ test('instant push: phones register, admins get new requests, staff get answers'
   assert.equal(sent[0].token, 'ali-phone-token-123456789012');
   assert.equal(sent[0].title, 'درخواست منظور ہو گئی');
 });
+
+test('push test: sends to the caller only and reports the result', async () => {
+  const t = await seeded();
+  const sent = [];
+  t.store.pushSender = async (msgs, report) => { sent.push(...msgs); msgs.forEach(() => report.push({ status: 200, error: '' })); return []; };
+  const off = (await t.api('POST', '/api/admin/push-test', {}, t.owner)).data;
+  assert.equal(off.phones, 0);
+  t.store.env = { ...t.store.env, FIREBASE_SERVICE_ACCOUNT: '{}' };
+  await t.aliApi('POST', '/api/emp/push-token', { token: 'ali-phone-token-123456789012', lang: 'en' });
+  const r = (await t.api('POST', '/api/admin/push-test', { token: 'owner-phone-token-1234567890', lang: 'en' }, t.owner)).data;
+  assert.equal(r.configured, true);
+  assert.equal(r.phones, 1);
+  assert.equal(r.results[0].status, 200);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].token, 'owner-phone-token-1234567890');
+  const e = (await t.aliApi('POST', '/api/emp/push-test', {})).data;
+  assert.equal(e.phones, 1);
+  assert.equal(sent[1].token, 'ali-phone-token-123456789012');
+});

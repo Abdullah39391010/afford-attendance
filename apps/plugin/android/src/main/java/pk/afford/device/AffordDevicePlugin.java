@@ -101,6 +101,8 @@ public class AffordDevicePlugin extends Plugin {
 
     @Override
     public void load() {
+        // The alert channel (sound + lock screen) must exist before any Firebase alert arrives.
+        AffordNotifyWorker.ensureChannel(getContext());
         // Android back button: the web app decides (close a sheet, go back a page, or go home).
         getActivity().runOnUiThread(() -> getActivity().getOnBackPressedDispatcher().addCallback(getActivity(), new OnBackPressedCallback(true) {
             @Override

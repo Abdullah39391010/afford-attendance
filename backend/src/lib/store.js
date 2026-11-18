@@ -43,7 +43,7 @@ export class Store {
     }
     this.routes = this.buildRoutes();
     this.outbox = [];
-    this.pushSender = (msgs) => sendPushes(this.env.FIREBASE_SERVICE_ACCOUNT, msgs);
+    this.pushSender = (msgs, report) => sendPushes(this.env.FIREBASE_SERVICE_ACCOUNT, msgs, report);
   }
 
   // ---------------------------------------------------------------- settings / helpers
@@ -313,6 +313,8 @@ export class Store {
     add('GET', '/api/emp/requests', this.empRequests, { auth: 'emp' });
     add('GET', '/api/emp/notify', this.empNotify, { auth: 'emp' });
     add('POST', '/api/emp/push-token', (c) => this.pushToken(c, 'emp'), { auth: 'emp' });
+    add('POST', '/api/admin/push-test', (c) => this.pushTest(c, 'admin'), A());
+    add('POST', '/api/emp/push-test', (c) => this.pushTest(c, 'emp'), { auth: 'emp' });
     add('POST', '/api/emp/requests', this.empNewRequest, { auth: 'emp' });
     add('POST', '/api/emp/requests/:id/cancel', this.empCancelRequest, { auth: 'emp' });
     add('GET', '/api/emp/calendar', this.empCalendar, { auth: 'emp' });
@@ -1068,6 +1070,25 @@ export class Store {
       ON CONFLICT(token) DO UPDATE SET kind = excluded.kind, sub = excluded.sub, lang = excluded.lang, updated = excluded.updated`,
     token, kind, actor.id, body.lang === 'ur' ? 'ur' : 'en', this.now());
     return { ok: true, push: !!this.env.FIREBASE_SERVICE_ACCOUNT };
+  }
+
+  /** Sends a test alert to the caller's own phone(s) right now and says what happened. */
+  async pushTest({ actor, body }, kind) {
+    const configured = !!this.env.FIREBASE_SERVICE_ACCOUNT;
+    const tk = str(body.token, 400);
+    if (tk && tk.length >= 20) this.pushToken({ actor, body: { token: tk, lang: body.lang } }, kind);
+    const rows = this.db.all('SELECT token, lang FROM push_tokens WHERE kind = ? AND sub = ?', kind, actor.id);
+    if (!configured || !rows.length) return { configured, phones: rows.length, results: [] };
+    const report = [];
+    const msgs = rows.map((r) => ({
+      token: r.token, id: `test-${this.now()}`,
+      title: r.lang === 'ur' ? 'ٹیسٹ اطلاع' : 'Test alert',
+      body: r.lang === 'ur' ? 'اطلاعات ٹھیک کام کر رہی ہیں۔' : 'Alerts are working on this phone.',
+    }));
+    let dead = [];
+    try { dead = await this.pushSender(msgs, report); } catch (e) { report.push({ status: 0, error: String(e?.message || e).slice(0, 200) }); }
+    for (const d of dead || []) this.db.run('DELETE FROM push_tokens WHERE token = ?', d);
+    return { configured, phones: rows.length, results: report };
   }
 
   /** Queue an alert for some phones; text is made per phone language. */

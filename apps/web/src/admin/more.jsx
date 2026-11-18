@@ -8,6 +8,7 @@ import { TopBar, Icon, Loader, useLoad, toast, toastErr, go, goBack, Seg, Chips,
 import { tableDoc, printDoc, shareDocPdf, shareCsv } from '../shared/printdoc.js';
 import { AuditList } from './staff.jsx';
 import { useApp } from './app.jsx';
+import { TestAlert } from '../shared/perms.jsx';
 
 export function More() {
   const app = useApp();
@@ -40,6 +41,7 @@ export function More() {
           <div class="gap" style="justify-content:space-between"><span><Icon n="lang" /> {t('Language')}</span><LangSwitch /></div>
           <FingerToggle title={t('Unlock Afford Admin')} />
         </div>
+        {app.can('requests.decide') && <TestAlert kind="admin" />}
         <button class="btn block ghost" onClick={app.logout}><Icon n="logout" />{t('Log out')}</button>
         <Credit app="Afford Admin" />
       </div>

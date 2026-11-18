@@ -11,10 +11,10 @@ export const LEGEND = [
 
 export function MonthNav({ month, onChange, max }) {
   return (
-    <div class="gap" style="justify-content:space-between;margin:6px 0 10px">
+    <div class="datebar" style="margin:6px 0 10px">
       <button class="iconbtn" onClick={() => onChange(addMonths(month, -1))} aria-label={t('Previous month')}><Icon n="back" cls="flip" /></button>
-      <b style="font-size:17px">{fmtMonth(month)}</b>
-      <button class="iconbtn" disabled={max && month >= max} style={max && month >= max ? 'opacity:.3' : ''} onClick={() => onChange(addMonths(month, 1))} aria-label={t('Next month')}>
+      <div class="db-mid"><b>{fmtMonth(month)}</b></div>
+      <button class="iconbtn" disabled={max && month >= max} onClick={() => onChange(addMonths(month, 1))} aria-label={t('Next month')}>
         <Icon n="fwd" cls="flip" />
       </button>
     </div>

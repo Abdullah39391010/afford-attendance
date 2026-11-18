@@ -125,7 +125,8 @@ public class AffordNotifyWorker extends Worker {
             .setOnlyAlertOnce(true)
             .setContentIntent(pi);
         try {
-            NotificationManagerCompat.from(ctx).notify(id.hashCode(), b.build());
+            // Same tag + id 0 as alerts that Android shows straight from Firebase, so one request never shows twice.
+            NotificationManagerCompat.from(ctx).notify(id, 0, b.build());
         } catch (SecurityException ignored) {
             // notifications not allowed by the user
         }

@@ -10,6 +10,9 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <application>
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="afford_alerts" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_afford_notify" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/afford_notify" />
         <service android:name="pk.afford.device.AffordFcmService" android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />

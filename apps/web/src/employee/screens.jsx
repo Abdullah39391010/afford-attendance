@@ -13,6 +13,7 @@ import { describe } from '../shared/describe.js';
 import { PunchSheet } from '../shared/punchsheet.jsx';
 import { getLoc } from './home.jsx';
 import { useEmp } from './app.jsx';
+import { TestAlert } from '../shared/perms.jsx';
 
 // ---------------------------------------------------------------- calendar
 export function MyCalendar() {
@@ -98,7 +99,7 @@ export function MyRequests({ q }) {
                 <div class="main">
                   <div class="title">{reqLabel(r.type)}</div>
                   <div class="sub">{describe(r, cur)}</div>
-                  {r.note && <div class="sub">{t('Manager')}: “{r.note}”</div>}
+                  {r.note && <div class="sub">{t('Reply')}: “{r.note}”</div>}
                 </div>
                 <div class="end">
                   <Pill s={r.status === 'pending' ? 'pending' : r.status}>{t(r.status === 'pending' ? 'Waiting' : r.status === 'approved' ? 'Approved' : r.status === 'declined' ? 'Declined' : 'Cancelled')}</Pill>
@@ -146,7 +147,7 @@ function NewRequest({ type, date0, onClose, onDone }) {
       if (type === 'leave' || type === 'field_duty') Object.assign(body, { date: f.date, toDate: f.toDate || f.date });
       if (type === 'advance') body.amount = Number(f.amount);
       await api.post('/api/emp/requests', body);
-      toast(t('Request sent to the manager'), 'ok');
+      toast(t('Request sent to the admin and managers'), 'ok');
       onDone();
     } catch (e) { toastErr(e); } finally { setBusy(false); }
   };
@@ -179,9 +180,9 @@ function NewRequest({ type, date0, onClose, onDone }) {
         </div>
       )}
       {type === 'advance' && <Field label={t('Amount ({c})', { c: E.home.store.currency })}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={f.amount} onInput={set('amount')} /></Field>}
-      {type === 'undo_checkout' && <p class="small muted">{t('Your last check-out will be removed after the manager approves, so you are checked in again.')}</p>}
+      {type === 'undo_checkout' && <p class="small muted">{t('Your last check-out will be removed after the admin or manager approves, so you are checked in again.')}</p>}
       <Field label={t('Reason')}><input class="input" value={f.reason} onInput={set('reason')} placeholder={t('Write a short reason')} /></Field>
-      <button class="btn block" disabled={busy || (type === 'advance' && !(Number(f.amount) > 0))} onClick={send}>{busy ? <Spinner sm /> : t('Send to manager')}</button>
+      <button class="btn block" disabled={busy || (type === 'advance' && !(Number(f.amount) > 0))} onClick={send}>{busy ? <Spinner sm /> : t('Send to admin / manager')}</button>
     </Sheet>
   );
 }
@@ -265,6 +266,7 @@ export function MyMore() {
           <div class="gap" style="justify-content:space-between"><span><Icon n="lang" /> {t('Language')}</span><LangSwitch /></div>
           <FingerToggle title={t('Unlock Afford Staff')} />
         </div>
+        <TestAlert kind="emp" />
         <Banner kind="info" icon="phone">{t('This app is linked to this phone. If you change your phone, ask the owner to reset it.')}</Banner>
         <button class="btn block ghost" onClick={async () => { if (await confirmBox({ title: t('Log out?'), text: t('You will need your PIN to log in again.'), yes: t('Log out'), danger: true })) E.logout(); }}><Icon n="logout" />{t('Log out')}</button>
         <Credit app="Afford Staff" />

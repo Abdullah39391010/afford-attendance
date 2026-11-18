@@ -147,7 +147,7 @@ export function Home() {
             </p>
             {isIn && (
               breakPending
-                ? <Banner kind="info" icon="coffee">{t('Break request sent. Waiting for the manager.')}</Banner>
+                ? <Banner kind="info" icon="coffee">{t('Break request sent. Waiting for the admin or manager.')}</Banner>
                 : <button class="btn block ghost" style="margin-top:12px" disabled={home.today.breakLeftMin <= 0} onClick={() => setBreakSheet(true)}>
                   <Icon n="coffee" />{t('Take a break')} · {t('{m} min left today', { m: home.today.breakLeftMin })}
                 </button>
@@ -206,7 +206,7 @@ function BreakSheet({ left, needsApproval, onClose, onDone }) {
     setBusy(true);
     try {
       const r = await api.post('/api/emp/requests', { type: 'break', minutes: Number(min), reason });
-      toast(r.started ? t('Break started. Come back on time.') : t('Break request sent. Waiting for the manager.'), 'ok');
+      toast(r.started ? t('Break started. Come back on time.') : t('Break request sent. Waiting for the admin or manager.'), 'ok');
       onDone();
     } catch (e) { toastErr(e); } finally { setBusy(false); }
   };
@@ -217,7 +217,7 @@ function BreakSheet({ left, needsApproval, onClose, onDone }) {
         <Chips value={min} onChange={setMin} options={(opts.length ? opts : [left]).map((m) => [String(m), t('{m} min', { m })])} />
       </Field>
       <Field label={t('Reason (optional)')}><input class="input" value={reason} onInput={(e) => setReason(e.currentTarget.value)} placeholder={t('e.g. Lunch, prayer')} /></Field>
-      <button class="btn block" disabled={busy} onClick={send}>{busy ? <Spinner sm /> : needsApproval ? t('Send to manager') : t('Start break')}</button>
+      <button class="btn block" disabled={busy} onClick={send}>{busy ? <Spinner sm /> : needsApproval ? t('Send to admin / manager') : t('Start break')}</button>
     </Sheet>
   );
 }

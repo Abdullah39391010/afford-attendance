@@ -101,7 +101,15 @@ button.row:active { background: var(--bg); }
 .count { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); padding: 10px 4px 8px; text-align: center; border: 2px solid transparent; }
 .count.on { border-color: var(--ink); }
 .count b { display: block; font-size: 24px; line-height: 1.1; font-family: var(--font); }
-.count span { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.count span { display: block; font-size: 11.5px; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; }
+/* date / month switcher: arrows stay on one line with the date */
+.datebar { display: flex; align-items: center; gap: 6px; margin-top: 10px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 4px; }
+.datebar .iconbtn { flex: none; }
+.datebar .iconbtn:disabled { opacity: .3; }
+.db-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; text-align: center; }
+.db-mid b { font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.db-tag { font-size: 10.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--red); background: none; border: 0; padding: 0; font-family: inherit; }
+.db-tag.ghost { text-decoration: underline; cursor: pointer; }
 .count.c-in b { color: var(--green); } .count.c-late b { color: var(--orange); } .count.c-break b { color: var(--blue); }
 .count.c-absent b { color: var(--red); } .count.c-leave b { color: var(--purple); } .count.c-notyet b { color: var(--grey); }
 .count.c-out b { color: var(--ink2); } .count.c-off b { color: var(--grey); } .count.c-duty b { color: var(--indigo); }

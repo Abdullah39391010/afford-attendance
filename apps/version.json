@@ -1,7 +1,7 @@
 {
-  "version": "0.6.0",
+  "version": "0.6.1",
   "notes": {
-    "en": "New Afford Supermarket logo on the app icon, screens and printouts, with a new opening animation. Instant alerts through Firebase turn on once the owner finishes the setup.",
-    "ur": "ایپ آئیکن، اسکرینوں اور پرنٹ پر نیا Afford Supermarket لوگو، اور نئی اوپننگ اینیمیشن۔ فوری اطلاع (Firebase) مالک کے سیٹ اپ کے بعد چلے گی۔"
+    "en": "Alerts are now shown by Android itself, so they arrive even when the app is closed or the phone is asleep. New \"Test alerts on this phone\" button in More. Requests now say they go to the admin and managers. Cleaner date bar on the Live board.",
+    "ur": "اطلاعات اب اینڈرائیڈ خود دکھاتا ہے، اس لیے ایپ بند ہو یا فون سویا ہو تب بھی آتی ہیں۔ \"مزید\" میں نیا بٹن: \"اس فون پر اطلاع ٹیسٹ کریں\"۔ درخواستیں اب ایڈمن اور مینیجر دونوں کو جانے کا بتاتی ہیں۔ لائیو بورڈ پر بہتر تاریخ۔"
   }
 }

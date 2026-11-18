@@ -44,11 +44,12 @@ export function fmtMonth(month) {
   const [y, m] = month.split('-').map(Number);
   return `${monthName(m)} ${y}`;
 }
-export function fmtDate(date, { withDay = true } = {}) {
+export function fmtDate(date, { withDay = true, short = false } = {}) {
   if (!date) return '—';
   const [y, m, d] = date.split('-').map(Number);
   const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-  return `${withDay ? `${dayShort(dow)}, ` : ''}${d} ${monthName(m)} ${y}`;
+  const mn = short && getLang() !== 'ur' ? monthName(m).slice(0, 3) : monthName(m);
+  return `${withDay ? `${dayShort(dow)}, ` : ''}${d} ${mn} ${y}`;
 }
 export function fmtDateTime(ts) {
   const p = parts(ts);

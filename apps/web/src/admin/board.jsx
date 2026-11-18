@@ -32,10 +32,13 @@ export function Board() {
         <button class="iconbtn" onClick={() => st.reload()} aria-label={t('Refresh')}>{st.loading ? <Spinner sm /> : <Icon n="refresh" />}</button>
       } />
       <div class="wrap">
-        <div class="gap" style="justify-content:space-between;margin-top:8px">
-          <button class="iconbtn" onClick={() => setDate(addDays(date, -1))}><Icon n="back" cls="flip" /></button>
-          <b>{date === today ? t('Today') : ''} {fmtDate(date)}</b>
-          <button class="iconbtn" disabled={date >= today} style={date >= today ? 'opacity:.3' : ''} onClick={() => setDate(addDays(date, 1))}><Icon n="fwd" cls="flip" /></button>
+        <div class="datebar">
+          <button class="iconbtn" onClick={() => setDate(addDays(date, -1))} aria-label={t('Previous day')}><Icon n="back" cls="flip" /></button>
+          <div class="db-mid">
+            {date === today ? <span class="db-tag">{t('Today')}</span> : <button class="db-tag ghost" onClick={() => setDate(today)}>{t('Go to today')}</button>}
+            <b>{fmtDate(date, { short: true })}</b>
+          </div>
+          <button class="iconbtn" disabled={date >= today} onClick={() => setDate(addDays(date, 1))} aria-label={t('Next day')}><Icon n="fwd" cls="flip" /></button>
         </div>
         <Loader st={st}>{(data) => {
           const counts = { ...data.counts, off: (data.counts.off || 0) + (data.counts.duty || 0) };
