@@ -1,7 +1,7 @@
 {
-  "version": "0.6.5",
+  "version": "0.6.6",
   "notes": {
-    "en": "Update check fixed: the app now finds new versions reliably, checks again when you come back to it, and has a \"Check for updates\" button in More.",
-    "ur": "اپڈیٹ چیک ٹھیک: ایپ اب نیا ورژن صحیح ڈھونڈتی ہے، واپس کھولنے پر دوبارہ چیک کرتی ہے، اور \"مزید\" میں \"اپڈیٹ چیک کریں\" کا بٹن ہے۔"
+    "en": "Clean new app icon: red shopping bag with the white Afford A on a white background.",
+    "ur": "صاف نیا ایپ آئیکن: سفید پس منظر پر سرخ شاپنگ بیگ اور سفید Afford A۔"
   }
 }

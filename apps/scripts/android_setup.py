@@ -66,20 +66,21 @@ def bag_art(W, label):
     x0, y0, x1, y1 = W * 0.22, W * (0.33 - up), W * 0.78, W * (0.84 - up)
     w = x1 - x0
     sh = Image.new('RGBA', (W, W), (0, 0, 0, 0))
-    ImageDraw.Draw(sh).rounded_rectangle([x0, y0 + W * 0.02, x1, y1 + W * 0.02], radius=int(W * 0.04), fill=(0, 0, 0, 70))
+    ImageDraw.Draw(sh).rounded_rectangle([x0, y0 + W * 0.02, x1, y1 + W * 0.02], radius=int(W * 0.04), fill=(0, 0, 0, 45))
     img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(W * 0.02)))
     d = ImageDraw.Draw(img)
     hh = (y1 - y0) * 0.32
-    d.arc([x0 + w * 0.28, y0 - hh, x1 - w * 0.28, y0 + hh], 180, 360, fill=(255, 255, 255, 255), width=max(1, int(W * 0.035)))
+    d.arc([x0 + w * 0.28, y0 - hh, x1 - w * 0.28, y0 + hh], 180, 360, fill=(150, 10, 22, 255), width=max(1, int(W * 0.04)))
     m = Image.new('L', (W, W), 0)
     dm = ImageDraw.Draw(m)
     dm.polygon([(x0 + w * 0.06, y0), (x1 - w * 0.06, y0), (x1, y1 - w * 0.08), (x0, y1 - w * 0.08)], fill=255)
     dm.rounded_rectangle([x0, y1 - w * 0.2, x1, y1], radius=int(w * 0.08), fill=255)
-    img.paste(Image.new('RGBA', (W, W), (255, 255, 255, 255)), (0, 0), m)
-    d.line([(x0 + w * 0.07, y0 + w * 0.07), (x1 - w * 0.07, y0 + w * 0.07)], fill=(220, 220, 224, 255), width=max(1, int(w * 0.012)))
+    img.paste(red_fill((W, W)), (0, 0), m)
+    d.line([(x0 + w * 0.07, y0 + w * 0.07), (x1 - w * 0.07, y0 + w * 0.07)], fill=(255, 255, 255, 90), width=max(1, int(w * 0.012)))
     s = int(W * 0.34)
     k = s / max(MARK.size)
     a = MARK.resize((max(1, int(MARK.width * k)), max(1, int(MARK.height * k))), Image.LANCZOS)
+    wa = Image.new('RGBA', a.size, (255, 255, 255, 255)); wa.putalpha(a.split()[3]); a = wa
     img.alpha_composite(a, (int(W * 0.5 - a.width / 2), int(W * (0.6 - up) - a.height / 2)))
     return img
 
@@ -89,7 +90,7 @@ def legacy_icon(px, label, round_):
     img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
     m = Image.new('L', (W, W), 0)
     ImageDraw.Draw(m).ellipse([0, 0, W - 1, W - 1], fill=255) if round_ else ImageDraw.Draw(m).rounded_rectangle([0, 0, W - 1, W - 1], radius=W // 5, fill=255)
-    img.paste(red_fill((W, W)), (0, 0), m)
+    img.paste(Image.new('RGBA', (W, W), (255, 255, 255, 255)), (0, 0), m)
     img.alpha_composite(bag_art(W, label))
     img = img.resize((px, px), Image.LANCZOS)
     return badge(img, label, INK)
@@ -98,7 +99,7 @@ def legacy_icon(px, label, round_):
 def foreground(px, label):
     # adaptive icon: 108dp canvas, safe zone is the middle 66dp; the red comes from the background layer
     W = px * 4
-    inner = int(W * 0.8)
+    inner = int(W * 0.9)
     img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
     img.alpha_composite(bag_art(inner, label), ((W - inner) // 2, (W - inner) // 2))
     img = img.resize((px, px), Image.LANCZOS)
@@ -132,7 +133,7 @@ def setup(app, label):
             w, h = Image.open(p).size
             splash(w, h).save(p)
     bgx = os.path.join(res, 'values/ic_launcher_background.xml')
-    open(bgx, 'w').write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#D81420</color>\n</resources>\n')
+    open(bgx, 'w').write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#FFFFFF</color>\n</resources>\n')
     # Android 12+ splash: white background with the logo, then the web splash animation takes over
     sp = os.path.join(res, 'values/styles.xml')
     s = open(sp).read()
@@ -141,7 +142,6 @@ def setup(app, label):
                '        <item name="android:background">@drawable/splash</item>\n'
                '        <item name="windowSplashScreenBackground">#FFFFFF</item>\n'
                '        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>\n'
-               '        <item name="windowSplashScreenIconBackgroundColor">#D81420</item>\n'
                '        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>\n'
                '    </style>', s, flags=re.S)
     s = s.replace('<item name="android:background">@null</item>', '<item name="android:background">@null</item>\n        <item name="android:statusBarColor">#FFFFFF</item>\n        <item name="android:windowLightStatusBar">true</item>\n        <item name="android:navigationBarColor">#FFFFFF</item>')
@@ -188,5 +188,5 @@ def affordKeystore = System.getenv('AFFORD_KEYSTORE') ?: '../../../signing/affor
 
 
 if __name__ == '__main__':
-    setup('admin', 'ADMIN')
+    setup('admin', '')  # same clean icon for both apps (owner's choice)
     setup('employee', '')
