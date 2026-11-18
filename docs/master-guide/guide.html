@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 2.2 · 18 November 2026 (apps v0.9.1)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
+  <div class="meta">Version 2.3 · 18 November 2026 (apps v0.9.2)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -220,8 +220,8 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
 
   <section class="flow">
     <h2>7. Owner web page</h2>
-    <p>Open <b>afford-attendance.abdullah6763939.workers.dev/owner/</b> on any computer and log in with your admin name and PIN. It is the full admin app in a wider layout: board, requests, staff, payroll, reports, roster and backups. Managers can use it too with their own login and permissions.</p>
-    <p>For safety a web login lasts 12 hours, then the PIN is asked again. Phone-only parts (fingerprint, daily backup to the phone, alert test, app update) are hidden on the web page.</p>
+    <p>Open <b>afford-attendance.abdullah6763939.workers.dev/owner/</b> on any computer. It is separate from the admin logins: it asks only for the <b>owner page code</b>. After the code it shows everything the owner sees: board, requests, staff, payroll, reports, roster and backups.</p>
+    <p>The owner sets or changes the code in the admin app: More › Owner web page (4 to 8 digits). Changing it logs out every open owner page, and "Turn off owner page" closes it completely. After 5 wrong codes the page is locked for 5 minutes, then longer each time. A login lasts 12 hours. Phone-only parts are hidden on the web page.</p>
   </section>
 </section>
 
@@ -447,11 +447,11 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   <h2>20. Versions and test checklist</h2>
   <table>
     <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
-    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>50 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
+    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>51 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
     <tr><td>Admin app</td><td><span class="tag done">Live</span></td><td>Login, board, requests and owner approvals, staff, money with installments, payroll with paid record and month lock, settlement, rules agreement, backups, reports, kiosk, Urdu.</td></tr>
     <tr><td>Employee app</td><td><span class="tag done">Live</span></td><td>Rules agreement, phone locking, fingerprint, check-in inside and outside the circle, check-in-again request, break, requests, reminders, offline punch, calendar, payslip, Urdu.</td></tr>
     <tr><td>iPhone web version</td><td><span class="tag done">v0.9</span></td><td>Owner allows it per person, login in Safari, check in inside the circle, Add to Home Screen.</td></tr>
-    <tr><td>Owner web page</td><td><span class="tag done">v0.9.1</span></td><td>Open /owner/ on a computer, PIN login, approve a request, payroll, download the backup file.</td></tr>
+    <tr><td>Owner web page</td><td><span class="tag done">v0.9.1</span></td><td>Set the code in More › Owner web page, open /owner/ on a computer, enter the code, approve a request, payroll, download the backup file.</td></tr>
     <tr><td>Forgot PIN</td><td><span class="tag done">v0.9.1</span></td><td>Staff taps "Forgot PIN?", owner approves with a new PIN, staff logs in with it.</td></tr>
     <tr><td>Google Drive copy</td><td><span class="tag done">v0.9.1</span></td><td>Save to Google Drive from Backup, check "Last copy", reminder on the 1st.</td></tr>
   </table>

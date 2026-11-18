@@ -33,6 +33,8 @@ const ERRORS = {
   NETWORK: 'No internet. Please check your connection.',
   NO_SERVER: 'Server address is not set.',
   WRONG_PIN: 'Wrong PIN. Please try again.',
+  WRONG_CODE: 'Wrong code. Please try again.',
+  OWNER_PAGE_OFF: 'The owner page code is not set yet.',
   LOCKED: 'Too many wrong PINs. Try again in {min} minutes.',
   OUTSIDE_RADIUS: 'You are {d} m away from the store. Go inside the store and try again.',
   NO_STORE_LOCATION: 'The store location is not set yet. Ask the admin.',

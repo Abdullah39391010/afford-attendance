@@ -10,6 +10,7 @@ import {
 import { BackupScreen, autoBackupTick } from './backup.jsx';
 import { RulesAgreement } from './pro.jsx';
 import { Roster } from './extra.jsx';
+import { OwnerCodeLogin, OwnerPageScreen, forgetOwnerPage } from './ownerpage.jsx';
 import { Settlement } from './ops.jsx';
 import { startNotify, stopNotify } from '../shared/notify.js';
 import { PermissionGate } from '../shared/perms.jsx';
@@ -92,6 +93,7 @@ export function App() {
     await stopNotify();
     try { await api.post('/api/admin/logout'); } catch { /* ignore */ }
     await secureRemove(SECURE_TOKEN);
+    if (IS_WEB) forgetOwnerPage();
     LS.set('afford.bio', null);
     api.setToken(null);
     setMe(null);
@@ -105,7 +107,7 @@ export function App() {
       {phase === 'server' && <ServerSetup err={bootErr} onSaved={() => { setPhase('splash2'); boot().then(() => { splashDone.current = true; setPhase(nextPhase.current || 'login'); }); }} />}
       {phase === 'splash2' && <div class="auth"><Spinner /></div>}
       {phase === 'setup' && <OwnerSetup onDone={signedIn} />}
-      {phase === 'login' && <Login info={info} onDone={signedIn} onKiosk={() => setPhase('kiosk')} />}
+      {phase === 'login' && (IS_WEB ? <OwnerCodeLogin onDone={signedIn} /> : <Login info={info} onDone={signedIn} onKiosk={() => setPhase('kiosk')} />)}
       {phase === 'kiosk' && <KioskMode onExit={async (res) => { await secureRemove('kioskToken'); api.setToken(null); if (res) signedIn(res, { remember: false }); else setPhase('login'); }} />}
       {phase === 'app' && me && <Shell me={me} logout={logout} toKiosk={() => setPhase('kiosk')} />}
       <ToastHost />
@@ -354,6 +356,7 @@ function Shell({ me, logout, toKiosk }) {
     case 'users': screen = <Users />; break;
     case 'kiosk': screen = <KioskSetup />; break;
     case 'backup': screen = <BackupScreen />; break;
+    case 'ownerpage': screen = <OwnerPageScreen />; break;
     case 'rules': screen = <RulesAgreement />; break;
     case 'roster': screen = <Roster />; break;
     case 'settings':

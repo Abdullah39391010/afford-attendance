@@ -20,10 +20,11 @@ export function More() {
     app.can('reports.view') && ['reports', 'report', 'Reports', 'Daily, weekly, monthly · late & absent lists'],
     app.can('settings.edit') && ['settings', 'gear', 'Settings', 'Location, shifts, rules, holidays, logo'],
     app.me.role === 'owner' && ['users', 'key', 'Managers', 'Add managers and set what they can do'],
+    app.me.role === 'owner' && !IS_WEB && ['ownerpage', 'lock', 'Owner web page', 'Separate page for a computer, with its own code'],
     app.me.role === 'owner' && ['backup', 'download', 'Backup & restore', 'Cloud backup, phone backup, server health'],
     app.can('employees.view') && ['rules', 'shield', 'Staff rules agreement', 'Rules every employee accepts in the app'],
     app.can('audit.view') && ['audit', 'log', 'Audit log', 'Every admin action'],
-    ['pin', 'shield', 'Change my PIN', ''],
+    !IS_WEB && ['pin', 'shield', 'Change my PIN', ''],
   ].filter(Boolean);
   return (
     <div class="screen">

@@ -7,7 +7,8 @@
 //  - branches: an employee belongs to one store location; a manager can be limited to one branch
 import { bad, forbidden, notFound, uid, isDate, isMonth, str, clampInt, local, hm, addDays, dateRange } from './util.js';
 import { shiftFor, empShift, empWeeklyOff } from './attendance.js';
-import { hashPin, validPin } from './crypto.js';
+import { hashPin, validPin, checkPin } from './crypto.js';
+import { HttpError } from './util.js';
 
 const DOC_KINDS = ['cnic_front', 'cnic_back', 'contract', 'photo', 'other'];
 const NOTE_KINDS = ['warning', 'praise', 'note'];
@@ -33,9 +34,47 @@ export function installExtra(Store) {
     add('GET', '/api/admin/docs/:id', this.getDoc, A('employees.edit'));
     add('DELETE', '/api/admin/docs/:id', this.deleteDoc, A('employees.edit'));
     add('POST', '/api/emp/forgot-pin', this.forgotPin);
+    add('GET', '/api/admin/owner-page', this.ownerPageInfo, A(null, { owner: true }));
+    add('PUT', '/api/admin/owner-page', this.setOwnerPageCode, A(null, { owner: true }));
+    add('POST', '/api/owner-page/login', this.ownerPageLogin);
     add('GET', '/api/emp/roster', this.empRoster, { auth: 'emp' });
     add('GET', '/api/emp/notes', this.empNotes, { auth: 'emp' });
     add('POST', '/api/emp/notes/:id/seen', this.empNoteSeen, { auth: 'emp' });
+  };
+
+  // ---------------------------------------------------------------- owner web page (own code, separate from admin logins)
+  P.ownerPageInfo = function ownerPageInfo() {
+    return { codeSet: !!this.db.kvGet('ownerPageCode', null) };
+  };
+  P.setOwnerPageCode = async function setOwnerPageCode({ actor, body }) {
+    const code = String(body.code ?? '');
+    if (!code) {
+      this.db.kvSet('ownerPageCode', null);
+      this.audit(actor, 'owner_page_off', null, {});
+      return { codeSet: false };
+    }
+    if (!/^\d{4,8}$/.test(code)) throw bad('BAD_CODE', 'The code must be 4 to 8 digits');
+    this.db.kvSet('ownerPageCode', await hashPin(code, this.pepper));
+    this.db.run("DELETE FROM sessions WHERE kind = 'admin' AND device = 'web-ownerpage'"); // old page logins end
+    this.lockClear('op:all');
+    this.audit(actor, 'owner_page_code', null, {});
+    return { codeSet: true };
+  };
+  P.ownerPageLogin = async function ownerPageLogin({ body, ip }) {
+    const keys = ['op:all', `ip:${ip}`];
+    this.lockCheck(keys);
+    const stored = this.db.kvGet('ownerPageCode', null);
+    if (!stored) throw bad('OWNER_PAGE_OFF', 'The owner page code is not set. Set it in the admin app: More, Owner web page.');
+    if (!(await checkPin(String(body.code || ''), stored, this.pepper))) {
+      this.lockFail(keys);
+      throw new HttpError(401, 'WRONG_CODE', 'Wrong code');
+    }
+    this.lockClear('op:all');
+    const a = this.db.get("SELECT * FROM admins WHERE role = 'owner' AND active = 1 ORDER BY rowid LIMIT 1");
+    if (!a) throw bad('NO_OWNER', 'No owner account');
+    const token = await this.issueToken('admin', a.id, 'web-ownerpage', 12 * 3600 * 1000);
+    this.audit({ id: a.id, name: a.name }, 'login', null, { device: 'Owner web page' });
+    return { token, me: { id: a.id, name: a.name, login: a.login, role: a.role, perms: JSON.parse(a.perms) }, serverTime: this.now() };
   };
 
   // ---------------------------------------------------------------- branches

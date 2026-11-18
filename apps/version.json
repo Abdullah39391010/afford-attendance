@@ -1,7 +1,7 @@
 {
-  "version": "0.9.1",
+  "version": "0.9.2",
   "notes": {
-    "en": "Owner web page for a computer, Forgot PIN button for staff, and a monthly backup copy to Google Drive.",
-    "ur": "کمپیوٹر کے لیے مالک کا ویب صفحہ، ملازمین کے لیے \"پن بھول گئے\" بٹن، اور گوگل ڈرائیو میں ماہانہ بیک اپ کاپی۔"
+    "en": "The owner web page now has its own code, separate from admin logins. Set it in More, Owner web page.",
+    "ur": "مالک کے ویب صفحے کا اب اپنا الگ کوڈ ہے، ایڈمن لاگ اِن سے الگ۔ اسے مزید، مالک کا ویب صفحہ میں لگائیں۔"
   }
 }
