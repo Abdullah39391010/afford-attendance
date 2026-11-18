@@ -377,3 +377,4 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
 [dir=rtl] .rules-gate .rg-list { padding: 14px 34px 14px 14px; }
 .rules-gate .rg-check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; margin: 0 0 14px; }
 .rules-gate .rg-check input { width: 22px; height: 22px; flex: none; accent-color: var(--red); }
+.st-left { background: var(--bg); color: var(--muted); } .cal .d.c-left { background: #F0F0F3; color: #A2A5AB; }

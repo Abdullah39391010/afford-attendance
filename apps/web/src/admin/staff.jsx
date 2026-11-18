@@ -299,6 +299,7 @@ function Info({ e, reload }) {
       </div>
       <div style="display:grid;gap:10px;margin-bottom:20px">
         {app.can('payroll.view') && <button class="btn ghost" onClick={() => go(`payroll/${e.id}?month=${month}`)}><Icon n="money" />{t('Salary statement')}</button>}
+        {app.can('payroll.view') && <button class="btn ghost" onClick={() => go(`staff/${e.id}/settle`)}><Icon n="out" />{e.active ? t('Final settlement (leaving)') : t('Final settlement')}</button>}
         {app.me.role === 'owner' && e.deviceBound && <button class="btn ghost" onClick={resetPhone}><Icon n="phone" />{t('Reset phone (allow new phone)')}</button>}
       </div>
     </div>
@@ -389,7 +390,7 @@ function Money({ e }) {
   const cur = app.settings.currency;
   const st = useLoad(() => api.get(`/api/admin/employees/${e.id}/money`), [e.id]);
   const [add, setAdd] = useState(false);
-  const [f, setF] = useState({ kind: 'advance', amount: '', note: '', month: todayStr(api.serverNow()).slice(0, 7) });
+  const [f, setF] = useState({ kind: 'advance', amount: '', note: '', installments: 1, month: todayStr(api.serverNow()).slice(0, 7) });
   const save = async () => {
     try {
       const r = await api.post('/api/admin/money', { employeeId: e.id, ...f, amount: Number(f.amount) });
@@ -439,6 +440,11 @@ function Money({ e }) {
           <Field label={t('Amount ({c})', { c: cur })}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={f.amount} onInput={(ev) => setF({ ...f, amount: ev.currentTarget.value })} /></Field>
           <Field label={t('Salary month')}><input class="input ltr" style="width:100%" type="month" value={f.month} onInput={(ev) => setF({ ...f, month: ev.currentTarget.value })} /></Field>
         </div>
+        {f.kind === 'advance' && (
+          <Field label={t('Cut from salary in')} hint={f.installments > 1 && f.amount ? t('{a} a month for {n} months', { a: fmtMoney(Math.floor(Number(f.amount) / f.installments), cur), n: f.installments }) : ''}>
+            <Chips value={String(f.installments)} onChange={(v) => setF({ ...f, installments: Number(v) })} options={[1, 2, 3, 4, 6].map((n) => [String(n), n === 1 ? t('1 month') : t('{n} months', { n })])} />
+          </Field>
+        )}
         <Field label={t('Note')}><input class="input" value={f.note} onInput={(ev) => setF({ ...f, note: ev.currentTarget.value })} /></Field>
         <button class="btn block" disabled={!f.amount} onClick={save}>{t('Save')}</button>
       </Sheet>

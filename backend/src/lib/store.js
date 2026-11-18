@@ -7,6 +7,7 @@ import { hashPin, checkPin, newToken, sha256, validPin } from './crypto.js';
 import { makeBackup, checkBackup, applyBackup } from './backup.js';
 import { sendPushes } from './push.js';
 import { installPro } from './pro.js';
+import { installOps } from './ops.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -333,6 +334,7 @@ export class Store {
     add('GET', '/api/kiosk/employees/:id/photo', this.kioskEmpPhoto, { auth: 'kiosk' });
     add('POST', '/api/kiosk/punch', this.kioskPunch, { auth: 'kiosk' });
     this.proRoutes(add, A);
+    this.opsRoutes(add, A);
     return R;
   }
 
@@ -542,6 +544,9 @@ export class Store {
       notes: str(pick('notes', ''), 300),
       // co-workers this employee may check in/out on their own phone (each one types their own PIN)
       helperFor: (Array.isArray(pick('helperFor', [])) ? pick('helperFor', []) : []).map((x) => str(x, 40)).filter(Boolean).slice(0, 30),
+      // set by the final settlement; cleared when the employee is made active again
+      leaveDate: body.active === true && existing && !existing.active ? null : (isDate(pick('leaveDate', '')) ? pick('leaveDate', '') : null),
+      leaveNote: body.active === true && existing && !existing.active ? '' : str(pick('leaveNote', ''), 300),
     };
     if (!data.name) throw bad('MISSING', 'Name is required');
     if (!s.roles.some((r) => r.id === data.roleId)) throw bad('BAD_ROLE', 'Unknown role');
@@ -949,9 +954,18 @@ export class Store {
     const by = Object.fromEntries(rows.map((r) => [r.kind, r.s]));
     return (by.deposit || 0) + (by.deposit_cut || 0) - (by.deposit_return || 0);
   }
-  statement(emp, month, preloaded) {
-    const frozen = this.lockedStatement(emp.id, month);
-    if (frozen) return structuredClone(frozen);
+  statement(emp, month, preloaded, opts = {}) {
+    const frozen = opts.live ? null : this.lockedStatement(emp.id, month);
+    const st = frozen ? structuredClone(frozen) : this.liveStatement(emp, month, preloaded);
+    const s = this.settings;
+    st.payments = this.paymentsFor(emp.id, month).map((p) => ({ id: p.id, amount: p.amount, method: p.method, note: p.note, ts: p.ts }));
+    st.paid = st.payments.reduce((a, p) => a + p.amount, 0);
+    st.slipNo = `${emp.code}-${month.replace('-', '')}`;
+    st.storeAddress = s.storeAddress || '';
+    st.storePhone = s.storePhone || '';
+    return st;
+  }
+  liveStatement(emp, month, preloaded) {
     const dates = monthDates(month);
     const get = preloaded || this.loadDays([emp.id], dates[0], dates[dates.length - 1]);
     const days = dates.map((d) => daySummary(emp, this.settings, d, get(emp.id, d), this.now()));
@@ -972,18 +986,21 @@ export class Store {
     const month = isMonth(q.get('month')) ? q.get('month') : this.month();
     const dates = monthDates(month);
     const get = this.loadDays(null, dates[0], dates[dates.length - 1]);
-    const rows = this.employees({ activeOnly: q.get('all') !== '1' }).map((e) => {
+    const rows = this.employees({ activeOnly: false })
+      .filter((e) => q.get('all') === '1' || e.active || (e.leaveDate && e.leaveDate >= `${month}-01`))
+      .map((e) => {
       const st = this.statement(e, month, get);
       delete st.days;
       return st;
     });
-    const totals = rows.reduce((a, r) => ({ salary: a.salary + r.salary, cuts: a.cuts + r.totalCuts, advances: a.advances + r.advances, net: a.net + r.net }),
-      { salary: 0, cuts: 0, advances: 0, net: 0 });
+    const totals = rows.reduce((a, r) => ({ salary: a.salary + r.salary, cuts: a.cuts + r.totalCuts, advances: a.advances + r.advances, net: a.net + r.net,
+      paid: a.paid + r.paid, unpaid: a.unpaid + (r.net > 0 && r.paid < r.net ? 1 : 0) }),
+    { salary: 0, cuts: 0, advances: 0, net: 0, paid: 0, unpaid: 0 });
     if (q.get('format') === 'csv') {
       return new Response(csv([
-        ['Code', 'Name', 'Salary', 'Present', 'Late days', 'Late min', 'Absent', 'Leave paid', 'Leave unpaid', 'Total cuts', 'Advances', 'Deposit cut', 'Bonus', 'Net pay', 'Deposit balance'],
+        ['Code', 'Name', 'Salary', 'Present', 'Late days', 'Late min', 'Absent', 'Leave paid', 'Leave unpaid', 'Total cuts', 'Advances', 'Deposit cut', 'Bonus', 'Net pay', 'Paid', 'Deposit balance'],
         ...rows.map((r) => [r.employee.code, r.employee.name, r.salary, r.counts.present, r.counts.late, r.counts.lateMin, r.counts.absent,
-          r.leave.paid, r.leave.unpaid, r.totalCuts, r.advances, r.depositCut, r.bonus, r.net, r.depositBalance]),
+          r.leave.paid, r.leave.unpaid, r.totalCuts, r.advances, r.depositCut, r.bonus, r.net, r.paid, r.depositBalance]),
       ]), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="payroll-${month}.csv"` } });
     }
     return { month, totals, rows, locked: this.locks()[month] ? { ts: this.locks()[month].ts, by: this.locks()[month].byName } : null };
@@ -1001,11 +1018,16 @@ export class Store {
     const id = uid();
     // a manager's entry waits for the owner (voided = 2: not counted yet)
     const wait = !this.isOwner(actor);
-    this.db.run('INSERT INTO money (id, emp, kind, amount, month, note, ts, by_admin, voided) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, emp.id, kind, amount, month, str(body.note, 200), this.now(), actor.id, wait ? 2 : 0);
-    this.audit(actor, `money.${kind}`, emp.id, { name: emp.name, amount, month, note: str(body.note, 200), waitingForOwner: wait });
-    if (wait) this.askOwner(actor, 'money_add', emp, { moneyId: id, kind, amount, month, note: str(body.note, 200) });
-    return { id, pendingOwner: wait, depositBalance: this.depositBalance(emp.id) };
+    const n = kind === 'advance' ? clampInt(body.installments, 1, 12, 1) : 1;
+    let ids = [id];
+    if (n > 1) ids = this.insertAdvance(actor, emp, amount, month, str(body.note, 200) || 'Advance', n, wait ? 2 : 0);
+    else {
+      this.db.run('INSERT INTO money (id, emp, kind, amount, month, note, ts, by_admin, voided) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        id, emp.id, kind, amount, month, str(body.note, 200), this.now(), actor.id, wait ? 2 : 0);
+    }
+    this.audit(actor, `money.${kind}`, emp.id, { name: emp.name, amount, month, note: str(body.note, 200), installments: n, waitingForOwner: wait });
+    if (wait) this.askOwner(actor, 'money_add', emp, { moneyId: ids[0], moneyIds: ids, kind, amount, month, installments: n, note: str(body.note, 200) });
+    return { id: ids[0], ids, pendingOwner: wait, depositBalance: this.depositBalance(emp.id) };
   }
   voidMoney({ actor, params }) {
     const m = this.db.get('SELECT * FROM money WHERE id = ?', params.id);
@@ -1319,12 +1341,12 @@ export class Store {
           break;
         case 'advance': {
           const amount = clampInt(body.amount ?? data.amount, 1, 10_000_000, data.amount);
-          const id = uid();
           const wait = !this.isOwner(actor);
-          this.db.run("INSERT INTO money (id, emp, kind, amount, month, note, ts, by_admin, voided) VALUES (?, ?, 'advance', ?, ?, ?, ?, ?, ?)",
-            id, emp.id, amount, this.month(), data.reason || 'Advance', this.now(), actor.id, wait ? 2 : 0);
+          const n = clampInt(body.installments, 1, 12, 1);
+          const ids = this.insertAdvance(actor, emp, amount, this.month(), data.reason || 'Advance', n, wait ? 2 : 0);
+          data.installments = n;
           if (wait) {
-            this.askOwner(actor, 'money_add', emp, { moneyId: id, kind: 'advance', amount, month: this.month(), note: data.reason || 'Advance' });
+            this.askOwner(actor, 'money_add', emp, { moneyId: ids[0], moneyIds: ids, kind: 'advance', amount, month: this.month(), installments: n, note: data.reason || 'Advance' });
             data.waitingForOwner = true;
           }
           data.approvedAmount = amount;
@@ -1668,3 +1690,4 @@ function dataUrlResponse(d) {
 export { paidLeaveQuota };
 
 installPro(Store);
+installOps(Store);

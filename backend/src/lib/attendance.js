@@ -97,6 +97,7 @@ export function daySummary(emp, s, date, d, now) {
   if (mark === 'present') status = punches.length && lateMin ? 'late' : 'present';
   else if (mark) status = mark;
   else if (punches.length) status = lateMin > 0 ? 'late' : 'present';
+  else if (emp.leaveDate && date > emp.leaveDate) status = 'left';
   else if (holiday) status = 'holiday';
   else if (weeklyOff) status = 'off';
   else if (emp.joinDate && date < emp.joinDate) status = 'notjoined';
@@ -107,6 +108,9 @@ export function daySummary(emp, s, date, d, now) {
   // Marked days (leave, duty, absent...) carry no time-based cuts.
   const timed = !mark || mark === 'present';
   const missingOut = timed && punches.length > 0 && isOpen && now > endTs + 4 * 3600 * 1000;
+  // overtime: minutes after the shift end, only when the stay was long enough
+  let overtimeMin = 0;
+  if (timed && !isOpen && checkOut != null && checkOut >= endTs + (r.overtimeAfterMin || 0) * MIN) overtimeMin = Math.floor((checkOut - endTs) / MIN);
 
   return {
     date,
@@ -127,6 +131,7 @@ export function daySummary(emp, s, date, d, now) {
     gaps: timed ? gaps : [],
     earlyMin: timed && !missingOut ? earlyMin : 0,
     breakLateMin: timed ? breakLateMin : 0,
+    overtimeMin,
     missingOut,
     offline,
     holiday: holiday?.name || null,
@@ -153,13 +158,15 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
   const perMin = hourly / 60;
   const quota = paidLeaveQuota(emp, s);
 
-  const c = { present: 0, late: 0, absent: 0, leavePaid: 0, leaveUnpaid: 0, off: 0, holiday: 0, duty: 0, notJoined: 0, pending: 0,
+  const c = { present: 0, late: 0, absent: 0, leavePaid: 0, leaveUnpaid: 0, off: 0, holiday: 0, duty: 0, notJoined: 0, left: 0, pending: 0, overtimeMin: 0,
     lateMin: 0, earlyMin: 0, breakLateMin: 0, workedMin: 0, missingOut: 0, offWorked: 0 };
   let leaveSeen = 0;
   const rows = [];
   for (const d of days) {
     const row = { date: d.date, status: d.status, checkIn: d.checkIn, checkOut: d.checkOut, workedMin: d.workedMin,
       lateMin: d.lateMin, earlyMin: d.earlyMin, breakLateMin: d.breakLateMin, cut: 0 };
+    // days after the employee left are cut even when they are still ahead
+    if (d.status === 'left') { c.left++; row.cut = round2(daily); rows.push(row); continue; }
     if (d.date > today) { row.status = d.status === 'leave' ? 'leave' : 'future'; rows.push(row); continue; }
     switch (d.status) {
       case 'present': case 'late':
@@ -183,6 +190,8 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
     }
     c.lateMin += d.lateMin; c.earlyMin += d.earlyMin; c.breakLateMin += d.breakLateMin; c.workedMin += d.workedMin;
     if (d.missingOut) c.missingOut++;
+    c.overtimeMin += d.overtimeMin || 0;
+    row.overtimeMin = d.overtimeMin || 0;
     if (r.lateCutOn) row.cut += d.lateMin * perMin;
     if (r.earlyLeaveCutOn) row.cut += d.earlyMin * perMin;
     if (r.breakLateCutOn) row.cut += d.breakLateMin * perMin;
@@ -194,6 +203,7 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
     absent: r.absentCutOn ? round2(c.absent * daily) : 0,
     leaveUnpaid: round2(c.leaveUnpaid * daily),
     notJoined: round2(c.notJoined * daily),
+    left: round2(c.left * daily),
     late: r.lateCutOn ? round2(c.lateMin * perMin) : 0,
     early: r.earlyLeaveCutOn ? round2(c.earlyMin * perMin) : 0,
     breakLate: r.breakLateCutOn ? round2(c.breakLateMin * perMin) : 0,
@@ -203,7 +213,9 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
   const depositCut = sum('deposit_cut');
   const bonus = sum('bonus');
   const totalCuts = round2(Object.values(cuts).reduce((a, b) => a + b, 0));
-  const net = Math.round(salary - totalCuts - advances - depositCut + bonus);
+  const otRate = Number(r.overtimeRate) || 1;
+  const overtime = { on: !!r.overtimeOn, min: c.overtimeMin, rate: otRate, pay: r.overtimeOn ? round2(c.overtimeMin * perMin * otRate) : 0 };
+  const net = Math.round(salary - totalCuts - advances - depositCut + bonus + overtime.pay);
 
   return {
     month,
@@ -218,6 +230,7 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
     advances,
     depositCut,
     bonus,
+    overtime,
     net,
     depositBalance,
     money: money.map((m) => ({ id: m.id, kind: m.kind, amount: m.amount, note: m.note, ts: m.ts })),

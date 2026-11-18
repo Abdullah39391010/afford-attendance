@@ -50,7 +50,7 @@ export function SettingsHome() {
 export function SettingsStore() {
   const app = useApp();
   const s = app.settings;
-  const [f, setF] = useState({ storeName: s.storeName, currency: s.currency, weeklyOff: s.weeklyOff });
+  const [f, setF] = useState({ storeName: s.storeName, currency: s.currency, weeklyOff: s.weeklyOff, storeAddress: s.storeAddress || '', storePhone: s.storePhone || '' });
   const [save, busy] = useSave();
   const uploadLogo = async (e) => {
     const file = e.currentTarget.files[0];
@@ -68,6 +68,8 @@ export function SettingsStore() {
         <div class="card">
           <Field label={t('Store name')}><input class="input" value={f.storeName} onInput={(e) => setF({ ...f, storeName: e.currentTarget.value })} /></Field>
           <Field label={t('Currency')}><input class="input ltr" style="width:100%" value={f.currency} onInput={(e) => setF({ ...f, currency: e.currentTarget.value })} /></Field>
+          <Field label={t('Address (shown on payslips)')}><input class="input" value={f.storeAddress} onInput={(e) => setF({ ...f, storeAddress: e.currentTarget.value })} /></Field>
+          <Field label={t('Phone (shown on payslips)')}><input class="input ltr" style="width:100%" value={f.storePhone} onInput={(e) => setF({ ...f, storePhone: e.currentTarget.value })} /></Field>
           <Field label={t('Weekly off (store default)')} hint={t('Each employee can have their own days.')}>
             <div class="chips">
               {[0, 1, 2, 3, 4, 5, 6].map((d) => (
@@ -270,6 +272,27 @@ export function SettingsRules() {
           <h2>{t('Leave & requests')}</h2>
           {num('paidLeavePerMonth', t('Paid leave days per month'), t('Extra leave days are unpaid. Each employee can have their own number.'), t('days'))}
           {num('pastDayRequestDays', t('Past-day requests allowed for'), t('Only within the current month'), t('days back'))}
+        </div>
+        <div class="card">
+          <h2>{t('Overtime')}</h2>
+          <Toggle checked={r.overtimeOn} onChange={(v) => set('overtimeOn', v)} label={t('Pay for time worked after the shift ends')} />
+          {r.overtimeOn && (
+            <div>
+              <Field label={t('Overtime rate')} hint={t('1x = normal per-minute pay')}>
+                <Seg value={String(r.overtimeRate)} onChange={(v) => set('overtimeRate', Number(v))} options={[['1', '1x'], ['1.5', '1.5x'], ['2', '2x']]} />
+              </Field>
+              {num('overtimeAfterMin', t('Count only if staying at least'), t('Shorter stays after the shift are not paid'))}
+            </div>
+          )}
+        </div>
+        <div class="card">
+          <h2>{t('Reminders & daily summary')}</h2>
+          <Toggle checked={r.remindersOn} onChange={(v) => set('remindersOn', v)} label={t('Remind staff before their shift and if they forget to check out')} />
+          {r.remindersOn && num('remindBeforeMin', t('Remind before shift'))}
+          <Toggle checked={r.dailySummaryOn} onChange={(v) => set('dailySummaryOn', v)} label={t("Send me today's attendance summary every night")} />
+          {r.dailySummaryOn && (
+            <Field label={t('Summary time')}><input class="input ltr" style="width:140px" type="time" value={r.dailySummaryAt} onInput={(e) => set('dailySummaryAt', e.currentTarget.value)} /></Field>
+          )}
         </div>
         <div class="card">
           <h2>{t('Check-in safety')}</h2>

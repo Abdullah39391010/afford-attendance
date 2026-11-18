@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..', '..');
 const b64 = (f, mime) => `data:${mime};base64,${fs.readFileSync(path.join(root, f)).toString('base64')}`;
 (async () => {
   let html = fs.readFileSync(path.join(__dirname, 'guide.html'), 'utf8')
-    .replace('{{LOGO}}', b64('assets/logo-original.jpg', 'image/jpeg'))
+    .replace('{{LOGO}}', b64('assets/logo-2026-original.jpg', 'image/jpeg'))
     .replace('{{FONT400}}', b64('assets/fonts/noto-naskh-arabic-arabic-400-normal.woff2', 'font/woff2'))
     .replace('{{FONT700}}', b64('assets/fonts/noto-naskh-arabic-arabic-700-normal.woff2', 'font/woff2'));
   const out = process.argv[2] || path.join(__dirname, 'Afford-Attendance-Master-Guide.pdf');

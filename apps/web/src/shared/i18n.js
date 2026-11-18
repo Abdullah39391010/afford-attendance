@@ -86,7 +86,7 @@ export function errText(e) {
 
 export const STATUS = {
   present: 'Present', late: 'Late', absent: 'Absent', leave: 'Leave', leave_unpaid: 'Unpaid leave', off: 'Off', holiday: 'Holiday',
-  duty: 'Out-of-town', notyet: 'Not yet in', future: '', notjoined: 'Not joined', in: 'In', out: 'Checked out', break: 'On break',
+  duty: 'Out-of-town', notyet: 'Not yet in', future: '', notjoined: 'Not joined', left: 'Left', in: 'In', out: 'Checked out', break: 'On break',
 };
 export const statusLabel = (s) => t(STATUS[s] || s);
 

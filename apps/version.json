@@ -1,7 +1,7 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "notes": {
-    "en": "Daily cloud backup (30 days), staff rules agreement, owner approval for manager money and salary changes, lock paid months, server error alerts.",
-    "ur": "روزانہ کلاؤڈ بیک اپ (30 دن)، اسٹاف قوانین کا معاہدہ، مینیجر کی رقم اور تنخواہ کی تبدیلی پر مالک کی منظوری، ادا شدہ مہینہ لاک، سرور خرابی کی اطلاع۔"
+    "en": "Shift and check-out reminders, nightly summary for the owner, payslip with store details, salary paid record, overtime pay, advance installments, final settlement.",
+    "ur": "شفٹ اور چیک آؤٹ کی یاد دہانی، مالک کے لیے رات کا خلاصہ، اسٹور تفصیل کے ساتھ تنخواہ کی پرچی، تنخواہ ادائیگی کا ریکارڈ، اوور ٹائم، ایڈوانس اقساط، حتمی حساب۔"
   }
 }

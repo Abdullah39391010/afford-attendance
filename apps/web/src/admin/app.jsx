@@ -9,6 +9,7 @@ import {
   Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, Icon, Spinner, toast, toastErr, useRoute, go, replace, Banner, setBackHome, Credit, askFinger, WhoCard } from '../shared/ui.jsx';
 import { BackupScreen, autoBackupTick } from './backup.jsx';
 import { RulesAgreement } from './pro.jsx';
+import { Settlement } from './ops.jsx';
 import { startNotify, stopNotify } from '../shared/notify.js';
 import { PermissionGate } from '../shared/perms.jsx';
 import { UpdatePopup } from '../shared/update.jsx';
@@ -337,6 +338,7 @@ function Shell({ me, logout, toKiosk }) {
     case 'staff':
       if (p[1] === 'new') screen = <StaffForm />;
       else if (p[1] && p[2] === 'edit') screen = <StaffForm id={p[1]} />;
+      else if (p[1] && p[2] === 'settle') screen = <Settlement id={p[1]} />;
       else if (p[1]) screen = <StaffDetail id={p[1]} tab={p[2] || 'info'} q={route.q} />;
       else screen = <StaffList />;
       break;

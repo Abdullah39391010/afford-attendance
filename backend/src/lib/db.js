@@ -40,6 +40,9 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS push_tokens_sub ON push_tokens(kind, sub)`,
   `CREATE TABLE IF NOT EXISTS approvals (id TEXT PRIMARY KEY, kind TEXT NOT NULL, emp TEXT NOT NULL, data TEXT NOT NULL,
      status TEXT NOT NULL, created INTEGER NOT NULL, by_admin TEXT, by_name TEXT, decided INTEGER, note TEXT)`,
+  `CREATE TABLE IF NOT EXISTS payments (id TEXT PRIMARY KEY, emp TEXT NOT NULL, month TEXT NOT NULL, amount INTEGER NOT NULL,
+     method TEXT NOT NULL, note TEXT, ts INTEGER NOT NULL, by_admin TEXT, voided INTEGER NOT NULL DEFAULT 0)`,
+  `CREATE INDEX IF NOT EXISTS payments_month ON payments(month, emp)`,
   `CREATE TABLE IF NOT EXISTS photos (id TEXT PRIMARY KEY, punch TEXT NOT NULL, data TEXT NOT NULL, ts INTEGER NOT NULL)`,
 ];
 

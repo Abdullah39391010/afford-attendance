@@ -55,7 +55,16 @@ export function defaultSettings() {
       maxOfflineHours: 72,
       autoAbsentAfterMin: 120, // board shows "absent" once this long past shift start with no check-in
       kioskPhoto: true,
+      overtimeOn: false, // pay minutes worked after the shift end
+      overtimeRate: 1, // x normal per-minute rate (1, 1.5, 2)
+      overtimeAfterMin: 15, // only counts when staying at least this long after shift end
+      remindersOn: true, // push "shift starts soon" and "you forgot to check out"
+      remindBeforeMin: 15,
+      dailySummaryOn: true, // nightly attendance summary to the owner
+      dailySummaryAt: '22:00',
     },
+    storeAddress: '',
+    storePhone: '',
     appVersions: { admin: null, employee: null }, // filled from GitHub releases
   };
 }
@@ -70,6 +79,8 @@ export function mergeSettings(cur, patch) {
 
   if ('storeName' in patch) s.storeName = str(patch.storeName, 80) || s.storeName;
   if ('currency' in patch) s.currency = str(patch.currency, 8) || s.currency;
+  if ('storeAddress' in patch) s.storeAddress = str(patch.storeAddress, 160);
+  if ('storePhone' in patch) s.storePhone = str(patch.storePhone, 40);
   if ('tzOffsetMin' in patch) s.tzOffsetMin = num(patch.tzOffsetMin, -720, 840, 300);
 
   if ('locations' in patch) {
@@ -138,8 +149,18 @@ export function mergeSettings(cur, patch) {
     if ('pastDayRequestDays' in p) r.pastDayRequestDays = num(p.pastDayRequestDays, 0, 31, 3);
     if ('maxOfflineHours' in p) r.maxOfflineHours = num(p.maxOfflineHours, 1, 168, 72);
     if ('autoAbsentAfterMin' in p) r.autoAbsentAfterMin = num(p.autoAbsentAfterMin, 0, 720, 120);
+    if ('overtimeRate' in p) {
+      const v = Math.round(Number(p.overtimeRate) * 100) / 100;
+      r.overtimeRate = Number.isFinite(v) ? Math.min(3, Math.max(0.5, v)) : 1;
+    }
+    if ('overtimeAfterMin' in p) r.overtimeAfterMin = num(p.overtimeAfterMin, 0, 240, 15);
+    if ('remindBeforeMin' in p) r.remindBeforeMin = num(p.remindBeforeMin, 5, 60, 15);
+    if ('dailySummaryAt' in p) {
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(p.dailySummaryAt))) throw bad('BAD_RULE', 'Summary time must be HH:MM');
+      r.dailySummaryAt = String(p.dailySummaryAt);
+    }
     for (const k of ['lateCutOn', 'earlyLeaveCutOn', 'breakNeedsApproval', 'breakLateCutOn', 'absentCutOn',
-      'requireInRadiusCheckIn', 'blockMockLocation', 'kioskPhoto']) {
+      'requireInRadiusCheckIn', 'blockMockLocation', 'kioskPhoto', 'overtimeOn', 'remindersOn', 'dailySummaryOn']) {
       if (k in p) r[k] = bool(p[k], r[k]);
     }
   }

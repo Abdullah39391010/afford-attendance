@@ -32,15 +32,16 @@ export class StoreDO extends DurableObject {
       this.store = new Store(new DB(ctx.storage.sql), env);
       if (env.VAULT) this.store.vault = vaultClient(env.VAULT);
       const next = await ctx.storage.getAlarm();
-      if (next == null || next > Date.now() + 3600 * 1000) await ctx.storage.setAlarm(Date.now() + 5 * 60 * 1000);
+      if (next == null || next > Date.now() + 5 * 60 * 1000) await ctx.storage.setAlarm(Date.now() + 60 * 1000);
     });
   }
   async fetch(request) {
     return this.store.handle(request);
   }
-  // runs every hour: housekeeping once a day, and the daily cloud backup
+  // runs every 5 minutes: reminders and the nightly summary; housekeeping and the cloud backup once a day
   async alarm() {
     try {
+      await this.store.tick();
       const last = (await this.ctx.storage.get('cleanedAt')) || 0;
       if (Date.now() - last > 23 * 3600 * 1000) {
         this.store.cleanup();
@@ -48,7 +49,7 @@ export class StoreDO extends DurableObject {
       }
       await this.store.dailyCloudBackup();
     } finally {
-      await this.ctx.storage.setAlarm(Date.now() + 3600 * 1000);
+      await this.ctx.storage.setAlarm(Date.now() + 5 * 60 * 1000);
     }
   }
 }

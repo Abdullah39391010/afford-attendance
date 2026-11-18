@@ -46,8 +46,8 @@ const CSS = (a, rtl) => `
 .doc .muted{color:#777}
 `;
 
-function header(a, storeName, title, right) {
-  return `<div class="hd"><img src="${a.logo}"><div><h1>${esc(storeName)}</h1><div class="s">${esc(title)}</div></div><div class="r">${right || ''}</div></div>`;
+function header(a, storeName, title, right, contact) {
+  return `<div class="hd"><img src="${a.logo}"><div><h1>${esc(storeName)}</h1>${contact ? `<div class="s">${esc(contact)}</div>` : ''}<div class="s">${esc(title)}</div></div><div class="r">${right || ''}</div></div>`;
 }
 
 export async function statementDoc(st) {
@@ -63,7 +63,7 @@ export async function statementDoc(st) {
     <td class="n">${d.cut ? esc(fmtMoney2(d.cut, '')) : ''}</td></tr>`).join('');
   const kv = (k, v) => `<div class="kv"><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
   const body = `<div class="doc">
-  ${header(a, st.storeName, `${t('Salary statement')} · ${fmtMonth(st.month)}`, `${esc(t('Generated'))}: ${esc(fmtDateTime(st.generatedAt))}${st.complete ? '' : `<br><b>${esc(t('Month in progress (so far)'))}</b>`}`)}
+  ${header(a, st.storeName, `${t('Payslip')} · ${fmtMonth(st.month)}`, `${st.slipNo ? `<b>${esc(t('Payslip no.'))} ${esc(st.slipNo)}</b><br>` : ''}${esc(t('Generated'))}: ${esc(fmtDateTime(st.generatedAt))}${st.complete ? '' : `<br><b>${esc(t('Month in progress (so far)'))}</b>`}${st.locked ? `<br>${esc(t('Locked. Salary is final.'))}` : ''}`, [st.storeAddress, st.storePhone].filter(Boolean).join(' · '))}
   <div class="grid">
     ${kv(t('Employee'), `${e.name} (${e.code})`)}${kv(t('Role'), e.role || '')}
     ${kv(t('Shift'), e.shift ? `${e.shift.name} ${e.shift.start}–${e.shift.end}` : '')}${kv(t('Monthly salary'), fmtMoney(st.salary, cur))}
@@ -83,6 +83,7 @@ export async function statementDoc(st) {
       ${kv(t('Absent cut'), `− ${fmtMoney2(st.cuts.absent, cur)}`)}
       ${kv(t('Unpaid leave cut'), `− ${fmtMoney2(st.cuts.leaveUnpaid, cur)}`)}
       ${st.cuts.notJoined ? kv(t('Before joining'), `− ${fmtMoney2(st.cuts.notJoined, cur)}`) : ''}
+      ${st.cuts.left ? kv(t('After leaving'), `− ${fmtMoney2(st.cuts.left, cur)}`) : ''}
       ${kv(t('Late cut'), `− ${fmtMoney2(st.cuts.late, cur)}`)}
       ${kv(t('Early leave cut'), `− ${fmtMoney2(st.cuts.early, cur)}`)}
       ${kv(t('Late break cut'), `− ${fmtMoney2(st.cuts.breakLate, cur)}`)}
@@ -91,13 +92,15 @@ export async function statementDoc(st) {
       ${kv(t('Advances'), `− ${fmtMoney(st.advances, cur)}`)}
       ${kv(t('Security deposit cut'), `− ${fmtMoney(st.depositCut, cur)}`)}
       ${kv(t('Bonus'), `+ ${fmtMoney(st.bonus, cur)}`)}
+      ${st.overtime?.pay ? kv(t('Overtime ({m} min × {r})', { m: st.overtime.min, r: st.overtime.rate }), `+ ${fmtMoney2(st.overtime.pay, cur)}`) : ''}
       ${kv(t('Security deposit balance'), fmtMoney(st.depositBalance, cur))}
     </div>
   </div>
   <div class="net"><span>${esc(t('Net pay'))}</span><b>${esc(fmtMoney(st.net, cur))}</b></div>
+  ${(st.payments || []).map((p) => kv(`${t('Paid')} · ${t({ cash: 'Cash', bank: 'Bank transfer', other: 'Other' }[p.method] || p.method)} · ${fmtDateTime(p.ts)}`, fmtMoney(p.amount, cur))).join('')}
   <h2>${esc(t('Daily record'))}</h2>
   <table><thead><tr><th>${esc(t('Date'))}</th><th>${esc(t('Status'))}</th><th class="n">${esc(t('In'))}</th><th class="n">${esc(t('Out'))}</th><th class="n">${esc(t('Hours'))}</th><th class="n">${esc(t('Late'))}</th><th class="n">${esc(t('Early'))}</th><th class="n">${esc(t('Cut'))}</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="foot"><div class="sig">${esc(t('Employee signature'))}</div><div class="sig">${esc(t('Manager signature'))}</div></div>
+  <div class="foot"><div class="sig">${esc(t('Received by (employee signature)'))}</div><div class="sig">${esc(t('Authorised signature'))}</div></div>
   </div>`;
   return { body, css: CSS(a, rtl), title: `${e.name} ${st.month}` };
 }
@@ -150,4 +153,27 @@ export async function shareDocPdf(doc, filename) {
 
 export async function shareCsv(text, filename) {
   await AffordDevice.shareFile({ filename, text, mime: 'text/csv', title: t('Share CSV') });
+}
+
+/** Final settlement letter */
+export async function settlementDoc(x, storeName, currency, contact) {
+  const a = await assets();
+  const rtl = getLang() === 'ur';
+  const st = x.statement;
+  const e = st.employee;
+  const cur = currency || st.currency || 'Rs.';
+  const kv = (k, v) => `<div class="kv"><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
+  const body = `<div class="doc">
+  ${header(a, storeName, t('Final settlement'), `${esc(t('Date'))}: ${esc(fmtDateTime(st.generatedAt))}`, contact)}
+  <div class="grid">${kv(t('Employee'), `${e.name} (${e.code})`)}${kv(t('Role'), e.role || '')}${kv(t('Last working day'), fmtDate(x.lastDay))}${kv(t('Monthly salary'), fmtMoney(st.salary, cur))}</div>
+  <h2>${esc(t('Settlement'))}</h2>
+  ${kv(t('Salary for {m} (after cuts)', { m: fmtMonth(x.month) }), fmtMoney(st.net, cur))}
+  ${x.laterAdvances ? kv(t('Advance installments still due'), `− ${fmtMoney(x.laterAdvances, cur)}`) : ''}
+  ${x.alreadyPaid ? kv(t('Already paid for this month'), `− ${fmtMoney(x.alreadyPaid, cur)}`) : ''}
+  ${kv(t('Security deposit returned'), `+ ${fmtMoney(x.depositBalance, cur)}`)}
+  <div class="net"><span>${esc(x.total >= 0 ? t('Amount to pay the employee') : t('Amount the employee owes'))}</span><b>${esc(fmtMoney(Math.abs(x.total), cur))}</b></div>
+  <p class="muted" style="margin-top:14px">${esc(t('All dues between the store and the employee are cleared with this payment.'))}</p>
+  <div class="foot"><div class="sig">${esc(t('Received by (employee signature)'))}</div><div class="sig">${esc(t('Authorised signature'))}</div></div>
+  </div>`;
+  return { body, css: CSS(a, rtl), title: `${e.name} settlement` };
 }

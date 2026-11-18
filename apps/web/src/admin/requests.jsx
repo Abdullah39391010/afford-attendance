@@ -4,7 +4,7 @@ import { useState, useEffect } from 'preact/hooks';
 import { api } from '../shared/api.js';
 import { t, nm, reqLabel } from '../shared/i18n.js';
 import { fmtDate, fmtTime, fmtMoney, ago } from '../shared/format.js';
-import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Empty, Spinner, Toggle } from '../shared/ui.jsx';
+import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, Seg, Empty, Spinner, Toggle, Chips } from '../shared/ui.jsx';
 import { useApp } from './app.jsx';
 import { describe } from '../shared/describe.js';
 import { OwnerApprovals } from './pro.jsx';
@@ -63,6 +63,7 @@ function Decide({ r, onClose, onDone }) {
   const [outTime, setOut] = useState(d.outTime || '');
   const [amount, setAmount] = useState(d.amount ?? '');
   const [paid, setPaid] = useState(true);
+  const [inst, setInst] = useState(1);
   const [busy, setBusy] = useState(null);
   const canDecide = app.can('requests.decide') && r.status === 'pending';
 
@@ -73,7 +74,7 @@ function Decide({ r, onClose, onDone }) {
       if (approve) {
         if (r.type === 'forgot_in' || r.type === 'forgot_out') body.time = time;
         if (r.type === 'past_day') { body.inTime = inTime; body.outTime = outTime; }
-        if (r.type === 'advance') body.amount = Number(amount);
+        if (r.type === 'advance') { body.amount = Number(amount); body.installments = inst; }
         if (r.type === 'leave') body.paid = paid;
       }
       const res = await api.post(`/api/admin/requests/${r.id}/decide`, body);
@@ -102,7 +103,12 @@ function Decide({ r, onClose, onDone }) {
             </div>
           )}
           {r.type === 'advance' && (
-            <Field label={t('Amount to give')}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={amount} onInput={(e) => setAmount(e.currentTarget.value)} /></Field>
+            <div>
+              <Field label={t('Amount to give')}><input class="input ltr" style="width:100%" type="number" inputmode="numeric" value={amount} onInput={(e) => setAmount(e.currentTarget.value)} /></Field>
+              <Field label={t('Cut from salary in')}>
+                <Chips value={String(inst)} onChange={(v) => setInst(Number(v))} options={[1, 2, 3, 4, 6].map((n) => [String(n), n === 1 ? t('1 month') : t('{n} months', { n })])} />
+              </Field>
+            </div>
           )}
           {r.type === 'leave' && <Toggle checked={paid} onChange={setPaid} label={t('Paid leave (within monthly allowance)')} sub={t('Turn off to approve as unpaid leave')} />}
           {r.type === 'break' && <p class="small muted">{t('The break starts when you approve. Coming back late is cut from salary.')}</p>}

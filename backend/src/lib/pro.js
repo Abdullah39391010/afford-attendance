@@ -253,11 +253,13 @@ export function installPro(Store) {
     const ok = !!body.approve;
     const emp = this.empRow(a.emp, { withDeleted: true });
     if (a.kind === 'money_add' || a.kind === 'money_void') {
-      const m = this.db.get('SELECT * FROM money WHERE id = ?', d.moneyId);
-      if (!m) throw notFound('Entry');
-      this.assertMonthOpen(m.month);
-      if (a.kind === 'money_add') this.db.run('UPDATE money SET voided = ? WHERE id = ?', ok ? 0 : 1, m.id);
-      else if (ok) this.db.run('UPDATE money SET voided = 1 WHERE id = ?', m.id);
+      const rows = (d.moneyIds || [d.moneyId]).map((mid) => this.db.get('SELECT * FROM money WHERE id = ?', mid)).filter(Boolean);
+      if (!rows.length) throw notFound('Entry');
+      for (const m of rows) this.assertMonthOpen(m.month);
+      for (const m of rows) {
+        if (a.kind === 'money_add') this.db.run('UPDATE money SET voided = ? WHERE id = ?', ok ? 0 : 1, m.id);
+        else if (ok) this.db.run('UPDATE money SET voided = 1 WHERE id = ?', m.id);
+      }
     } else if (a.kind === 'salary') {
       if (ok) {
         const row = this.db.get('SELECT data FROM employees WHERE id = ?', a.emp);

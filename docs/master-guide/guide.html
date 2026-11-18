@@ -38,8 +38,8 @@ code { font-family: Consolas, 'Courier New', monospace; font-size: 9pt; backgrou
 
 /* cover */
 .cover { height: 255mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.cover .logo { width: 150px; height: 150px; border-radius: 50%; box-shadow: 0 0 0 6px #fff, 0 0 0 8px var(--red); overflow: hidden; margin-bottom: 30px; }
-.cover .logo img { width: 100%; height: 100%; object-fit: cover; }
+.cover .logo { width: 300px; margin-bottom: 30px; }
+.cover .logo img { width: 100%; height: auto; }
 .cover h1 { font-size: 28pt; letter-spacing: -0.3px; }
 .cover .sub { font-size: 13pt; color: var(--muted); margin-top: 8px; }
 .cover .ur { font-size: 18pt; margin-top: 16px; color: var(--red); }
@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 1.0 · 17 November 2026<br>Admin app · Employee app · Kiosk · Owner page · Cloud backend</div>
+  <div class="meta">Version 2.0 · 18 November 2026 (apps v0.8)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -77,13 +77,15 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
     <li>Rules and default settings</li>
     <li>Payroll formulas and worked example</li>
     <li>Requests and what approval does</li>
+    <li>Owner controls: approvals, locked months, backups, alerts</li>
+    <li>Salary day: payslips, payment record, settlement</li>
     <li>Calendar colours</li>
     <li>Security and privacy</li>
     <li>Weak internet (offline punches)</li>
     <li>Setup and going live</li>
     <li>Daily use, step by step</li>
     <li>Free plan limits</li>
-    <li>Build stages and test checklist</li>
+    <li>Versions and test checklist</li>
   </ol>
 
   <section class="flow">
@@ -94,7 +96,9 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
       <li><b>Admin and managers</b> see a live board of who is in, late, on break, absent or on leave. They approve requests and run the monthly salary statements.</li>
       <li><b>Salary</b> is worked out automatically from attendance. That includes late cuts, early-leave cuts, late return from break, absences, unpaid leave, advances and security deposit.</li>
       <li><b>Staff without a phone</b> use a shared kiosk phone at the counter, or a manager checks them in.</li>
-      <li><b>The owner</b> gets a private web page to see today's attendance and approve requests from anywhere.</li>
+      <li><b>The owner</b> approves money and salary changes made by managers, locks paid months, and gets a nightly summary and alerts on the phone.</li>
+      <li><b>Staff get reminders</b> before their shift and when they forget to check out, and must accept the store rules in the app.</li>
+      <li><b>Data is backed up every day</b> to separate cloud storage (30 days kept) and to the owner's phone.</li>
       <li><b>Every admin action</b> is written to an audit log.</li>
     </ul>
   </section>
@@ -111,8 +115,8 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
         <text x="95" y="120" text-anchor="middle" font-weight="600">Employee app</text>
         <text x="95" y="138" text-anchor="middle" fill="#5f6368" font-size="10.5">Android · GPS · fingerprint</text>
         <rect x="10" y="176" width="170" height="52" rx="10" fill="#fff" stroke="#C62032" stroke-width="1.5"/>
-        <text x="95" y="198" text-anchor="middle" font-weight="600">Kiosk phone + Owner page</text>
-        <text x="95" y="216" text-anchor="middle" fill="#5f6368" font-size="10.5">PIN + photo · web browser</text>
+        <text x="95" y="198" text-anchor="middle" font-weight="600">Kiosk phone</text>
+        <text x="95" y="216" text-anchor="middle" fill="#5f6368" font-size="10.5">PIN + photo at the counter</text>
 
         <rect x="260" y="80" width="170" height="90" rx="12" fill="#FCE9EB" stroke="#C62032" stroke-width="1.5"/>
         <text x="345" y="112" text-anchor="middle" font-weight="700">Cloudflare Worker</text>
@@ -123,6 +127,9 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
         <text x="585" y="108" text-anchor="middle" font-weight="700">Store database</text>
         <text x="585" y="126" text-anchor="middle" fill="#5f6368" font-size="10.5">Durable Object (SQLite)</text>
         <text x="585" y="142" text-anchor="middle" fill="#5f6368" font-size="10.5">one per store · audit log</text>
+        <rect x="500" y="200" width="170" height="40" rx="10" fill="#F7F7F8" stroke="#ccc"/>
+        <text x="585" y="224" text-anchor="middle" font-size="10.5">Backup vault · 30 days</text>
+        <path d="M585 170 L585 198" stroke="#888" fill="none" marker-end="url(#a)"/>
 
         <path d="M180 46 L258 108" stroke="#888" fill="none" marker-end="url(#a)"/>
         <path d="M180 124 L258 124" stroke="#888" fill="none" marker-end="url(#a)"/>
@@ -132,7 +139,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
         <text x="345" y="224" text-anchor="middle" font-size="10.5">GitHub: code, APK releases</text>
       </g>
     </svg>
-    <p>All data lives in one place, the store's database on Cloudflare. The admin app is the master copy that admins edit, and employee phones, the kiosk and the owner page all read from and write to the same database through the Worker. Nothing goes to any other company.</p>
+    <p>All data lives in one place, the store's database on Cloudflare. The admin app, employee phones and the kiosk all read from and write to the same database through the Worker. A copy is saved every day in a separate backup vault in the same Cloudflare account. Alerts to phones go through Google Firebase and carry only short text. Nothing else leaves your account.</p>
   </section>
 </section>
 
@@ -143,14 +150,17 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
     <tr><th style="width:26%">Screen</th><th>What it does</th></tr>
     <tr><td>Live board</td><td>Counts at the top for In, Late, On break, Absent, On leave, Not yet in, Off and Out-of-town. Below that is a list with photo, check-in time and late minutes. It refreshes by itself.</td></tr>
     <tr><td>Pending line</td><td>A thin bar at the top shows how many requests are waiting. It hides once the inbox is opened.</td></tr>
-    <tr><td>Requests inbox</td><td>Forgot check-in, forgot check-out, past-day attendance, leave, advance salary, break, "checked out by mistake" and out-of-town duty. Approve or decline with a note, and change the time or amount before approving if needed.</td></tr>
+    <tr><td>Requests inbox</td><td>Forgot check-in, forgot check-out, past-day attendance, leave, advance salary (in 1 to 6 monthly installments), break, "checked out by mistake", "check in again" and out-of-town duty. Approve or decline with a note, and change the time or amount before approving if needed. For the owner, a "Waiting for your approval" list sits on top.</td></tr>
     <tr><td>Employees</td><td>Add, edit and delete employees, with photo, phone, CNIC, role, salary, shift, weekly off, joining date, active/inactive and PIN. Also set per employee: field staff, kiosk allowed, paid leave override and salary visibility.</td></tr>
     <tr><td>Check in / out for staff</td><td>Check any employee in or out now or at a given time. A reason is required and it is written to the audit log.</td></tr>
-    <tr><td>Calendar</td><td>Per employee, one solid colour per day (see section 11). Tap a day to see the punches, GPS distance, kiosk photo and requests.</td></tr>
-    <tr><td>Payroll</td><td>Monthly salary statement per employee. It shows present, late minutes, absent, leave, every cut, advances, security deposit and net pay. Print it or share it as a PDF with the logo, and export all staff to CSV.</td></tr>
-    <tr><td>Money</td><td>Advances, security deposit (added, cut from salary, returned) and bonus.</td></tr>
+    <tr><td>Calendar</td><td>Per employee, one solid colour per day (see section 13). Tap a day to see the punches, GPS distance, kiosk photo and requests.</td></tr>
+    <tr><td>Payroll</td><td>Monthly payslip per employee with a payslip number, store address and phone, every cut, overtime, advances, security deposit and net pay. Print it or share it as a PDF (WhatsApp, email). Record the salary as paid (cash, bank or other). Lock a finished month. Export all staff to CSV.</td></tr>
+    <tr><td>Money</td><td>Advances (one month or split over 2 to 6 months), security deposit (added, cut from salary, returned) and bonus. A manager's entry waits for the owner.</td></tr>
+    <tr><td>Final settlement</td><td>When someone leaves: pick the last working day and see the salary due, advance installments still due and the deposit to return. Print or share the letter. The owner finishes it, and the employee is made inactive and logged out.</td></tr>
+    <tr><td>Staff rules agreement</td><td>The rules every employee accepts in the app, who has accepted and when. The owner can add rules and ask everyone to accept again.</td></tr>
+    <tr><td>Backup &amp; restore</td><td>Owner only: cloud backups (download or restore any of the last 30 days), the daily backup on this phone, restore from a file, and server health with any errors.</td></tr>
     <tr><td>Reports</td><td>Daily, weekly and monthly attendance, plus a late list and an absent list. Export to CSV and PDF.</td></tr>
-    <tr><td>Settings</td><td>Store location with "use my current location" (asks to turn on GPS), radius, shifts, roles, rules, holidays, logo and language.</td></tr>
+    <tr><td>Settings</td><td>Store name, address, phone and logo, location with "use my current location", radius, shifts, roles (job rules), rules, overtime, reminders and the nightly summary, holidays and language.</td></tr>
     <tr><td>Managers</td><td>Owner only: add managers and tick their permissions.</td></tr>
     <tr><td>Phone reset</td><td>Owner only: unlink an employee's phone so they can log in on a new one.</td></tr>
     <tr><td>Kiosk mode</td><td>Turns this phone into the shared check-in phone at the counter.</td></tr>
@@ -160,7 +170,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <table>
     <tr><th>Permission</th><th>Allows</th><th>Permission</th><th>Allows</th></tr>
     <tr><td>View employees</td><td>Employee list and details (no salary)</td><td>View payroll</td><td>Salaries and statements</td></tr>
-    <tr><td>Edit employees</td><td>Add, edit, deactivate, set PINs</td><td>Advances &amp; deposits</td><td>Add or remove money entries</td></tr>
+    <tr><td>Edit employees</td><td>Add, edit, delete, set PINs (salary changes wait for the owner)</td><td>Advances &amp; deposits</td><td>Add or remove money entries (wait for the owner), record salary paid</td></tr>
     <tr><td>Punch staff</td><td>Check in/out, mark leave, absent or duty</td><td>Reports</td><td>Reports and exports</td></tr>
     <tr><td>Decide requests</td><td>Approve or decline requests</td><td>Settings</td><td>Location, shifts, rules</td></tr>
     <tr><td>Audit log</td><td>See the audit log</td><td>Kiosk setup</td><td>Turn a phone into the kiosk</td></tr>
@@ -172,13 +182,17 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <ul>
     <li><b>First login:</b> employee code (or phone number) and PIN given by admin. The phone is then <b>locked to that employee</b>. No one else can log in on it, and the employee can't log in on another phone until the owner resets it. Both the server and the app enforce this.</li>
     <li><b>Next time:</b> fingerprint or face unlock.</li>
+    <li><b>First open after an update of the rules:</b> the store rules are shown and the employee must tick "I agree". The date is saved.</li>
     <li><b>Big Check In / Check Out buttons.</b> Check-in works only inside the store circle. Check-out asks "Are you sure?" first. Delivery boys, purchasers and field staff can check out from anywhere.</li>
+    <li><b>Checking in again the same day</b> needs approval. After check-out, the employee taps "Ask to check in again" (only from inside the store). Once the admin or a manager approves, they can check in once, and <b>the time away is counted as late</b>.</li>
+    <li><b>Reminders:</b> an alert 15 minutes before the shift if not checked in, and "Forgot to check out?" 30 minutes after the shift ends.</li>
     <li><b>Today card:</b> in and out time, hours worked, late minutes and break status.</li>
     <li><b>Break:</b> ask for a break with minutes, then tap Resume when back. Coming back late is counted and cut.</li>
     <li><b>Requests:</b> forgot check-in or check-out, past day, leave, advance, "checked out by mistake" and out-of-town duty.</li>
-    <li><b>Calendar</b> with coloured days and a legend, a leave balance line, the salary statement (as allowed by admin) and a security deposit card.</li>
+    <li><b>Calendar</b> with coloured days and a legend, a leave balance line, the salary statement (as allowed by admin, with overtime and "salary paid" shown) and a security deposit card.</li>
     <li><b>English or Urdu</b>, chosen at login. Urdu screens are right-to-left. The layout uses large, clear buttons for non-technical staff.</li>
-    <li><b>Update popup</b> showing the new version number and what's new.</li>
+    <li><b>Update popup</b> showing the new version number and what's new. More › "Check for update" checks at once.</li>
+    <li><b>iPhone:</b> the apps are Android only. An iPhone user checks in on the kiosk or through a co-worker's helper phone.</li>
   </ul>
   <div class="box"><b>Salary visibility (set per employee):</b> "Always" shows the full monthly statement. "Last 7 days" shows only the last 7 days of attendance and cuts, with no monthly total.</div>
 
@@ -205,7 +219,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
 
   <section class="flow">
     <h2>7. Owner web page</h2>
-    <p>A private web page that opens in any browser and is protected by the owner PIN, in English or Urdu. It shows today's attendance, late and absent lists, pending requests (which can be approved from the page) and monthly totals.</p>
+    <p><b>Planned.</b> A private web page protected by the owner PIN, to see today's attendance and approve requests from any browser. Until then the owner uses the admin app, which already has everything plus the nightly summary alert.</p>
   </section>
 </section>
 
@@ -230,6 +244,10 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
     <tr><td>Offline punches</td><td>Up to 72 hours</td><td>Older ones must be sent as a "forgot" request.</td></tr>
     <tr><td>Kiosk photo</td><td>On</td><td>The kiosk takes a photo with every punch.</td></tr>
     <tr><td>Holidays</td><td>None</td><td>Paid off days for everyone, for example Eid.</td></tr>
+    <tr><td>Overtime pay</td><td>Off · 1x · after 15 min</td><td>Minutes after the shift end are paid at 1x, 1.5x or 2x the per-minute rate, if the stay was long enough.</td></tr>
+    <tr><td>Staff reminders</td><td>On · 15 min before</td><td>Shift-start reminder and "forgot to check out" (needs alerts allowed on the phone).</td></tr>
+    <tr><td>Nightly summary to owner</td><td>On · 22:00</td><td>Present, late, absent, leave, not checked out and requests waiting.</td></tr>
+    <tr><td>Store address and phone</td><td>Empty</td><td>Printed on payslips and settlement letters.</td></tr>
   </table>
 </section>
 
@@ -245,8 +263,11 @@ break cut      = late-return minutes × per-minute
 absent cut     = absent days         × daily rate
 unpaid leave   = unpaid leave days   × daily rate
 before joining = working days before joining date × daily rate
+after leaving  = days after the last working day × daily rate
+time away      = minutes between a check-out and the next check-in (same day) → added to late minutes
+overtime pay   = minutes after shift end × per-minute × overtime rate   (when switched on)
 
-net pay = salary − all cuts − advances − deposit cut + bonus</div>
+net pay = salary − all cuts − advances − deposit cut + bonus + overtime pay</div>
   <p>Weekly offs, holidays, paid leave and out-of-town duty are <b>paid</b>. The statement for the current month shows the figures so far.</p>
 
   <h3>Worked example</h3>
@@ -275,15 +296,46 @@ net pay = salary − all cuts − advances − deposit cut + bonus</div>
     <tr><td>Forgot check-out</td><td>Date and time</td><td>The check-out is set to that time.</td></tr>
     <tr><td>Past-day attendance</td><td>Date, in time, out time</td><td>The whole day is recorded. Only the last 3 days of the current month are allowed.</td></tr>
     <tr><td>Leave</td><td>From and to dates, reason</td><td>The days are marked as leave. Paid up to the monthly quota, then unpaid. Admin can approve it as unpaid.</td></tr>
-    <tr><td>Advance salary</td><td>Amount, reason</td><td>The advance is recorded and cut from this month's pay. Admin can change the amount.</td></tr>
+    <tr><td>Advance salary</td><td>Amount, reason</td><td>The advance is recorded and cut from pay this month, or split over 2 to 6 months. Admin can change the amount. If a manager approves, it also waits for the owner.</td></tr>
     <tr><td>Break</td><td>Minutes</td><td>The break starts. The employee taps Resume when back, and late return is cut.</td></tr>
-    <tr><td>Checked out by mistake</td><td>(one tap)</td><td>The last check-out is removed and the employee is "in" again.</td></tr>
+    <tr><td>Checked out by mistake</td><td>(one tap)</td><td>The last check-out is removed and the employee is "in" again (no late time).</td></tr>
+    <tr><td>Check in again</td><td>Reason (sent from inside the store)</td><td>The employee may check in once more today. The time between check-out and the new check-in counts as late.</td></tr>
     <tr><td>Out-of-town duty</td><td>Dates, reason</td><td>The days count as present, with no time cuts.</td></tr>
   </table>
-  <p>Declined requests change nothing. The employee sees the admin's note. Every decision goes into the audit log.</p>
+  <p>Declined requests change nothing. The employee sees the admin's note and gets an alert. Every decision goes into the audit log.</p>
+</section>
+
+<section>
+  <h2>11. Owner controls: approvals, locked months, backups, alerts</h2>
+  <table>
+    <tr><th style="width:26%">Control</th><th>How it works</th></tr>
+    <tr><td>Owner approval</td><td>A bonus, advance, deposit entry, removal of an entry, or a salary change made by a <b>manager</b> is not counted until the owner approves it. The owner gets an alert and sees it at the top of Requests. The owner's own changes go straight through.</td></tr>
+    <tr><td>Locked months</td><td>After salaries are paid, the owner opens Payroll for that finished month and taps "Lock this month". The payslips are frozen, and attendance and money for that month can't be changed by anyone. Only the owner can unlock it, and that is logged.</td></tr>
+    <tr><td>Cloud backup</td><td>Every day the server saves a full backup in a separate vault and keeps 30 days. The owner can download any of them, restore one with the PIN, or back up now.</td></tr>
+    <tr><td>Phone backup</td><td>The owner's phone also saves a backup in Downloads/Afford Backups once a day (7 days kept). Keep a copy on Google Drive now and then.</td></tr>
+    <tr><td>Error alerts</td><td>If something fails on the server, the owner gets an alert (at most one an hour) and can see the error under Backup › Server health. GitHub also checks the server every 30 minutes and emails if it is down.</td></tr>
+    <tr><td>Staff rules agreement</td><td>Rules are written from the settings, plus the owner's own lines. Changing them asks everyone to accept again.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>12. Salary day: payslips, payment record, settlement</h2>
+  <ol>
+    <li>Open <b>Payroll</b>, pick last month and check the totals.</li>
+    <li>Open each employee, check the payslip, then <b>Share PDF</b> to send it on WhatsApp, or <b>Print</b>.</li>
+    <li>Pay the salary and tap <b>Mark salary as paid</b> (cash, bank or other, with a note such as a cheque or JazzCash number). The employee gets an alert. The Payroll list shows ✓ Paid and how many are still unpaid.</li>
+    <li>When everyone is paid, tap <b>Salary paid? Lock this month</b>.</li>
+  </ol>
+  <h3>When someone leaves</h3>
+  <ol>
+    <li>Open the employee and tap <b>Final settlement</b>. Pick the last working day.</li>
+    <li>The screen shows this month's salary after cuts (days after the last day are cut), advance installments still due, and the deposit to return, with the final amount to pay or receive.</li>
+    <li>Print or share the settlement letter for both signatures.</li>
+    <li>The owner taps <b>Finish settlement</b>: remaining advances are cut now, the deposit is marked returned, and the employee is made inactive and logged out of their phone.</li>
+  </ol>
 
   <section class="flow">
-    <h2>11. Calendar colours</h2>
+    <h2>13. Calendar colours</h2>
     <div class="legend">
       <div><span class="sw" style="background:var(--present)"></span>Present</div>
       <div><span class="sw" style="background:var(--late)"></span>Late</div>
@@ -300,7 +352,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus</div>
 </section>
 
 <section>
-  <h2>12. Security and privacy</h2>
+  <h2>14. Security and privacy</h2>
   <ul>
     <li><b>PINs are never stored.</b> Only a one-way hash is kept, mixed with a secret held by the server.</li>
     <li><b>Wrong PINs:</b> after 5 wrong tries the login is locked for 5 minutes, then 10, 20 and up to 60 minutes.</li>
@@ -310,44 +362,47 @@ net pay = salary − all cuts − advances − deposit cut + bonus</div>
     <li><b>Audit log</b> of every admin action, which can't be edited from the apps.</li>
     <li><b>No third parties:</b> data stays in your own Cloudflare account. The apps contain no ads, analytics or trackers.</li>
     <li>Kiosk photos are deleted automatically after 90 days.</li>
+    <li><b>Money safety:</b> managers' money and salary changes need the owner's approval, and paid months can be locked.</li>
+    <li><b>Check-in again</b> after check-out needs approval and must be requested from inside the store.</li>
   </ul>
 
   <section class="flow">
-    <h2>13. Weak internet (offline punches)</h2>
+    <h2>15. Weak internet (offline punches)</h2>
     <ul>
       <li>If there's no internet when an employee taps Check In, the punch is <b>saved on the phone</b> and sent as soon as the internet is back.</li>
       <li>The phone remembers the difference between its clock and the <b>server's clock</b>, so a wrong phone clock can't change the time. The server makes the final decision.</li>
       <li>GPS is still checked. Punches synced later are marked <b>offline</b> so admin can see them, and a punch is never counted twice.</li>
+      <li>Alerts need the internet. When the phone is offline they arrive once it reconnects.</li>
     </ul>
   </section>
 
   <section class="flow">
-    <h2>14. Setup and going live</h2>
+    <h2>16. Setup and going live</h2>
     <ol>
       <li><b>Cloudflare (free):</b> create an account and an API token with the "Edit Cloudflare Workers" template.</li>
-      <li><b>GitHub secrets:</b> add <code>CLOUDFLARE_API_TOKEN</code>, <code>CLOUDFLARE_ACCOUNT_ID</code>, <code>SETUP_CODE</code> and <code>PIN_PEPPER</code>. Never change <code>PIN_PEPPER</code> later.</li>
+      <li><b>GitHub secrets:</b> add <code>CLOUDFLARE_API_TOKEN</code>, <code>CLOUDFLARE_ACCOUNT_ID</code>, <code>SETUP_CODE</code> and <code>PIN_PEPPER</code>. Never change <code>PIN_PEPPER</code> later. For alerts, also <code>GOOGLE_SERVICES_JSON</code> and <code>FIREBASE_SERVICE_ACCOUNT</code> (Firebase, free). The app signing key is locked by <code>ANDROID_KEY_PASSWORD</code>.</li>
       <li><b>Deploy:</b> done only with the owner's OK, from the GitHub Actions tab ("Deploy backend").</li>
       <li><b>Install the admin app</b> from the GitHub Release link. On first open, enter the setup code and choose your owner PIN.</li>
       <li><b>Settings:</b> stand inside the store, tap "Use my current location", set the radius, and check the shifts, rules and holidays.</li>
       <li><b>Add employees</b> with their salary, shift and a PIN, or use the bulk add.</li>
-      <li><b>Install the employee app</b> on each employee's phone and log in once. The phone is then locked to them.</li>
+      <li><b>Install the employee app</b> on each employee's phone and log in once. The phone is then locked to them. Allow location, camera and alerts when asked, and accept the store rules.</li>
       <li><b>Kiosk:</b> on the counter phone, open the admin app and choose Kiosk mode.</li>
     </ol>
   </section>
 </section>
 
 <section>
-  <h2>15. Daily use, step by step</h2>
+  <h2>17. Daily use, step by step</h2>
   <div class="grid2">
     <div class="card"><h3>Employee</h3>
-      <ol><li>Open the app and unlock with your fingerprint.</li><li>At the store, tap <b>Check In</b>.</li><li>For a break, tap <b>Break</b>, choose minutes and wait for approval. Tap <b>Resume</b> when back.</li><li>Forgot something? Open <b>Requests</b>.</li><li>Tap <b>Check Out</b> and confirm.</li></ol>
+      <ol><li>Open the app and unlock with your fingerprint.</li><li>At the store, tap <b>Check In</b>.</li><li>For a break, tap <b>Break</b>, choose minutes and wait for approval. Tap <b>Resume</b> when back.</li><li>Forgot something? Open <b>Requests</b>.</li><li>Tap <b>Check Out</b> and confirm. Coming back later needs "Ask to check in again".</li></ol>
       <p class="ur" style="font-size:11pt; margin-top:6px">اسٹور پر پہنچ کر "چیک اِن" دبائیں، جاتے وقت "چیک آؤٹ" دبائیں۔</p>
     </div>
     <div class="card"><h3>Manager</h3>
       <ol><li>Open the <b>Live board</b> in the morning.</li><li>When the pending line appears, open <b>Requests</b> and approve or decline.</li><li>Check in staff without a phone, with a reason.</li><li>Check the late and absent lists at the end of the day.</li></ol>
     </div>
     <div class="card"><h3>Owner, month end</h3>
-      <ol><li>Open <b>Payroll</b> and choose the month.</li><li>Check each statement: cuts, advances and deposit.</li><li>Print or share each PDF, or export the CSV for everyone.</li></ol>
+      <ol><li>Open <b>Payroll</b> and choose last month.</li><li>Check each payslip and share it on WhatsApp.</li><li>Mark each salary as paid.</li><li>Lock the month.</li><li>Every night, read the attendance summary alert.</li></ol>
     </div>
     <div class="card"><h3>New phone or lost phone</h3>
       <ol><li>Owner opens the employee and taps <b>Reset phone</b>.</li><li>The employee logs in on the new phone.</li><li>The old phone stops working at once.</li></ol>
@@ -355,25 +410,26 @@ net pay = salary − all cuts − advances − deposit cut + bonus</div>
   </div>
 
   <section class="flow">
-    <h2>16. Free plan limits</h2>
+    <h2>18. Free plan limits</h2>
     <table>
       <tr><th>Service</th><th>Free allowance</th><th>Expected use (70 staff)</th></tr>
       <tr><td>Cloudflare Workers + Durable Objects</td><td>100,000 requests a day</td><td>About 3,000–6,000 a day</td></tr>
-      <tr><td>Durable Object storage (SQLite)</td><td>5 GB</td><td>Under 50 MB a year, plus kiosk photos (deleted after 90 days)</td></tr>
-      <tr><td>GitHub Actions</td><td>Unlimited on a public repo, 2,000 minutes a month on a private one</td><td>About 10 minutes per release</td></tr>
+      <tr><td>Durable Object storage (SQLite)</td><td>5 GB</td><td>Under 50 MB a year, plus kiosk photos (deleted after 90 days) and 30 daily backups</td></tr>
+      <tr><td>Firebase Cloud Messaging (alerts)</td><td>Free, no limit for this use</td><td>About 100–300 alerts a day</td></tr>
+      <tr><td>GitHub Actions</td><td>Unlimited on a public repo, 2,000 minutes a month on a private one</td><td>About 10 minutes per release, plus a short server check every 30 minutes</td></tr>
       <tr><td>GitHub Releases</td><td>Free hosting of the APK files</td><td>Two APKs per version</td></tr>
     </table>
   </section>
 </section>
 
 <section>
-  <h2>17. Build stages and test checklist</h2>
+  <h2>19. Versions and test checklist</h2>
   <table>
     <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
-    <tr><td>1. Backend</td><td><span class="tag done">Done</span></td><td>Already tested: 20 automated tests and a full run on Cloudflare's own runtime. Waiting for the owner's OK to deploy.</td></tr>
-    <tr><td>2. Admin app</td><td><span class="tag next">In progress</span></td><td>First setup and PIN login. Set the store location. Add employees and a manager. Live board. Check staff in and out. Approve requests. Payroll PDF. Reports CSV. Kiosk mode. Urdu.</td></tr>
-    <tr><td>3. Employee app</td><td><span class="tag">Next</span></td><td>Phone locking. Fingerprint. Check-in inside and outside the circle. Break. Requests. Offline punch in airplane mode. Calendar. Statement. Urdu.</td></tr>
-    <tr><td>4. Owner page</td><td><span class="tag">Next</span></td><td>PIN login. Today's view. Approve a request. Monthly totals. Urdu.</td></tr>
+    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>39 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
+    <tr><td>Admin app</td><td><span class="tag done">Live</span></td><td>Login, board, requests and owner approvals, staff, money with installments, payroll with paid record and month lock, settlement, rules agreement, backups, reports, kiosk, Urdu.</td></tr>
+    <tr><td>Employee app</td><td><span class="tag done">Live</span></td><td>Rules agreement, phone locking, fingerprint, check-in inside and outside the circle, check-in-again request, break, requests, reminders, offline punch, calendar, payslip, Urdu.</td></tr>
+    <tr><td>Owner web page</td><td><span class="tag">Next</span></td><td>PIN login, today's view, approve a request, monthly totals, Urdu.</td></tr>
   </table>
   <h3>Before each release</h3>
   <ul>

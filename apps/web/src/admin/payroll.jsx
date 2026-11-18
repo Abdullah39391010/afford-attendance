@@ -10,6 +10,7 @@ import { Statement } from '../shared/statement.jsx';
 import { statementDoc, printDoc, shareDocPdf, shareCsv } from '../shared/printdoc.js';
 import { useApp } from './app.jsx';
 import { MonthLock } from './pro.jsx';
+import { PaidBox } from './ops.jsx';
 
 export function Payroll({ q }) {
   const app = useApp();
@@ -39,6 +40,8 @@ export function Payroll({ q }) {
               <div class="kv"><span class="k">{t('Total cuts')}</span><span class="v">− {fmtMoney(data.totals.cuts, cur)}</span></div>
               <div class="kv"><span class="k">{t('Advances')}</span><span class="v">− {fmtMoney(data.totals.advances, cur)}</span></div>
               <div class="kv total"><span class="k">{t('Total net pay')}</span><span class="v">{fmtMoney(data.totals.net, cur)}</span></div>
+              {data.totals.paid > 0 && <div class="kv"><span class="k">{t('Paid so far')}</span><span class="v">{fmtMoney(data.totals.paid, cur)}</span></div>}
+              {month < today.slice(0, 7) && <div class="kv"><span class="k">{t('Staff not paid yet')}</span><span class="v">{data.totals.unpaid}</span></div>}
             </div>
             <div class="list">
               {!data.rows.length && <Empty icon="money" text={t('No staff yet')} />}
@@ -49,7 +52,8 @@ export function Payroll({ q }) {
                     <div class="title">{nm(r.employee)} <span class="muted small ltr">{r.employee.code}</span></div>
                     <div class="sub">{t('Present {p} · Absent {a} · Late {l} min', { p: r.counts.present, a: r.counts.absent, l: r.counts.lateMin })}</div>
                   </div>
-                  <div class="end"><b style="font-size:15px">{fmtMoney(r.net, cur)}</b><div class="small muted">{t('of')} {fmtMoney(r.salary, cur)}</div></div>
+                  <div class="end"><b style="font-size:15px">{fmtMoney(r.net, cur)}</b>
+                    {r.net > 0 && r.paid >= r.net ? <div class="small" style="color:var(--green)">✓ {t('Paid')}</div> : <div class="small muted">{t('of')} {fmtMoney(r.salary, cur)}</div>}</div>
                 </button>
               ))}
             </div>
@@ -79,7 +83,8 @@ export function PayrollOne({ id, q }) {
       <TopBar back title={t('Salary statement')} />
       <div class="wrap">
         <MonthNav month={month} onChange={setMonth} max={today.slice(0, 7)} />
-        <Loader st={st}>{({ statement: s }) => <Statement s={s} busy={busy} onPrint={() => run('print', s)} onShare={() => run('share', s)} />}</Loader>
+        <Loader st={st}>{({ statement: s }) => <Statement s={s} busy={busy} onPrint={() => run('print', s)} onShare={() => run('share', s)}
+          extra={<PaidBox s={s} onChanged={() => st.reload(true)} />} />}</Loader>
       </div>
     </div>
   );
