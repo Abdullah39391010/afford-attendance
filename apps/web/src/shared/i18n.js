@@ -46,6 +46,9 @@ const ERRORS = {
   TOO_OLD: 'That date is too old.',
   NOT_THIS_MONTH: 'Only dates in the current month are allowed.',
   NOTHING_TO_UNDO: 'There is no recent check-out to undo.',
+  RECHECKIN_NEEDED: 'You already checked out today. Ask the admin or manager to let you check in again.',
+  NOT_CHECKED_OUT: 'You have not checked out today, so you can check in normally.',
+  ALREADY_APPROVED: 'Already approved. You can check in now.',
   OFFLINE_TOO_OLD: 'This saved punch is too old. Please send a "forgot" request instead.',
   NEED_REASON: 'Please write a reason.',
   NO_PERMISSION: 'You do not have permission for this.',
@@ -84,7 +87,7 @@ export const statusLabel = (s) => t(STATUS[s] || s);
 
 export const REQ_TYPES = {
   forgot_in: 'Forgot check-in', forgot_out: 'Forgot check-out', past_day: 'Past-day attendance', leave: 'Leave',
-  advance: 'Advance salary', break: 'Break', undo_checkout: 'Checked out by mistake', field_duty: 'Out-of-town duty',
+  advance: 'Advance salary', break: 'Break', undo_checkout: 'Checked out by mistake', field_duty: 'Out-of-town duty', recheckin: 'Check in again',
 };
 export const reqLabel = (s) => t(REQ_TYPES[s] || s);
 

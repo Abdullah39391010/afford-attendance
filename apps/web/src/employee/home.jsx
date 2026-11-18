@@ -45,7 +45,7 @@ export function Home() {
   const store = home.store;
   const cur = store.currency;
   const isIn = !!d.isOpen;
-  const worked = d.checkIn ? (isIn ? Math.max(0, Math.floor((now - d.checkIn) / 60000) - (d.breakMin || 0)) : d.workedMin) : 0;
+  const worked = d.checkIn ? (isIn ? Math.max(0, Math.floor((now - d.checkIn) / 60000) - (d.breakMin || 0) - (d.awayMin || 0)) : d.workedMin) : 0;
   const onBreak = d.onBreak;
 
   const punch = async () => {
@@ -91,6 +91,9 @@ export function Home() {
   };
 
   const pending = home.pendingRequests || [];
+  const rc = home.recheckin; // set when checked out today: re-check-in needs approval
+  const rcOk = rc?.status === 'approved';
+  const [rcSheet, setRcSheet] = useState(false);
   const breakPending = pending.find((r) => r.type === 'break');
   const leave = home.leave || {};
   const dueLeft = onBreak ? Math.ceil((onBreak.due - now) / 60000) : 0;
@@ -124,6 +127,7 @@ export function Home() {
             </div>
           )}
           {d.lateMin > 0 && <div class="pill st-late" style="margin-top:8px">{t('Late {m} min', { m: d.lateMin })}</div>}
+          {d.awayMin > 0 && <div class="small" style="opacity:.9;margin-top:6px">{t('Away {m} min between check-out and check-in (counted as late)', { m: d.awayMin })}</div>}
           {!d.checkIn && store.rules.lateGraceMin > 0 && <div class="small" style="opacity:.85;margin-top:6px">{t('Check in before {t} to be on time.', { t: addMin(emp.shift.start, store.rules.lateGraceMin) })}</div>}
         </div>
 
@@ -136,15 +140,28 @@ export function Home() {
         ) : (
           <div>
             {!isIn && d.checkOut ? (
-              <button class="btn block ghost" style="margin-top:14px" disabled={!!busy} onClick={punch}>{busy ? <Spinner sm /> : <><Icon n="in" />{t('Check in again')}</>}</button>
+              rcOk ? (
+                <div>
+                  <Banner kind="ok" icon="check">{t('Approved. You can check in again. The time you were away counts as late.')}</Banner>
+                  <button class="btn block" style="margin-top:10px" disabled={!!busy} onClick={punch}>{busy ? <Spinner sm /> : <><Icon n="in" />{t('Check in again')}</>}</button>
+                </div>
+              ) : rc?.status === 'pending' ? (
+                <Banner kind="info" icon="clock">{t('Check-in request sent. Waiting for the admin or manager.')}</Banner>
+              ) : (
+                <div>
+                  {rc?.status === 'declined' && <Banner kind="err" icon="x">{t('Your request to check in again was declined.')}{rc.note ? ` ${rc.note}` : ''}</Banner>}
+                  <button class="btn block ghost" style="margin-top:14px" onClick={() => setRcSheet(true)}><Icon n="in" />{t('Ask to check in again')}</button>
+                </div>
+              )
             ) : (
               <button class={`punch-btn ${isIn ? 'out' : 'in'}`} disabled={!!busy} onClick={punch}>
                 {busy === 'in' || busy === 'out' ? <Spinner /> : <><Icon n={isIn ? 'out' : 'in'} /><span>{isIn ? t('Check out') : t('Check in')}</span></>}
               </button>
             )}
-            <p class="center small muted" style="margin:6px 0 0">
+            {!(!isIn && d.checkOut) && <p class="center small muted" style="margin:6px 0 0">
               {isIn && emp.checkoutAnywhere ? t('You can check out from anywhere.') : isIn ? t('You must be inside the store to check out.') : emp.fieldStaff ? t('Field staff: you can check in from anywhere. Your location is saved.') : t('You must be inside the store to check in.')}
-            </p>
+            </p>}
+            {!isIn && d.checkOut && <p class="center small muted" style="margin:6px 0 0">{t('You checked out at {t}. To come back today, the admin or manager must allow it.', { t: fmtTime(d.checkOut) })}</p>}
             {isIn && (
               breakPending
                 ? <Banner kind="info" icon="coffee">{t('Break request sent. Waiting for the admin or manager.')}</Banner>
@@ -186,6 +203,7 @@ export function Home() {
           </div>
         )}
       </div>
+      {rcSheet && <RecheckinSheet outTs={d.checkOut} onClose={() => setRcSheet(false)} onDone={() => { setRcSheet(false); E.loadHome(); }} />}
       {breakSheet && <BreakSheet left={home.today.breakLeftMin} needsApproval={store.rules.breakNeedsApproval} onClose={() => setBreakSheet(false)} onDone={() => { setBreakSheet(false); E.loadHome(); }} />}
     </div>
   );
@@ -218,6 +236,26 @@ function BreakSheet({ left, needsApproval, onClose, onDone }) {
       </Field>
       <Field label={t('Reason (optional)')}><input class="input" value={reason} onInput={(e) => setReason(e.currentTarget.value)} placeholder={t('e.g. Lunch, prayer')} /></Field>
       <button class="btn block" disabled={busy} onClick={send}>{busy ? <Spinner sm /> : needsApproval ? t('Send to admin / manager') : t('Start break')}</button>
+    </Sheet>
+  );
+}
+
+function RecheckinSheet({ outTs, onClose, onDone }) {
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    setBusy(true);
+    try {
+      await api.post('/api/emp/requests', { type: 'recheckin', reason });
+      toast(t('Check-in request sent. Waiting for the admin or manager.'), 'ok');
+      onDone();
+    } catch (e) { toastErr(e); } finally { setBusy(false); }
+  };
+  return (
+    <Sheet open onClose={onClose} title={t('Ask to check in again')}>
+      <p class="small muted" style="margin:0 0 10px">{t('You checked out at {t}. If approved, the time between your check-out and new check-in is counted as late and cut from salary.', { t: fmtTime(outTs) })}</p>
+      <Field label={t('Reason')}><input class="input" value={reason} onInput={(e) => setReason(e.currentTarget.value)} placeholder={t('e.g. Came back for evening rush')} /></Field>
+      <button class="btn block" disabled={busy} onClick={send}>{busy ? <Spinner sm /> : t('Send to admin / manager')}</button>
     </Sheet>
   );
 }

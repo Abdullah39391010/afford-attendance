@@ -296,6 +296,7 @@ html[dir='rtl'] .cal { direction: rtl; }
 .banner.warn { background: var(--yellow-soft); color: #5e4700; }
 .banner.info { background: var(--blue-soft); color: #1d4fae; }
 .banner.err { background: var(--red-soft); color: var(--red-dark); }
+.banner.ok { background: var(--green-soft); color: #0b5e2e; }
 .banner svg { width: 20px; height: 20px; flex: none; margin-top: 1px; }
 .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }

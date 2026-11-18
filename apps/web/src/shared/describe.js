@@ -13,6 +13,9 @@ export function describe(r, currency) {
     case 'advance': return d.amount == null ? t('Amount hidden') : fmtMoney(d.approvedAmount || d.amount, currency);
     case 'break': return t('{m} minutes', { m: d.minutes });
     case 'undo_checkout': return `${t('Checked out at')} ${fmtTime(d.outTs)}`;
+    case 'recheckin': return d.inTs
+      ? `${t('Out')} ${fmtTime(d.outTs)} → ${t('In')} ${fmtTime(d.inTs)} · ${t('counted as late')}`
+      : `${t('Checked out at')} ${fmtTime(d.outTs)} · ${t('time away counts as late')}`;
     default: return '';
   }
 }

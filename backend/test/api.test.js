@@ -195,6 +195,52 @@ test('forgot check-in, forgot check-out, past day, leave, advance, undo check-ou
   assert.ok(audit.includes('request.approved'));
 });
 
+test('checking in again after check-out needs an approved request, and the time away counts as late', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  const decide = (id, approve = true) => t.api('POST', `/api/admin/requests/${id}/decide`, { approve }, t.owner);
+  await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore });
+  t.setTime('2026-11-16T12:00');
+  await t.aliApi('POST', '/api/emp/punch', { type: 'out', loc: t.inStore });
+  t.setTime('2026-11-16T12:30');
+  // straight check-in is refused
+  let res = await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore });
+  assert.equal(res.data.error, 'RECHECKIN_NEEDED');
+  let home = (await t.aliApi('GET', '/api/emp/home')).data;
+  assert.equal(home.recheckin.needed, true);
+  assert.equal(home.recheckin.status, null);
+  // ask, get declined, still refused
+  let r = (await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin', reason: 'Bank work done' })).data.request;
+  assert.equal((await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin' })).data.error, 'DUPLICATE');
+  assert.equal((await t.aliApi('GET', '/api/emp/home')).data.recheckin.status, 'pending');
+  await decide(r.id, false);
+  assert.equal((await t.aliApi('GET', '/api/emp/home')).data.recheckin.status, 'declined');
+  assert.equal((await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore })).data.error, 'RECHECKIN_NEEDED');
+  // ask again, approved
+  r = (await t.aliApi('POST', '/api/emp/requests', { type: 'recheckin' })).data.request;
+  await decide(r.id);
+  assert.equal((await t.aliApi('GET', '/api/emp/home')).data.recheckin.status, 'approved');
+  t.setTime('2026-11-16T13:00');
+  res = await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore });
+  assert.equal(res.data.ok, true);
+  assert.equal(res.data.today.awayMin, 60);
+  assert.equal(res.data.today.lateMin, 60);
+  assert.equal(res.data.today.arriveLateMin, 0);
+  assert.equal(res.data.today.status, 'late');
+  assert.equal(res.data.today.gaps.length, 1);
+  // the approval is used up: after another check-out a new request is needed
+  t.setTime('2026-11-16T14:00');
+  await t.aliApi('POST', '/api/emp/punch', { type: 'out', loc: t.inStore });
+  assert.equal((await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore })).data.error, 'RECHECKIN_NEEDED');
+  // admin can still check them in by hand
+  res = await t.api('POST', '/api/admin/punch', { employeeId: t.ali.id, type: 'in', reason: 'Came back' }, t.owner);
+  assert.equal(res.status, 200, JSON.stringify(res.data));
+  // next day is a fresh start
+  t.setTime('2026-11-17T08:00');
+  await t.aliApi('POST', '/api/emp/punch', { type: 'out', loc: t.inStore }).catch(() => {});
+  res = await t.aliApi('POST', '/api/emp/punch', { type: 'in', loc: t.inStore });
+  assert.equal(res.data.ok, true);
+});
+
 test('offline punches use the phone estimate, are flagged, and are not duplicated', async () => {
   const t = await seeded('2026-11-16T08:00');
   const clientId = 'abc-123';

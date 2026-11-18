@@ -157,6 +157,7 @@ export function EmpActions({ r, date, onClose, onDone }) {
       {r.checkIn && <div class="kv"><span class="k">{t('Check in')}</span><span class="v">{fmtTime(r.checkIn)}</span></div>}
       {r.checkOut && <div class="kv"><span class="k">{t('Check out')}</span><span class="v">{fmtTime(r.checkOut)}</span></div>}
       {r.lateMin > 0 && <div class="kv"><span class="k">{t('Late')}</span><span class="v">{t('{m} min', { m: r.lateMin })}</span></div>}
+      {r.awayMin > 0 && <div class="kv"><span class="k">{t('Away (counted as late)')}</span><span class="v">{t('{m} min', { m: r.awayMin })}{(r.gaps || []).map((g) => <div key={g.out} class="small muted ltr">{fmtTime(g.out)} → {fmtTime(g.in)}</div>)}</span></div>}
 
       {!mode && (
         <div style="display:grid;gap:10px;margin-top:14px">

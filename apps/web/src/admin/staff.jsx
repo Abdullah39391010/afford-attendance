@@ -347,6 +347,7 @@ export function DayDetail({ e, date, onClose, onChanged }) {
           <div class="gap" style="margin-bottom:8px"><Pill s={d.status} />{d.holiday && <span class="small muted">{d.holiday}</span>}{d.mark && <span class="small muted">{t('Marked by admin')}</span>}</div>
           <div class="kv"><span class="k">{t('Hours worked')}</span><span class="v">{fmtDur(d.workedMin)}</span></div>
           <div class="kv"><span class="k">{t('Late')}</span><span class="v">{t('{m} min', { m: d.lateMin })}</span></div>
+          {d.awayMin > 0 && <div class="kv"><span class="k">{t('Away (counted as late)')}</span><span class="v">{t('{m} min', { m: d.awayMin })}{(d.gaps || []).map((g) => <div key={g.out} class="small muted ltr">{fmtTime(g.out)} → {fmtTime(g.in)}</div>)}</span></div>}
           <div class="kv"><span class="k">{t('Left early')}</span><span class="v">{t('{m} min', { m: d.earlyMin })}</span></div>
           <div class="kv"><span class="k">{t('Break')}</span><span class="v">{fmtDur(d.breakMin)}{d.breakLateMin ? ` · ${t('{m} min late', { m: d.breakLateMin })}` : ''}</span></div>
           <div class="section-title">{t('Punches')}</div>

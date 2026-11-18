@@ -45,9 +45,12 @@ export function daySummary(emp, s, date, d, now) {
   let checkIn = null;
   let checkOut = null;
   let offline = false;
+  // Time away between a check-out and the next check-in on the same day counts as late.
+  const gaps = [];
   for (const p of punches) {
     if (p.offline) offline = true;
     if (p.type === 'in' && open == null) {
+      if (checkIn != null && checkOut != null && p.ts > checkOut) gaps.push({ out: checkOut, in: p.ts, min: Math.floor((p.ts - checkOut) / MIN) });
       open = p.ts;
       if (checkIn == null) checkIn = p.ts;
     } else if (p.type === 'out' && open != null) {
@@ -79,6 +82,9 @@ export function daySummary(emp, s, date, d, now) {
     const from = r.lateCountFrom === 'grace' ? startTs + r.lateGraceMin * MIN : startTs;
     lateMin = Math.floor((checkIn - from) / MIN);
   }
+  const arriveLateMin = lateMin;
+  const awayMin = gaps.reduce((a, g) => a + g.min, 0);
+  lateMin += awayMin;
   let earlyMin = 0;
   if (!isOpen && checkOut != null && checkOut < endTs - r.earlyLeaveGraceMin * MIN) {
     earlyMin = Math.ceil((endTs - checkOut) / MIN);
@@ -116,6 +122,9 @@ export function daySummary(emp, s, date, d, now) {
     workedMin: Math.floor(workedMs / MIN),
     breakMin: Math.floor(breakMs / MIN),
     lateMin: timed ? lateMin : 0,
+    arriveLateMin: timed ? arriveLateMin : 0,
+    awayMin: timed ? awayMin : 0,
+    gaps: timed ? gaps : [],
     earlyMin: timed && !missingOut ? earlyMin : 0,
     breakLateMin: timed ? breakLateMin : 0,
     missingOut,

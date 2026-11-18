@@ -8,7 +8,7 @@ import { TopBar, Icon, Pill, Sheet, Field, Loader, useLoad, toast, toastErr, Seg
 import { useApp } from './app.jsx';
 import { describe } from '../shared/describe.js';
 
-const ICON = { forgot_in: 'in', forgot_out: 'out', past_day: 'cal', leave: 'leave', advance: 'wallet', break: 'coffee', undo_checkout: 'undo', field_duty: 'map' };
+const ICON = { forgot_in: 'in', forgot_out: 'out', past_day: 'cal', leave: 'leave', advance: 'wallet', break: 'coffee', undo_checkout: 'undo', field_duty: 'map', recheckin: 'in' };
 
 export { describe };
 

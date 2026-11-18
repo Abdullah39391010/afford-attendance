@@ -51,6 +51,7 @@ export function MyCalendar() {
           {day.checkIn && <div class="kv"><span class="k">{t('Check out')}</span><span class="v ltr">{day.checkOut ? fmtTime(day.checkOut) : '—'}</span></div>}
           {day.workedMin > 0 && <div class="kv"><span class="k">{t('Hours worked')}</span><span class="v">{fmtDur(day.workedMin)}</span></div>}
           {day.lateMin > 0 && <div class="kv"><span class="k">{t('Late')}</span><span class="v">{t('{m} min', { m: day.lateMin })}</span></div>}
+          {day.awayMin > 0 && <div class="kv"><span class="k">{t('Away (counted as late)')}</span><span class="v">{t('{m} min', { m: day.awayMin })}{(day.gaps || []).map((g) => <div key={g.out} class="small muted ltr">{fmtTime(g.out)} → {fmtTime(g.in)}</div>)}</span></div>}
           {day.earlyMin > 0 && <div class="kv"><span class="k">{t('Left early')}</span><span class="v">{t('{m} min', { m: day.earlyMin })}</span></div>}
           {day.breakMin > 0 && <div class="kv"><span class="k">{t('Break')}</span><span class="v">{t('{m} min', { m: day.breakMin })}</span></div>}
           {day.holiday && <div class="kv"><span class="k">{t('Holiday')}</span><span class="v">{day.holiday}</span></div>}

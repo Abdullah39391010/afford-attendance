@@ -13,13 +13,13 @@ const ADMIN_TTL = 30 * 24 * 3600 * 1000;
 const EMP_TTL = 365 * 24 * 3600 * 1000;
 const KIOSK_TTL = 365 * 24 * 3600 * 1000;
 const OPEN_MAX_MS = 20 * 3600 * 1000; // a check-in older than this no longer counts as "inside"
-const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'advance', 'break', 'undo_checkout', 'field_duty'];
+const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'advance', 'break', 'undo_checkout', 'field_duty', 'recheckin'];
 const MONEY_KINDS = ['advance', 'deposit', 'deposit_cut', 'deposit_return', 'bonus'];
 const MAX_BODY = 1_500_000;
 const REQ_EN = { forgot_in: 'Forgot check-in', forgot_out: 'Forgot check-out', past_day: 'Fix a past day', leave: 'Leave', advance: 'Advance salary',
-  break: 'Extra break', undo_checkout: 'Undo check-out', field_duty: 'Out-of-town duty' };
+  break: 'Extra break', undo_checkout: 'Undo check-out', field_duty: 'Out-of-town duty', recheckin: 'Check in again' };
 const REQ_UR = { forgot_in: 'چیک اِن بھول گئے', forgot_out: 'چیک آؤٹ بھول گئے', past_day: 'پچھلے دن کی درستی', leave: 'چھٹی', advance: 'ایڈوانس تنخواہ',
-  break: 'اضافی وقفہ', undo_checkout: 'چیک آؤٹ واپس', field_duty: 'شہر سے باہر ڈیوٹی' };
+  break: 'اضافی وقفہ', undo_checkout: 'چیک آؤٹ واپس', field_duty: 'شہر سے باہر ڈیوٹی', recheckin: 'دوبارہ چیک اِن' };
 
 const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
@@ -681,6 +681,15 @@ export class Store {
       if (offline || now - last.ts < 5000) ts = last.ts + 1000;
       else throw bad('OUT_OF_ORDER', 'Time is before the last punch');
     }
+    let recheck = null;
+    if (type === 'in' && !byAdmin) {
+      const inDay = this.dayForIn(emp, ts);
+      const lastOut = this.db.get("SELECT * FROM punches WHERE emp = ? AND day = ? AND type = 'out' AND voided = 0 ORDER BY ts DESC LIMIT 1", emp.id, inDay);
+      if (lastOut) {
+        recheck = this.approvedRecheckin(emp.id, inDay, lastOut.ts);
+        if (!recheck) throw bad('RECHECKIN_NEEDED', 'You already checked out today. Send a "Check in again" request first.');
+      }
+    }
     const g = skipGeo ? { lat: loc?.lat ?? null, lng: loc?.lng ?? null, acc: loc?.acc ?? null, dist: null } : this.geo(emp, type, loc, { kiosk });
     const day = type === 'in' ? this.dayForIn(emp, ts) : open.day;
     const id = uid();
@@ -693,7 +702,33 @@ export class Store {
       const b = this.openBreak(emp.id);
       if (b) this.db.run('UPDATE breaks SET end = ? WHERE id = ?', ts, b.id);
     }
+    if (recheck) {
+      const data = JSON.parse(recheck.data);
+      data.used = true;
+      data.inTs = ts;
+      this.db.run('UPDATE requests SET data = ? WHERE id = ?', JSON.stringify(data), recheck.id);
+    }
     return { punch: this.db.get('SELECT * FROM punches WHERE id = ?', id) };
+  }
+
+  /** An approved, unused "Check in again" request for this day's latest check-out. */
+  approvedRecheckin(empId, day, outTs) {
+    return this.db.get(
+      `SELECT * FROM requests WHERE emp = ? AND type = 'recheckin' AND status = 'approved'
+       AND json_extract(data, '$.date') = ? AND json_extract(data, '$.outTs') = ? AND json_extract(data, '$.used') IS NULL
+       ORDER BY decided DESC LIMIT 1`, empId, day, outTs);
+  }
+  /** Where the staff member stands on checking in again today (after a check-out). */
+  recheckinState(emp) {
+    if (this.openSession(emp.id)) return null;
+    const day = this.dayForIn(emp, this.now());
+    const lastOut = this.db.get("SELECT * FROM punches WHERE emp = ? AND day = ? AND type = 'out' AND voided = 0 ORDER BY ts DESC LIMIT 1", emp.id, day);
+    if (!lastOut) return null;
+    const r = this.db.get(
+      `SELECT * FROM requests WHERE emp = ? AND type = 'recheckin' AND json_extract(data, '$.date') = ? AND json_extract(data, '$.outTs') = ?
+       ORDER BY created DESC LIMIT 1`, emp.id, day, lastOut.ts);
+    const d = r ? JSON.parse(r.data) : null;
+    return { needed: true, outTs: lastOut.ts, status: r ? (r.status === 'approved' && d.used ? 'used' : r.status) : null, note: r?.note || null, requestId: r?.id || null };
   }
 
   /** Set the first check-in or last check-out of a past/current day (forgot / correction). */
@@ -1009,6 +1044,16 @@ export class Store {
         if (!last || last.type !== 'out' || this.now() - last.ts > 12 * 3600 * 1000) throw bad('NOTHING_TO_UNDO', 'There is no recent check-out to undo');
         data.punchId = last.id;
         data.date = last.day;
+        data.outTs = last.ts;
+        break;
+      }
+      case 'recheckin': {
+        if (this.openSession(emp.id)) throw bad('ALREADY_IN', 'You are already checked in');
+        const day = this.dayForIn(emp, this.now());
+        const last = this.db.get("SELECT * FROM punches WHERE emp = ? AND day = ? AND type = 'out' AND voided = 0 ORDER BY ts DESC LIMIT 1", emp.id, day);
+        if (!last) throw bad('NOT_CHECKED_OUT', 'You have not checked out today, so you can check in normally');
+        if (this.approvedRecheckin(emp.id, day, last.ts)) throw bad('ALREADY_APPROVED', 'Already approved. You can check in now.');
+        data.date = day;
         data.outTs = last.ts;
         break;
       }
@@ -1454,6 +1499,7 @@ export class Store {
       leave: st.leave,
       depositBalance: this.depositBalance(emp.id),
       pendingRequests: this.db.all("SELECT * FROM requests WHERE emp = ? AND status = 'pending' ORDER BY created DESC", emp.id).map(reqOut),
+      recheckin: this.recheckinState(emp),
     };
   }
   empPunch({ actor, body }) {
@@ -1554,7 +1600,7 @@ export class Store {
 function pickDay(d) {
   return {
     date: d.date, status: d.status, mark: d.mark, checkIn: d.checkIn, checkOut: d.checkOut, isOpen: d.isOpen, onBreak: d.onBreak,
-    workedMin: d.workedMin, breakMin: d.breakMin, lateMin: d.lateMin, earlyMin: d.earlyMin, breakLateMin: d.breakLateMin,
+    workedMin: d.workedMin, breakMin: d.breakMin, lateMin: d.lateMin, arriveLateMin: d.arriveLateMin, awayMin: d.awayMin, gaps: d.gaps, earlyMin: d.earlyMin, breakLateMin: d.breakLateMin,
     missingOut: d.missingOut, offline: d.offline, holiday: d.holiday, shiftStart: d.shiftStart, shiftEnd: d.shiftEnd,
   };
 }
