@@ -69,8 +69,8 @@ export function InstallGuide({ onSkip }) {
       <h1>{t('Install {app}', { app: APP_NAME })}</h1>
       <p class="sub">{t('Put the app on your home screen. It then opens like a normal app and can send you alerts.')}</p>
       <div class="box ig-box">
-        <Step n="1" icon="iosshare" title={t('Tap the Share button')} sub={t('At the bottom of Safari (or tap ⋯ first)')} />
-        <Step n="2" icon="addsq" title={t('Tap "Add to Home Screen"')} sub={t('Scroll down the list if you don\'t see it')} />
+        <Step n="1" icon="menu" title={t('Tap ☰ next to the address')} sub={t('At the bottom of Safari. Then tap Share.')} />
+        <Step n="2" icon="addsq" title={t('Tap "View More", then "Add to Home Screen"')} sub={t('Older iPhones: Share, then scroll down')} />
         <Step n="3" icon="check" title={t('Tap "Add"')} sub={t('Then open {app} from your home screen', { app: APP_NAME })} />
       </div>
       <button class="link ig-skip" onClick={() => { LS.set('afford.installSkip', '1'); onSkip(); }}>{t('Continue in browser instead')}</button>

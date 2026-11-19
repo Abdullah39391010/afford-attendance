@@ -266,4 +266,6 @@ export const UR2 = {
   'Leave approved or declined': 'چھٹی منظور یا نامنظور', 'Salary paid': 'تنخواہ ادا ہو گئی',
   'Requests to approve': 'منظوری کے لیے درخواستیں', 'Fake GPS and other warnings': 'جعلی GPS اور دیگر انتباہ',
   'Daily summary': 'روزانہ خلاصہ', 'Staff late or absent': 'اسٹاف دیر سے یا غیر حاضر',
+  'Tap ☰ next to the address': 'ایڈریس کے ساتھ ☰ دبائیں', 'At the bottom of Safari. Then tap Share.': 'سفاری میں نیچے۔ پھر Share دبائیں۔',
+  'Tap "View More", then "Add to Home Screen"': '"View More" پھر "Add to Home Screen" دبائیں', 'Older iPhones: Share, then scroll down': 'پرانے آئی فون: Share، پھر نیچے جائیں',
 };
