@@ -246,4 +246,7 @@ export const UR2 = {
   "Name (Urdu)": "نام (اردو)",
   "Leaving date": "چھوڑنے کی تاریخ",
   "Salary visibility": "تنخواہ دکھانا",
+  // developer details
+  'Apps · Websites · Software': 'ایپس · ویب سائٹس · سافٹ ویئر', 'App & web developer': 'ایپ اور ویب ڈویلپر',
+  'Layyah, Punjab': 'لیہ، پنجاب', 'Call': 'کال', 'Email': 'ای میل', 'Made in Layyah': 'لیہ میں تیار کردہ',
 };

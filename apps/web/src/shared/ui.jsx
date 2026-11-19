@@ -27,6 +27,8 @@ const P = {
   shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
   log: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
   phone: 'M7 2h10v20H7zM11 18h2',
+  mail: 'M3 6h18v12H3zM3 7l9 6 9-6',
+  call: 'M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.4 1.8.7 2.7a2 2 0 01-.5 2.1L8 9.8a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.7.7a2 2 0 011.7 2z',
   kiosk: 'M4 4h16v12H4zM8 20h8M12 16v4',
   logout: 'M15 4h4v16h-4M10 17l5-5-5-5M15 12H3',
   lang: 'M4 5h8M8 3v2M6 5c0 4 3 7 6 8M10 5c0 4-3 7-6 8M13 21l4-9 4 9M14.5 18h5',
@@ -345,11 +347,49 @@ export function LangSwitch({ onChange }) {
 // ---------------------------------------------------------------- version + developer credit
 export const BUILD_TEXT = `v${__APP_VERSION__}${__APP_BUILD__ ? ` · build ${__APP_BUILD__}` : ''}`;
 export function Credit({ app }) {
+  const [dev, setDev] = useState(false);
   return (
-    <p class="credit">
-      {app && <span>{app} </span>}<span class="ltr">{BUILD_TEXT}</span>
-      <span class="by">by <b>Innovative Layyah</b></span>
-    </p>
+    <Fragment>
+      <p class="credit">
+        {app && <span>{app} </span>}<span class="ltr">{BUILD_TEXT}</span>
+        <button type="button" class="by" onClick={() => setDev(true)}>by <b>Innovative Layyah</b></button>
+      </p>
+      {dev && <DevSheet onClose={() => setDev(false)} />}
+    </Fragment>
+  );
+}
+
+// ---------------------------------------------------------------- developer details (tap the credit)
+const DEV = {
+  org: 'Innovative Layyah', person: 'Abdullah Farooq', city: 'Layyah, Punjab',
+  phone: '0303 6763939', tel: '+923036763939', wa: '923036763939', email: 'abdullah6763939@gmail.com',
+};
+const WA_PATH = 'M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.7 11.8 11.8 0 004.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 001.8-1.2 2.2 2.2 0 00.2-1.3c-.1-.1-.3-.2-.5-.3z';
+const openLink = (url) => AffordDevice.openUrl({ url }).catch(() => window.open(url, '_blank'));
+export function DevSheet({ onClose }) {
+  return (
+    <Sheet open onClose={onClose}>
+      <div class="devcard">
+        <svg class="devcard-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6M14 3l-4 18" /></svg>
+        <div class="devcard-head">
+          <div class="devcard-logo"><img src="./dev-logo.png" alt="" /></div>
+          <div><div class="devcard-org">{DEV.org}</div><div class="devcard-tag">{t('Apps · Websites · Software')}</div></div>
+        </div>
+        <div class="devcard-name">{DEV.person}</div>
+        <div class="devcard-role">{t('App & web developer')}</div>
+        <div class="devcard-rows">
+          <div><Icon n="call" /><span class="ltr">{DEV.phone}</span></div>
+          <div><Icon n="mail" /><span class="ltr">{DEV.email}</span></div>
+          <div><Icon n="pin" /><span>{t(DEV.city)}</span></div>
+        </div>
+      </div>
+      <div class="devbtns">
+        <button class="wa" onClick={() => openLink(`https://wa.me/${DEV.wa}`)}><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={WA_PATH} /></svg>WhatsApp</button>
+        <button onClick={() => openLink(`tel:${DEV.tel}`)}><Icon n="call" />{t('Call')}</button>
+        <button onClick={() => openLink(`mailto:${DEV.email}`)}><Icon n="mail" />{t('Email')}</button>
+      </div>
+      <p class="devfoot"><span class="ltr">Afford Attendance {BUILD_TEXT}</span> · {t('Made in Layyah')}</p>
+    </Sheet>
   );
 }
 

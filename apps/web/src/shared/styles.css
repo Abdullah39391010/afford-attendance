@@ -248,7 +248,28 @@ textarea.input { min-height: 80px; resize: vertical; }
 @media (prefers-reduced-motion: reduce) { .splash * { animation-duration: .01s !important; animation-delay: 0s !important; } }
 /* ---------- version + developer credit */
 .credit { margin: 14px 0 4px; text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; }
-.credit .by { display: block; font-size: 11.5px; }
+.credit .by { display: block; margin: 0 auto; padding: 4px 10px; font: inherit; font-size: 11.5px; color: inherit; background: none; border: 0; cursor: pointer; }
+/* developer details card (tap "by Innovative Layyah") */
+.devcard { position: relative; overflow: hidden; border-radius: 22px; padding: 22px; color: #fff; margin-top: 4px;
+  background: radial-gradient(circle at 85% 10%, #3b5bdb 0, transparent 45%), linear-gradient(135deg, #141a33, #1d2c6b); }
+.devcard-bg { position: absolute; right: -30px; bottom: -40px; width: 190px; height: 190px; opacity: .08; color: #fff; }
+.devcard-head { display: flex; align-items: center; gap: 14px; position: relative; }
+.devcard-logo { width: 62px; height: 62px; flex: none; border-radius: 16px; background: rgba(255,255,255,.12); display: grid; place-items: center; }
+.devcard-logo img { width: 52px; height: 52px; }
+.devcard-org { font-size: 21px; font-weight: 800; line-height: 1.2; }
+.devcard-tag { opacity: .75; font-size: 13px; }
+.devcard-name { margin-top: 20px; font-size: 16px; font-weight: 700; position: relative; }
+.devcard-role { opacity: .7; font-size: 13px; position: relative; }
+.devcard-rows { margin-top: 14px; display: grid; gap: 9px; font-size: 14px; position: relative; }
+.devcard-rows div { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.devcard-rows span { overflow-wrap: anywhere; }
+.devcard-rows svg { width: 17px; height: 17px; flex: none; color: #9db4ff; }
+.devbtns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 16px; }
+.devbtns button { height: 70px; border: 0; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  font: inherit; font-size: 13px; font-weight: 700; background: #EEF2FF; color: #1d2c6b; cursor: pointer; }
+.devbtns button svg { width: 22px; height: 22px; }
+.devbtns button.wa { background: #1E9E53; color: #fff; }
+.devfoot { text-align: center; font-size: 12px; color: var(--muted); margin: 14px 0 2px; }
 .credit .by b { color: var(--red); font-weight: 700; }
 .auth-credit { margin-top: auto; padding-top: 18px; }
 /* login design E: white top with the logo, light body, "who" card, outlined keys */
