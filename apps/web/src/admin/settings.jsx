@@ -339,6 +339,12 @@ export function SettingsRules() {
           <h2>{t('Leave & requests')}</h2>
           {num('paidLeavePerMonth', t('Paid leave days per month'), t('Extra leave days are unpaid. Each employee can have their own number.'), t('days'))}
           {num('pastDayRequestDays', t('Past-day requests allowed for'), t('Only within the current month'), t('days back'))}
+          {num('shortLeaveFreeMin', t('Short leave: free if back within'), t('Staff ask for a few hours. Back in time = no cut.'))}
+          <Field label={t('Short leave: cut if away longer')}>
+            <div class="seg" style="max-width:300px">
+              {[[0.5, t('Half day')], [1, t('Full day')], [0, t('No cut')]].map(([v, l]) => <button class={Number(r.shortLeaveCutDays ?? 0.5) === v ? 'on' : ''} onClick={() => set('shortLeaveCutDays', v)}>{l}</button>)}
+            </div>
+          </Field>
         </div>
         <div class="card">
           <h2>{t('Overtime')}</h2>

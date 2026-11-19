@@ -74,6 +74,7 @@ const TYPES = [
   ['forgot_out', 'out', 'I forgot to check out'],
   ['past_day', 'cal', 'I worked on a past day'],
   ['leave', 'leave', 'Leave'],
+  ['short_leave', 'clock', 'Short leave (a few hours)'],
   ['field_duty', 'map', 'Out-of-town duty'],
   ['advance', 'wallet', 'Advance salary'],
   ['undo_checkout', 'undo', 'I checked out by mistake'],
@@ -130,6 +131,24 @@ export function MyRequests({ q }) {
   );
 }
 
+const toMin = (s) => { const [h, m] = String(s || '0:0').split(':').map(Number); return h * 60 + m; };
+const fromMin = (v) => { v = ((v % 1440) + 1440) % 1440; return `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`; };
+const addHM = (s, m) => fromMin(toMin(s) + m);
+const hmDiff = (a, b) => toMin(b) - toMin(a);
+/** Next quarter hour from now (inside the shift), one hour long. */
+function shortDefaults(shift, now) {
+  const d = new Date(now + 5 * 3600000);
+  let m = Math.ceil((d.getUTCHours() * 60 + d.getUTCMinutes()) / 15) * 15;
+  if (m < toMin(shift.start) || m >= toMin(shift.end.replace('24:00', '23:59'))) m = toMin(shift.start) + 60;
+  return { from: fromMin(m), to: fromMin(m + 60) };
+}
+export function shortRuleText(rules) {
+  const free = rules.shortLeaveFreeMin ?? 60;
+  const cut = Number(rules.shortLeaveCutDays ?? 0.5);
+  if (!cut) return t('Short leave has no salary cut.');
+  return t('Back within {m} min: no salary cut. Longer, or not back: {c} salary is cut.', { m: free, c: cut === 1 ? t('a full day') : cut === 0.5 ? t('half a day') : t('{d} day', { d: cut }) });
+}
+
 function NewRequest({ type, date0, onClose, onDone }) {
   const E = useEmp();
   const rules = E.home.store.rules;
@@ -138,6 +157,7 @@ function NewRequest({ type, date0, onClose, onDone }) {
   const [f, setF] = useState({
     date: date0 || (type === 'past_day' ? addDays(today, -1) : today), toDate: '', time: type === 'forgot_out' ? E.home.employee.shift.end.replace('24:00', '23:59') : E.home.employee.shift.start,
     inTime: E.home.employee.shift.start, outTime: E.home.employee.shift.end.replace('24:00', '23:59'), amount: '', reason: '',
+    ...(type === 'short_leave' ? shortDefaults(E.home.employee.shift, api.serverNow()) : {}),
   });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.currentTarget.value });
@@ -149,6 +169,7 @@ function NewRequest({ type, date0, onClose, onDone }) {
       if (type === 'past_day') Object.assign(body, { date: f.date, inTime: f.inTime, outTime: f.outTime });
       if (type === 'leave' || type === 'field_duty') Object.assign(body, { date: f.date, toDate: f.toDate || f.date });
       if (type === 'advance') body.amount = Number(f.amount);
+      if (type === 'short_leave') Object.assign(body, { date: f.date, from: f.from, to: f.to });
       await api.post('/api/emp/requests', body);
       toast(t('Request sent to the admin and managers'), 'ok');
       onDone();
@@ -180,6 +201,21 @@ function NewRequest({ type, date0, onClose, onDone }) {
             <Field label={t('To (optional)')}>{dateInput('toDate', f.date)}</Field>
           </div>
           {type === 'leave' && <p class="small muted" style="margin:-4px 0 8px">{t('Paid leave left this month: {n}. Extra days are unpaid.', { n: E.home.leave?.left ?? 0 })}</p>}
+        </div>
+      )}
+      {type === 'short_leave' && (
+        <div>
+          <Field label={t('Day')}>{dateInput('date', today, addDays(today, 30))}</Field>
+          <div class="two">
+            <Field label={t('From')}><input class="input ltr" style="width:100%" type="time" value={f.from} onInput={set('from')} /></Field>
+            <Field label={t('To')}><input class="input ltr" style="width:100%" type="time" value={f.to} onInput={set('to')} /></Field>
+          </div>
+          <div class="chips" style="margin:-2px 0 10px">
+            {[[60, t('1 hour')], [120, t('2 hours')], [180, t('3 hours')]].map(([m, l]) => <button class={`chip ${hmDiff(f.from, f.to) === m ? 'on' : ''}`} onClick={() => setF({ ...f, to: addHM(f.from, m) })}>{l}</button>)}
+            <button class={`chip ${f.to === E.home.employee.shift.end.replace('24:00', '23:59') ? 'on' : ''}`} onClick={() => setF({ ...f, to: E.home.employee.shift.end.replace('24:00', '23:59') })}>{t('Leave early')}</button>
+          </div>
+          <Banner kind="warn">{shortRuleText(rules)}</Banner>
+          <p class="small muted" style="margin:8px 0">{t('Check out when you leave and check in when you come back.')}</p>
         </div>
       )}
       {type === 'advance' && <Field label={t('Amount ({c})', { c: E.home.store.currency })}><MoneyInput value={f.amount} onValue={(v) => setF({ ...f, amount: v })} /></Field>}

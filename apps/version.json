@@ -1,7 +1,7 @@
 {
-  "version": "0.12.1",
+  "version": "0.12.2",
   "notes": {
-    "en": "Selfie check-in: you now see your photo after the 3-2-1 and can tap Retake if it is not clear, before checking in.",
-    "ur": "سیلفی چیک اِن: 3-2-1 کے بعد اب آپ اپنی تصویر دیکھ سکتے ہیں، اور صاف نہ ہو تو چیک اِن سے پہلے \"دوبارہ لیں\" دبا سکتے ہیں۔"
+    "en": "Short leave: staff can ask for a few hours off (pick From and To). Back within 1 hour: no salary cut. Longer: half a day is cut.",
+    "ur": "مختصر چھٹی: اسٹاف چند گھنٹوں کی چھٹی مانگ سکتا ہے (کب سے اور کب تک چنیں)۔ 1 گھنٹے میں واپسی پر تنخواہ نہیں کٹے گی، زیادہ دیر پر آدھے دن کی تنخواہ کٹے گی۔"
   }
 }

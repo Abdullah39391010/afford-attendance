@@ -9,7 +9,7 @@ import { useApp } from './app.jsx';
 import { describe } from '../shared/describe.js';
 import { OwnerApprovals } from './pro.jsx';
 
-const ICON = { forgot_in: 'in', forgot_out: 'out', past_day: 'cal', leave: 'leave', advance: 'wallet', break: 'coffee', undo_checkout: 'undo', field_duty: 'map', recheckin: 'in', swap: 'cal', pin_reset: 'lock' };
+const ICON = { forgot_in: 'in', forgot_out: 'out', past_day: 'cal', leave: 'leave', short_leave: 'clock', advance: 'wallet', break: 'coffee', undo_checkout: 'undo', field_duty: 'map', recheckin: 'in', swap: 'cal', pin_reset: 'lock' };
 
 export { describe };
 

@@ -268,4 +268,14 @@ export const UR2 = {
   'Daily summary': 'روزانہ خلاصہ', 'Staff late or absent': 'اسٹاف دیر سے یا غیر حاضر',
   'Tap ☰ next to the address': 'ایڈریس کے ساتھ ☰ دبائیں', 'At the bottom of Safari. Then tap Share.': 'سفاری میں نیچے۔ پھر Share دبائیں۔',
   'Tap "View More", then "Add to Home Screen"': '"View More" پھر "Add to Home Screen" دبائیں', 'Older iPhones: Share, then scroll down': 'پرانے آئی فون: Share، پھر نیچے جائیں',
+  // short leave
+  'Short leave': 'مختصر چھٹی', 'Short leave (a few hours)': 'مختصر چھٹی (چند گھنٹے)', 'Day': 'دن', 'To': 'تک',
+  '1 hour': '1 گھنٹہ', '2 hours': '2 گھنٹے', '3 hours': '3 گھنٹے', 'Leave early': 'جلدی جانا',
+  'Short leave has no salary cut.': 'مختصر چھٹی پر تنخواہ نہیں کٹتی۔',
+  'Back within {m} min: no salary cut. Longer, or not back: {c} salary is cut.': '{m} منٹ میں واپسی: کوئی کٹوتی نہیں۔ زیادہ دیر، یا واپس نہ آئے: {c} کی تنخواہ کٹے گی۔',
+  'a full day': 'پورے دن', 'half a day': 'آدھے دن', '{d} day': '{d} دن',
+  'Check out when you leave and check in when you come back.': 'جاتے وقت چیک آؤٹ کریں اور واپس آ کر چیک اِن کریں۔',
+  '{n} times · {o} over the free time': '{n} بار · {o} بار مقررہ وقت سے زیادہ', 'Short leave cut ({n}×)': 'مختصر چھٹی کی کٹوتی ({n}×)',
+  'Short leave: free if back within': 'مختصر چھٹی: اتنی دیر میں واپسی مفت', 'Staff ask for a few hours. Back in time = no cut.': 'ملازم چند گھنٹے مانگتے ہیں۔ وقت پر واپسی = کوئی کٹوتی نہیں۔',
+  'Short leave: cut if away longer': 'مختصر چھٹی: زیادہ دیر پر کٹوتی', 'Half day': 'آدھا دن', 'Full day': 'پورا دن', 'No cut': 'کوئی کٹوتی نہیں',
 };

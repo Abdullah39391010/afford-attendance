@@ -67,6 +67,8 @@ export function defaultSettings() {
       dailySummaryAt: '22:00',
       holidayWorkExtra: false, // working on a public holiday pays one extra day
       greetingsOn: true, // birthday + work anniversary wishes
+      shortLeaveFreeMin: 60, // approved short leave: back within this many minutes = no cut
+      shortLeaveCutDays: 0.5, // ...otherwise this part of a day's salary is cut (0.5 = half day)
     },
     storeAddress: '',
     storePhone: '',
@@ -157,6 +159,8 @@ export function mergeSettings(cur, patch) {
     if ('maxOfflineHours' in p) r.maxOfflineHours = num(p.maxOfflineHours, 1, 168, 168);
     if ('checkInEarlyMin' in p) r.checkInEarlyMin = num(p.checkInEarlyMin, 0, 240, 15);
     if ('autoAbsentAfterMin' in p) r.autoAbsentAfterMin = num(p.autoAbsentAfterMin, 0, 720, 120);
+    if ('shortLeaveFreeMin' in p) r.shortLeaveFreeMin = num(p.shortLeaveFreeMin, 0, 480, 60);
+    if ('shortLeaveCutDays' in p) { const v = Math.round(Number(p.shortLeaveCutDays) * 100) / 100; r.shortLeaveCutDays = Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5; }
     if ('overtimeRate' in p) {
       const v = Math.round(Number(p.overtimeRate) * 100) / 100;
       r.overtimeRate = Number.isFinite(v) ? Math.min(3, Math.max(0.5, v)) : 1;

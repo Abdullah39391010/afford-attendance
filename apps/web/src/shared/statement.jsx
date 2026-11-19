@@ -38,6 +38,7 @@ export function Statement({ s, busy, onPrint, onShare, extra }) {
         {c.duty > 0 && kv(t('Out-of-town duty'), c.duty)}
         {kv(t('Early leave minutes'), c.earlyMin)}
         {kv(t('Late break return (min)'), c.breakLateMin)}
+        {c.shortLeave > 0 && kv(t('Short leave'), t('{n} times · {o} over the free time', { n: c.shortLeave, o: c.shortLeaveOver }))}
         {c.overtimeMin > 0 && kv(t('Overtime minutes'), c.overtimeMin)}
         {c.missingOut > 0 && kv(t('Days without check-out'), c.missingOut)}
       </div>
@@ -52,6 +53,7 @@ export function Statement({ s, busy, onPrint, onShare, extra }) {
         {kv(t('Late cut'), `− ${fmtMoney2(s.cuts.late, cur)}`)}
         {kv(t('Early leave cut'), `− ${fmtMoney2(s.cuts.early, cur)}`)}
         {kv(t('Late break cut'), `− ${fmtMoney2(s.cuts.breakLate, cur)}`)}
+        {s.cuts.shortLeave > 0 && kv(t('Short leave cut ({n}×)', { n: c.shortLeaveOver }), `− ${fmtMoney2(s.cuts.shortLeave, cur)}`)}
         {s.advances > 0 && kv(t('Advances'), `− ${fmtMoney(s.advances, cur)}`)}
         {s.depositCut > 0 && kv(t('Security deposit cut'), `− ${fmtMoney(s.depositCut, cur)}`)}
         {s.fines > 0 && kv(t('Fines'), `− ${fmtMoney(s.fines, cur)}`)}

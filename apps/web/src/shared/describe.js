@@ -9,6 +9,7 @@ export function describe(r, currency) {
     case 'forgot_out': return `${fmtDate(d.date)} · ${t('check-out at')} ${d.approvedTime || d.time}`;
     case 'past_day': return `${fmtDate(d.date)} · ${d.approvedIn || d.inTime} – ${d.approvedOut || d.outTime}`;
     case 'leave': return d.toDate && d.toDate !== d.date ? `${fmtDate(d.date)} → ${fmtDate(d.toDate)}` : fmtDate(d.date);
+    case 'short_leave': return `${fmtDate(d.date)} · ${d.from} – ${d.to}`;
     case 'field_duty': return d.toDate && d.toDate !== d.date ? `${fmtDate(d.date)} → ${fmtDate(d.toDate)}` : fmtDate(d.date);
     case 'advance': return d.amount == null ? t('Amount hidden') : fmtMoney(d.approvedAmount || d.amount, currency);
     case 'break': return t('{m} minutes', { m: d.minutes });

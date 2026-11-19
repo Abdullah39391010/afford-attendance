@@ -85,16 +85,34 @@ export function daySummary(emp, s, date, d, now) {
     if (b.end == null) onBreak = { id: b.id, start: b.start, allowed: b.allowed, due: b.start + b.allowed * MIN };
   }
 
+  // Approved short leave: time away that touches its window is not late / early; it is measured instead.
+  // Back within shortLeaveFreeMin = no cut, longer (or not back) = shortLeaveCutDays of a day's pay.
+  let short = null;
+  const sl = d.short;
+  let lateExcused = false;
+  let earlyExcused = false;
+  if (sl && punches.length) {
+    const touches = (a, b) => a <= sl.toTs && b >= sl.fromTs - 30 * MIN;
+    let awayMs = 0;
+    if (checkIn != null && checkIn > startTs && touches(startTs, checkIn)) { awayMs += checkIn - startTs; lateExcused = true; }
+    for (const g of gaps) if (touches(g.out, g.in)) { awayMs += g.in - g.out; g.excused = true; }
+    if (!isOpen && checkOut != null && checkOut < endTs && touches(checkOut, endTs)) { awayMs += endTs - checkOut; earlyExcused = true; }
+    const min = Math.ceil(awayMs / MIN);
+    // still out and the window has ended: the time so far counts
+    const outNow = isOpen ? 0 : (checkOut != null && checkOut >= sl.fromTs - 30 * MIN && now < endTs ? Math.ceil((now - checkOut) / MIN) : 0);
+    short = { id: sl.id, from: sl.from, to: sl.to, min: earlyExcused && now < endTs ? outNow : min, freeMin: r.shortLeaveFreeMin };
+    short.over = short.min > r.shortLeaveFreeMin;
+  }
   let lateMin = 0;
-  if (checkIn != null && checkIn > startTs + r.lateGraceMin * MIN) {
+  if (!lateExcused && checkIn != null && checkIn > startTs + r.lateGraceMin * MIN) {
     const from = r.lateCountFrom === 'grace' ? startTs + r.lateGraceMin * MIN : startTs;
     lateMin = Math.floor((checkIn - from) / MIN);
   }
   const arriveLateMin = lateMin;
-  const awayMin = gaps.reduce((a, g) => a + g.min, 0);
+  const awayMin = gaps.filter((g) => !g.excused).reduce((a, g) => a + g.min, 0);
   lateMin += awayMin;
   let earlyMin = 0;
-  if (!isOpen && checkOut != null && checkOut < endTs - r.earlyLeaveGraceMin * MIN) {
+  if (!earlyExcused && !isOpen && checkOut != null && checkOut < endTs - r.earlyLeaveGraceMin * MIN) {
     earlyMin = Math.ceil((endTs - checkOut) / MIN);
   }
 
@@ -141,6 +159,7 @@ export function daySummary(emp, s, date, d, now) {
     gaps: timed ? gaps : [],
     earlyMin: timed && !missingOut ? earlyMin : 0,
     breakLateMin: timed ? breakLateMin : 0,
+    shortLeave: timed ? short : null,
     overtimeMin,
     missingOut,
     offline,
@@ -169,7 +188,7 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
   const quota = paidLeaveQuota(emp, s);
 
   const c = { present: 0, late: 0, absent: 0, leavePaid: 0, leaveUnpaid: 0, off: 0, holiday: 0, duty: 0, notJoined: 0, left: 0, pending: 0, overtimeMin: 0,
-    lateMin: 0, earlyMin: 0, breakLateMin: 0, workedMin: 0, missingOut: 0, offWorked: 0, holidayWorked: 0 };
+    lateMin: 0, earlyMin: 0, breakLateMin: 0, workedMin: 0, missingOut: 0, offWorked: 0, holidayWorked: 0, shortLeave: 0, shortLeaveOver: 0, shortLeaveMin: 0 };
   let leaveSeen = 0;
   const rows = [];
   for (const d of days) {
@@ -206,6 +225,11 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
     if (r.lateCutOn) row.cut += d.lateMin * perMin;
     if (r.earlyLeaveCutOn) row.cut += d.earlyMin * perMin;
     if (r.breakLateCutOn) row.cut += d.breakLateMin * perMin;
+    if (d.shortLeave && d.shortLeave.min > 0) {
+      c.shortLeave++; c.shortLeaveMin += d.shortLeave.min;
+      row.shortLeave = d.shortLeave;
+      if (d.shortLeave.over) { c.shortLeaveOver++; row.cut += daily * (r.shortLeaveCutDays ?? 0.5); }
+    }
     row.cut = round2(row.cut);
     rows.push(row);
   }
@@ -218,6 +242,7 @@ export function payroll(emp, s, month, days, money, depositBalance, now) {
     late: r.lateCutOn ? round2(c.lateMin * perMin) : 0,
     early: r.earlyLeaveCutOn ? round2(c.earlyMin * perMin) : 0,
     breakLate: r.breakLateCutOn ? round2(c.breakLateMin * perMin) : 0,
+    shortLeave: round2(c.shortLeaveOver * daily * (r.shortLeaveCutDays ?? 0.5)),
   };
   const sum = (k) => money.filter((m) => m.kind === k).reduce((a, m) => a + m.amount, 0);
   const advances = sum('advance');

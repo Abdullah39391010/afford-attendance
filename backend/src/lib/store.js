@@ -21,12 +21,12 @@ const EMP_TTL = 365 * 24 * 3600 * 1000;
 const KIOSK_TTL = 365 * 24 * 3600 * 1000;
 const OPEN_MAX_MS = 20 * 3600 * 1000; // a check-in older than this no longer counts as "inside"
 const BLOOD = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'advance', 'break', 'undo_checkout', 'field_duty', 'recheckin', 'swap', 'pin_reset'];
+const REQUEST_TYPES = ['forgot_in', 'forgot_out', 'past_day', 'leave', 'short_leave', 'advance', 'break', 'undo_checkout', 'field_duty', 'recheckin', 'swap', 'pin_reset'];
 const MONEY_KINDS = ['advance', 'deposit', 'deposit_cut', 'deposit_return', 'bonus', 'commission', 'fine'];
 const MAX_BODY = 1_500_000;
-const REQ_EN = { forgot_in: 'Forgot check-in', forgot_out: 'Forgot check-out', past_day: 'Fix a past day', leave: 'Leave', advance: 'Advance salary',
+const REQ_EN = { forgot_in: 'Forgot check-in', forgot_out: 'Forgot check-out', past_day: 'Fix a past day', leave: 'Leave', short_leave: 'Short leave', advance: 'Advance salary',
   break: 'Extra break', undo_checkout: 'Undo check-out', field_duty: 'Out-of-town duty', recheckin: 'Check in again', swap: 'Shift swap', pin_reset: 'Forgot PIN' };
-const REQ_UR = { forgot_in: 'چیک اِن بھول گئے', forgot_out: 'چیک آؤٹ بھول گئے', past_day: 'پچھلے دن کی درستی', leave: 'چھٹی', advance: 'ایڈوانس تنخواہ',
+const REQ_UR = { forgot_in: 'چیک اِن بھول گئے', forgot_out: 'چیک آؤٹ بھول گئے', past_day: 'پچھلے دن کی درستی', leave: 'چھٹی', short_leave: 'مختصر چھٹی', advance: 'ایڈوانس تنخواہ',
   break: 'اضافی وقفہ', undo_checkout: 'چیک آؤٹ واپس', field_duty: 'شہر سے باہر ڈیوٹی', recheckin: 'دوبارہ چیک اِن', swap: 'شفٹ کی تبدیلی', pin_reset: 'پن بھول گئے' };
 
 const json = (data, status = 200, headers = {}) =>
@@ -132,6 +132,12 @@ export class Store {
     for (const b of this.db.all(`SELECT * FROM breaks WHERE day BETWEEN ? AND ? ${filt}`, from, to, ...args)) slot(b.emp, b.day).breaks.push(b);
     for (const m of this.db.all(`SELECT * FROM day_marks WHERE day BETWEEN ? AND ? ${filt}`, from, to, ...args)) slot(m.emp, m.day).mark = m;
     for (const x of this.db.all(`SELECT * FROM roster WHERE day BETWEEN ? AND ? ${filt}`, from, to, ...args)) slot(x.emp, x.day).roster = x;
+    // approved short leave (one window a day; the latest approval wins)
+    for (const q of this.db.all(`SELECT id, emp, data FROM requests WHERE type = 'short_leave' AND status = 'approved'
+      AND json_extract(data, '$.date') BETWEEN ? AND ? ${filt} ORDER BY decided`, from, to, ...args)) {
+      const x = JSON.parse(q.data);
+      slot(q.emp, x.date).short = { id: q.id, from: x.from, to: x.to, fromTs: x.fromTs, toTs: x.toTs };
+    }
     return (empId, date) => map.get(key(empId, date)) || { punches: [], breaks: [], mark: null, roster: null };
   }
   day(emp, date) {
@@ -793,7 +799,7 @@ export class Store {
     if (type === 'in' && !byAdmin) {
       const inDay = this.dayForIn(emp, ts);
       const lastOut = this.db.get("SELECT * FROM punches WHERE emp = ? AND day = ? AND type = 'out' AND voided = 0 ORDER BY ts DESC LIMIT 1", emp.id, inDay);
-      if (lastOut) {
+      if (lastOut && !this.shortLeaveCovers(emp.id, inDay, lastOut.ts)) {
         recheck = this.approvedRecheckin(emp.id, inDay, lastOut.ts);
         if (!recheck) throw bad('RECHECKIN_NEEDED', 'You already checked out today. Send a "Check in again" request first.');
       }
@@ -819,6 +825,12 @@ export class Store {
     return { punch: this.db.get('SELECT * FROM punches WHERE id = ?', id) };
   }
 
+  /** An approved short leave on this day that the check-out belongs to: coming back needs no "Check in again" request. */
+  shortLeaveCovers(empId, day, outTs) {
+    return !!this.db.get(
+      `SELECT id FROM requests WHERE emp = ? AND type = 'short_leave' AND status = 'approved' AND json_extract(data, '$.date') = ?
+       AND json_extract(data, '$.fromTs') - 1800000 <= ? AND json_extract(data, '$.toTs') >= ?`, empId, day, outTs, outTs - 1800000);
+  }
   /** An approved, unused "Check in again" request for this day's latest check-out. */
   approvedRecheckin(empId, day, outTs) {
     return this.db.get(
@@ -1198,6 +1210,28 @@ export class Store {
         if (dateRange(data.date, data.toDate).length > 31) throw bad('BAD_DATE', 'Leave can be at most 31 days');
         if (data.date < addDays(today, -r.pastDayRequestDays)) throw bad('TOO_OLD', `Only the last ${r.pastDayRequestDays} days are allowed`);
         break;
+      case 'short_leave': {
+        // a few hours inside one day's shift: back within shortLeaveFreeMin = free, else part of a day is cut
+        data.date = isDate(body.date) ? body.date : today;
+        if (data.date < today) throw bad('BAD_DATE', 'Short leave is for today or a later day');
+        if (data.date > addDays(today, 30)) throw bad('BAD_DATE', 'At most 30 days ahead');
+        const from = hm(body.from);
+        const to = hm(body.to);
+        if (from == null || to == null || Number.isNaN(from) || Number.isNaN(to)) throw bad('BAD_TIME', 'Pick the from and to times');
+        const sm = shiftMins(this.shiftOn(emp, data.date));
+        const fix = (m) => (sm.end > 1440 && m < sm.start - 120 ? m + 1440 : m);
+        const f = fix(from);
+        const tt = fix(to);
+        if (tt <= f) throw bad('BAD_TIME', 'The end time must be after the start time');
+        if (f < sm.start - 30 || tt > sm.end + 30) throw bad('BAD_TIME', 'Short leave must be inside your shift');
+        data.from = fmtHM(from);
+        data.to = fmtHM(to);
+        data.time = `${data.from} – ${data.to}`;
+        data.fromTs = toTs(data.date, f, this.off);
+        data.toTs = toTs(data.date, tt, this.off);
+        data.minutes = tt - f;
+        break;
+      }
       case 'advance':
         data.amount = clampInt(body.amount, 1, 10_000_000, 0);
         if (!data.amount) throw bad('BAD_AMOUNT', 'Enter an amount');
@@ -1750,7 +1784,7 @@ export class Store {
       store: {
         name: s.storeName, nameUr: s.storeNameUr || '', currency: s.currency, tzOffsetMin: s.tzOffsetMin, logoVer: this.db.kvGet('logoVer', 0),
         locations: s.locations.map((l) => ({ name: l.name, lat: l.lat, lng: l.lng, radius: l.radius })),
-        rules: { staffSelfie: !!s.rules.staffSelfie, breakAllowanceMin: er.breakAllowanceMin, breakNeedsApproval: s.rules.breakNeedsApproval, pastDayRequestDays: s.rules.pastDayRequestDays,
+        rules: { staffSelfie: !!s.rules.staffSelfie, shortLeaveFreeMin: er.shortLeaveFreeMin ?? 60, shortLeaveCutDays: er.shortLeaveCutDays ?? 0.5, breakAllowanceMin: er.breakAllowanceMin, breakNeedsApproval: s.rules.breakNeedsApproval, pastDayRequestDays: s.rules.pastDayRequestDays,
           lateGraceMin: er.lateGraceMin, maxOfflineHours: s.rules.maxOfflineHours, requireInRadiusCheckIn: er.requireInRadiusCheckIn },
       },
       employee: {

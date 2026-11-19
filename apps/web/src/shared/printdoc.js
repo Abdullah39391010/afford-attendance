@@ -128,6 +128,7 @@ export async function statementDoc(st) {
     [t('Late cut'), st.cuts.late, true],
     [t('Early leave cut'), st.cuts.early],
     [t('Late break cut'), st.cuts.breakLate],
+    [t('Short leave cut ({n}×)', { n: c.shortLeaveOver || 0 }), st.cuts.shortLeave],
     [t('Advances'), st.advances],
     [t('Security deposit cut'), st.depositCut],
     [t('Fines'), st.fines],

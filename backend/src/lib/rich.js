@@ -77,7 +77,7 @@ export function installRich(Store) {
 // ---------------------------------------------------------------- "Action card" contents
 // The app draws: photo with red ring, name, role · code, a coloured label, a details box, buttons.
 const KIND_COLOR = {
-  leave: 'amber', field_duty: 'amber', advance: 'green', forgot_in: 'blue', forgot_out: 'blue', past_day: 'blue',
+  leave: 'amber', short_leave: 'amber', field_duty: 'amber', advance: 'green', forgot_in: 'blue', forgot_out: 'blue', past_day: 'blue',
   recheckin: 'blue', undo_checkout: 'blue', break: 'amber', swap: 'amber', pin_reset: 'red',
 };
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -114,6 +114,11 @@ export function installCards(Store) {
     if (data.amount) rows.push([L.amount, `${this.settings.currency} ${Number(data.amount).toLocaleString('en-US')}`]);
     if (data.minutes) rows.push([L.min, String(data.minutes)]);
     if (withReason && data.reason) rows.push([L.reason, String(data.reason).slice(0, 80)]);
+    if (r.type === 'short_leave') {
+      const rr = this.settings.rules;
+      const cut = rr.shortLeaveCutDays === 1 ? (ur ? 'پورا دن' : 'full day') : rr.shortLeaveCutDays === 0.5 ? (ur ? 'آدھا دن' : 'half day') : `${rr.shortLeaveCutDays} ${ur ? 'دن' : 'day'}`;
+      rows.splice(Math.min(rows.length, 2), 0, [ur ? 'اصول' : 'Rule', ur ? `${rr.shortLeaveFreeMin} منٹ میں واپسی مفت، ورنہ ${cut} کٹے گا` : `Back within ${rr.shortLeaveFreeMin} min free, else ${cut} cut`]);
+    }
     if (r.type === 'leave' && data.date) {
       try {
         const st = this.statement(this.empRow(r.emp, { withDeleted: true }), data.date.slice(0, 7));
