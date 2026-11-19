@@ -11,6 +11,7 @@ import { installOps } from './ops.js';
 import { installExtra } from './extra.js';
 import { installPins } from './pins.js';
 import { installRich, installCards } from './rich.js';
+import { installInsights, AUDIT_KINDS } from './insights.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -256,7 +257,10 @@ export class Store {
       if (out instanceof Response) return out;
       return json(out ?? { ok: true });
     } catch (e) {
-      if (e instanceof HttpError) return json({ error: e.code, message: e.message, ...(e.extra || {}) }, e.status);
+      if (e instanceof HttpError) {
+        if (this.outbox.length) await this.flushPush().catch(() => {}); // e.g. the fake GPS alert to the owner
+        return json({ error: e.code, message: e.message, ...(e.extra || {}) }, e.status);
+      }
       console.error(e);
       this.outbox = [];
       this.logError(`${req.method} ${path.replace(/\/[A-Za-z0-9_-]{16,}/g, '/:id')}`, e);
@@ -352,6 +356,7 @@ export class Store {
     this.extraRoutes(add, A);
     this.pinsRoutes(add, A);
     this.richRoutes(add, A);
+    this.insightsRoutes(add, A);
     return R;
   }
 
@@ -1605,9 +1610,12 @@ export class Store {
     const before = Number(q.get('before')) || Number.MAX_SAFE_INTEGER;
     const limit = clampInt(q.get('limit'), 1, 500, 100);
     const target = q.get('target');
-    const rows = target
-      ? this.db.all('SELECT * FROM audit WHERE id < ? AND target = ? ORDER BY id DESC LIMIT ?', before, target, limit)
-      : this.db.all('SELECT * FROM audit WHERE id < ? ORDER BY id DESC LIMIT ?', before, limit);
+    const where = ['id < ?'];
+    const args = [before];
+    if (target) { where.push('target = ?'); args.push(target); }
+    const kinds = AUDIT_KINDS[q.get('kind')];
+    if (kinds) { where.push(`(${kinds.map(() => 'action LIKE ?').join(' OR ')})`); args.push(...kinds); }
+    const rows = this.db.all(`SELECT * FROM audit WHERE ${where.join(' AND ')} ORDER BY id DESC LIMIT ?`, ...args, limit);
     return { entries: rows.map((r) => ({ ...r, detail: r.detail ? JSON.parse(r.detail) : null })) };
   }
 
@@ -1737,7 +1745,7 @@ export class Store {
       store: {
         name: s.storeName, nameUr: s.storeNameUr || '', currency: s.currency, tzOffsetMin: s.tzOffsetMin, logoVer: this.db.kvGet('logoVer', 0),
         locations: s.locations.map((l) => ({ name: l.name, lat: l.lat, lng: l.lng, radius: l.radius })),
-        rules: { breakAllowanceMin: er.breakAllowanceMin, breakNeedsApproval: s.rules.breakNeedsApproval, pastDayRequestDays: s.rules.pastDayRequestDays,
+        rules: { staffSelfie: !!s.rules.staffSelfie, breakAllowanceMin: er.breakAllowanceMin, breakNeedsApproval: s.rules.breakNeedsApproval, pastDayRequestDays: s.rules.pastDayRequestDays,
           lateGraceMin: er.lateGraceMin, maxOfflineHours: s.rules.maxOfflineHours, requireInRadiusCheckIn: er.requireInRadiusCheckIn },
       },
       employee: {
@@ -1761,11 +1769,8 @@ export class Store {
       policy: (() => { const p = this.policyFor(emp); return p.needed ? p : { ver: p.ver, needed: false, accepted: p.accepted }; })(),
     };
   }
-  empPunch({ actor, body }) {
-    const res = this.punch(actor, {
-      type: body.type, source: String(actor.device || '').startsWith('web-') ? 'web' : 'app', loc: body.loc, offlineTs: body.offlineTs ?? null, clientId: str(body.clientId, 60) || null,
-    });
-    return { ok: true, duplicate: !!res.duplicate, ts: res.punch.ts, offline: !!res.punch.offline, today: pickDay(this.day(actor, res.punch.day)) };
+  empPunch(c) {
+    return this.empPunchV2(c, pickDay); // selfie + fake GPS alert, see insights.js
   }
   empEndBreak({ actor }) {
     return this.endBreak(actor);
@@ -1880,3 +1885,4 @@ installExtra(Store);
 installPins(Store);
 installRich(Store);
 installCards(Store);
+installInsights(Store);

@@ -365,6 +365,7 @@ export function SettingsRules() {
           <h2>{t('Check-in safety')}</h2>
           <Toggle checked={r.requireInRadiusCheckIn} onChange={(v) => set('requireInRadiusCheckIn', v)} label={t('Check-in only inside the store circle')} />
           <Toggle checked={r.blockMockLocation} onChange={(v) => set('blockMockLocation', v)} label={t('Block fake GPS apps')} />
+          <Toggle checked={r.staffSelfie} onChange={(v) => set('staffSelfie', v)} label={t('Staff take a selfie with every check-in')} />
           <Toggle checked={r.kioskPhoto} onChange={(v) => set('kioskPhoto', v)} label={t('Kiosk takes a photo with every punch')} />
           <Toggle checked={r.checkInWindowOn} onChange={(v) => set('checkInWindowOn', v)} label={t('Check-in opens only shortly before the shift')} sub={t('Not on days off and holidays. A manager can still record a check-in by hand.')} />
           {r.checkInWindowOn && num('checkInEarlyMin', t('Check-in opens before shift start'))}

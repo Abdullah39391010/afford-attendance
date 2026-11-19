@@ -8,6 +8,7 @@ import { TopBar, Icon, Avatar, Loader, useLoad, toast, toastErr, go, goBack, Seg
 import { tableDoc, printDoc, shareDocPdf, shareCsv } from '../shared/printdoc.js';
 import { AuditList, resizePhoto } from './staff.jsx';
 import { useApp } from './app.jsx';
+import { HISTORY_KINDS } from './insights.jsx';
 import { TestAlert } from '../shared/perms.jsx';
 import { CheckUpdateButton } from '../shared/update.jsx';
 
@@ -16,13 +17,15 @@ const IS_WEB = typeof __WEB_APP__ !== 'undefined' && __WEB_APP__;
 export function More() {
   const app = useApp();
   const items = [
+    app.can('payroll.view') && ['dashboard', 'chart', 'Owner dashboard', 'Late minutes, absences and salary cost by month'],
+    app.can('payroll.view') && ['wa', 'send', 'Payslips on WhatsApp', 'Send each employee their payslip PDF'],
     app.can('employees.view') && ['roster', 'cal', 'Duty roster', 'Weekly shifts and days off · shift swaps'],
     app.can('reports.view') && ['reports', 'report', 'Reports', 'Daily, weekly, monthly · late & absent lists'],
     app.can('settings.edit') && ['settings', 'gear', 'Settings', 'Location, shifts, rules, holidays, logo'],
     app.me.role === 'owner' && ['users', 'key', 'Managers', 'Add managers and set what they can do'],
     app.me.role === 'owner' && ['backup', 'download', 'Backup & restore', 'Cloud backup, phone backup, server health'],
     app.can('employees.view') && ['rules', 'shield', 'Staff rules agreement', 'Rules every employee accepts in the app'],
-    app.can('audit.view') && ['audit', 'log', 'Audit log', 'Every admin action'],
+    app.can('audit.view') && ['audit', 'log', 'Change history', 'Who changed attendance, salary, staff or settings, and when'],
     !IS_WEB && ['pin', 'shield', 'Change my PIN', ''],
   ].filter(Boolean);
   return (
@@ -153,16 +156,18 @@ export function Reports({ q }) {
 
 export function Audit() {
   const [before, setBefore] = useState(null);
+  const [kind, setKind] = useState('');
   const [all, setAll] = useState([]);
   const st = useLoad(async () => {
-    const r = await api.get(`/api/admin/audit?limit=60${before ? `&before=${before}` : ''}`);
+    const r = await api.get(`/api/admin/audit?limit=60${before ? `&before=${before}` : ''}${kind ? `&kind=${kind}` : ''}`);
     setAll((a) => (before ? [...a, ...r.entries] : r.entries));
     return r;
-  }, [before]);
+  }, [before, kind]);
   return (
     <div class="screen">
-      <TopBar back title={t('Audit log')} />
+      <TopBar back title={t('Change history')} />
       <div class="wrap">
+        <div style="overflow-x:auto;margin:8px 0 4px"><Chips value={kind} onChange={(k) => { setBefore(null); setAll([]); setKind(k); }} options={HISTORY_KINDS.map(([k, l]) => [k, t(l)])} /></div>
         {all.length ? <AuditList entries={all} /> : <Loader st={st}>{() => <Empty icon="log" text={t('Nothing recorded yet')} />}</Loader>}
         {st.data?.entries.length === 60 && <button class="btn block ghost" onClick={() => setBefore(all[all.length - 1].id)}>{t('Load more')}</button>}
       </div>

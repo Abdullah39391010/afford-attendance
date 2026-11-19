@@ -737,6 +737,27 @@ public class AffordDevicePlugin extends Plugin {
             send.setType(mime);
             send.putExtra(Intent.EXTRA_STREAM, uri);
             send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            String caption = call.getString("caption");
+            if (caption != null) send.putExtra(Intent.EXTRA_TEXT, caption);
+            // straight to one person's WhatsApp chat (number like 923001234567), with the file attached
+            String wa = call.getString("whatsapp");
+            if (wa != null && !wa.isEmpty()) {
+                send.putExtra("jid", wa.replaceAll("[^0-9]", "") + "@s.whatsapp.net");
+                for (String pkg : new String[] { "com.whatsapp", "com.whatsapp.w4b" }) {
+                    try {
+                        send.setPackage(pkg);
+                        getActivity().startActivity(send);
+                        JSObject r = new JSObject();
+                        r.put("app", pkg);
+                        call.resolve(r);
+                        return;
+                    } catch (android.content.ActivityNotFoundException ignored) {
+                        // try the next WhatsApp
+                    }
+                }
+                send.setPackage(null);
+                send.removeExtra("jid");
+            }
             getActivity().startActivity(Intent.createChooser(send, call.getString("title", "Share")));
             call.resolve();
         } catch (Exception e) {

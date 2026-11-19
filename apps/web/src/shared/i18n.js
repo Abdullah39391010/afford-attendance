@@ -80,6 +80,7 @@ const ERRORS = {
   PHONE_TAKEN: 'Another employee has this phone number.',
   LOGIN_TAKEN: 'That login name is already used.',
   NEED_PHOTO: 'A photo is needed.',
+  NEED_SELFIE: 'A selfie is needed to check in. Allow the camera and try again.',
   ALREADY_DECIDED: 'This request was already decided.',
   CANNOT_UNDO: 'Employee has punched again since then.',
   BAD_TIME: 'Please check the time.',
@@ -134,5 +135,7 @@ export const AUDIT = {
   'note.warning': 'Warning given', 'note.praise': 'Good work note', 'note.note': 'Note added', 'note.removed': 'Note removed',
   'employee.doc_added': 'File added', 'employee.doc_removed': 'File removed', 'employee.settled': 'Final settlement',
   'payroll.salary_paid': 'Salary paid', 'payroll.payment_removed': 'Payment removed',
+  'security.fake_gps': 'Fake GPS check-in blocked', 'payroll.payslip_whatsapp': 'Payslip sent on WhatsApp', 'payroll.month_locked': 'Month locked', 'payroll.month_unlocked': 'Month unlocked',
+  'approval.asked': 'Sent to owner for approval', 'data.cloud_backup': 'Cloud backup', 'employee.rules_accepted': 'Staff rules accepted', 'settings.rules_agreement': 'Staff rules changed', 'user.deleted': 'Manager removed',
 };
 export const auditLabel = (a) => t(AUDIT[a] || a);

@@ -57,6 +57,7 @@ export function defaultSettings() {
       maxOfflineHours: 168, // a punch saved without internet is accepted for 7 days
       autoAbsentAfterMin: 120, // board shows "absent" once this long past shift start with no check-in
       kioskPhoto: true,
+      staffSelfie: true, // staff app takes a selfie with every check-in (from app v0.12.0)
       overtimeOn: false, // pay minutes worked after the shift end
       overtimeRate: 1, // x normal per-minute rate (1, 1.5, 2)
       overtimeAfterMin: 15, // only counts when staying at least this long after shift end
@@ -167,7 +168,7 @@ export function mergeSettings(cur, patch) {
       r.dailySummaryAt = String(p.dailySummaryAt);
     }
     for (const k of ['lateCutOn', 'earlyLeaveCutOn', 'breakNeedsApproval', 'breakLateCutOn', 'absentCutOn',
-      'requireInRadiusCheckIn', 'blockMockLocation', 'kioskPhoto', 'overtimeOn', 'remindersOn', 'dailySummaryOn', 'holidayWorkExtra', 'greetingsOn', 'checkInWindowOn']) {
+      'requireInRadiusCheckIn', 'blockMockLocation', 'kioskPhoto', 'staffSelfie', 'overtimeOn', 'remindersOn', 'dailySummaryOn', 'holidayWorkExtra', 'greetingsOn', 'checkInWindowOn']) {
       if (k in p) r[k] = bool(p[k], r[k]);
     }
   }

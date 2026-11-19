@@ -48,6 +48,7 @@ export function Payroll({ q }) {
             </div>
             {!data.locked && <BulkMoney month={month} onDone={() => st.reload(true)} />}
             <MonthReport month={month} branch={branch} />
+            <button class="btn block ghost" style="margin-top:10px" onClick={() => go(`wa?month=${month}`)}><Icon n="send" /> {t('Send payslips on WhatsApp')}</button>
             <div class="list">
               {!data.rows.length && <Empty icon="money" text={t('No staff yet')} />}
               {data.rows.map((r) => (

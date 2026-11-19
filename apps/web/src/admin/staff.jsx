@@ -466,6 +466,17 @@ function EmpCalendar({ e }) {
   );
 }
 
+/** Small check-in selfie next to the punch; tap to see it big. */
+function PunchThumb({ id, onOpen }) {
+  const [src, setSrc] = useState(null);
+  useEffect(() => { let live = true; api.image(`/api/admin/punches/${id}/photo`).then((u) => live && setSrc(u)).catch(() => {}); return () => { live = false; }; }, [id]);
+  return (
+    <button class="iconbtn" style="width:38px;height:38px;padding:0;overflow:hidden;border-radius:50%;flex:none" onClick={onOpen} aria-label={t('Photo')}>
+      {src ? <img src={src} alt="" style="width:100%;height:100%;object-fit:cover" /> : <Icon n="camera" />}
+    </button>
+  );
+}
+
 export function DayDetail({ e, date, onClose, onChanged }) {
   const app = useApp();
   const st = useLoad(() => api.get(`/api/admin/employees/${e.id}/day/${date}`), [date]);
@@ -503,7 +514,7 @@ export function DayDetail({ e, date, onClose, onChanged }) {
                 </div>
                 <div class="gap">
                   {p.lat != null && <a class="iconbtn" href={mapUrl(p)} target="_blank" rel="noopener" aria-label={t('Map')}><Icon n="map" /></a>}
-                  {p.hasPhoto && <button class="iconbtn" onClick={() => showPhoto(p)} aria-label={t('Photo')}><Icon n="camera" /></button>}
+                  {p.hasPhoto && <PunchThumb id={p.id} onOpen={() => showPhoto(p)} />}
                   {!p.voided && app.can('attendance.punch') && <button class="iconbtn" onClick={() => voidP(p)} aria-label={t('Remove')}><Icon n="trash" /></button>}
                 </div>
               </div>
@@ -591,6 +602,11 @@ function EmpLog({ e }) {
   return <Loader st={st}>{(data) => <AuditList entries={data.entries} />}</Loader>;
 }
 
+const FIELD_NAMES = {
+  name: 'Name', nameUr: 'Name (Urdu)', salary: 'Monthly salary', shiftId: 'Shift', roleId: 'Role', phone: 'Phone', pin: 'PIN', code: 'Code', active: 'Active',
+  joinDate: 'Joining date', leaveDate: 'Leaving date', bloodGroup: 'Blood group', fieldStaff: 'Field staff', branchId: 'Branch', salaryVisibility: 'Salary visibility',
+};
+
 export function AuditList({ entries }) {
   if (!entries.length) return <Empty icon="log" text={t('Nothing recorded yet')} />;
   return (
@@ -617,7 +633,13 @@ function auditText(a) {
   if (d.status) bits.push(d.status);
   if (d.dates) bits.push(d.dates.join(', '));
   if (d.date || d.time) bits.push(`${d.date || ''} ${d.time || ''}`);
-  if (d.changes) bits.push(Object.keys(d.changes).join(', '));
+  if (d.changes) {
+    // "Salary: 30000 → 32000", "Shift: morning → evening"
+    const show = (v) => (v == null || v === '' ? '—' : typeof v === 'boolean' ? (v ? t('Yes') : t('No')) : typeof v === 'object' ? '…' : String(v).slice(0, 30));
+    bits.push(Object.entries(d.changes).map(([k, v]) => (Array.isArray(v) ? `${t(FIELD_NAMES[k] || k)}: ${show(v[0])} → ${show(v[1])}` : `${t(FIELD_NAMES[k] || k)}: ${t('changed')}`)).join(' · '));
+  }
+  if (d.month) bits.push(d.month);
+  if (d.ts && !d.time) bits.push(fmtDateTime(d.ts));
   if (d.changed) bits.push(d.changed.join(', '));
   return bits.join(' · ');
 }

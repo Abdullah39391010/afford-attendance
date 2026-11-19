@@ -49,6 +49,8 @@ const P = {
   wallet: 'M3 7h16v12H3zM3 7l12-4v4M16 13h.01',
   undo: 'M9 14L4 9l5-5M4 9h11a5 5 0 010 10h-3',
   leave: 'M4 20c4-1 6-4 6-8V4c3 2 6 6 6 10M4 20h16',
+  send: 'M22 2L11 13M22 2l-7 20-4-9-9-4z',
+  chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
 };
 export function Icon({ n, cls = '' }) {
   return (

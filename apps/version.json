@@ -1,7 +1,7 @@
 {
-  "version": "0.11.2",
+  "version": "0.12.0",
   "notes": {
-    "en": "New payslip design: official salary slip in the store red with the employee's photo, attendance, earnings next to deductions, net pay in words and a PAID seal.",
-    "ur": "تنخواہ کی پرچی کا نیا ڈیزائن: سٹور کے سرخ رنگ میں سرکاری انداز، ملازم کی تصویر، حاضری، آمدن اور کٹوتیاں ساتھ ساتھ، خالص تنخواہ الفاظ میں اور ادا شدہ مہر۔"
+    "en": "New: selfie with every check-in, owner dashboard with monthly charts, payslips sent on WhatsApp, change history with filters, and owner alerts for fake GPS.",
+    "ur": "نیا: ہر چیک اِن پر سیلفی، ماہانہ چارٹس کے ساتھ مالک کا ڈیش بورڈ، واٹس ایپ پر تنخواہ کی پرچیاں، فلٹر کے ساتھ تبدیلیوں کی تاریخ، اور جعلی GPS پر مالک کو اطلاع۔"
   }
 }

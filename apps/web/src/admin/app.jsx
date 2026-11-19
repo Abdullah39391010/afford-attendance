@@ -20,6 +20,7 @@ import { Requests } from './requests.jsx';
 import { StaffList, StaffForm, StaffDetail } from './staff.jsx';
 import { Payroll, PayrollOne } from './payroll.jsx';
 import { More, Reports, Audit, ChangePin } from './more.jsx';
+import { Dashboard, WaPayslips } from './insights.jsx';
 import { SettingsHome, SettingsLocation, SettingsShifts, SettingsRoles, SettingsRules, SettingsHolidays, SettingsStore, Users } from './settings.jsx';
 import { KioskSetup, KioskMode } from './kiosk.jsx';
 
@@ -352,6 +353,8 @@ function Shell({ me, logout, toKiosk }) {
     case 'more': screen = <More />; break;
     case 'reports': screen = <Reports q={route.q} />; break;
     case 'audit': screen = <Audit />; break;
+    case 'dashboard': screen = <Dashboard />; break;
+    case 'wa': screen = <WaPayslips q={route.q} />; break;
     case 'pin': screen = <ChangePin />; break;
     case 'users': screen = <Users />; break;
     case 'kiosk': screen = <KioskSetup />; break;

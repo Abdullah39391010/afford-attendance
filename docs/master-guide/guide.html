@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 2.7 · 19 November 2026 (apps v0.11.2)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
+  <div class="meta">Version 2.8 · 19 November 2026 (apps v0.12.0)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -162,6 +162,11 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
     <tr><td>Urdu names</td><td>Employees, shifts, roles, holidays, branches and the store name can each have an Urdu name. The Urdu name shows when the app is in Urdu.</td></tr>
     <tr><td>Check in / out for staff</td><td>Check any employee in or out now or at a given time. A reason is required and it is written to the audit log.</td></tr>
     <tr><td>Calendar</td><td>Per employee, one solid colour per day (see section 13). Tap a day to see the punches, GPS distance, kiosk photo and requests.</td></tr>
+    <tr><td>Check-in selfie</td><td>From v0.12.0 the staff app takes a selfie with every check-in (a 3-2-1 countdown on the front camera). The photo is saved with the punch, and the admin sees it as a small round picture in the employee's day details. Turn it off in Settings → Rules ("Staff take a selfie with every check-in"). Older staff apps keep working without a selfie until they are updated. The staff rules gain a line about the selfie, so staff accept the rules once more.</td></tr>
+    <tr><td>Fake GPS</td><td>Check-ins from fake location apps are blocked (Settings → Rules → Block fake GPS apps). From v0.12.0 every blocked attempt is written in the change history under Security, and the owner gets one alert per employee per day.</td></tr>
+    <tr><td>Owner dashboard</td><td>More → Owner dashboard: late minutes, absent days and salary cost for the month with the change from last month, a 6-month bar chart (late, absent, salary), and the most and least punctual staff. Needs the "salary" permission.</td></tr>
+    <tr><td>Payslips on WhatsApp</td><td>Payroll → Send payslips on WhatsApp (or More). Each Send opens that employee's WhatsApp chat with the payslip PDF and a short message already attached; press send in WhatsApp and come back for the next one. "Send next" goes down the list. Sent payslips get a tick with the time. Staff without a phone number show "Add phone".</td></tr>
+    <tr><td>Change history</td><td>More → Change history (was "Audit log"): every change by managers and the owner, with filters for Attendance, Salary &amp; money, Staff, Settings and Security. Employee edits show the old and new value, for example "Monthly salary: 30000 → 32000".</td></tr>
     <tr><td>Payroll</td><td>Monthly payslip per employee with a payslip number, store address and phone, every cut, overtime, advances, security deposit and net pay. From v0.11.2 the payslip is an official salary slip in the store red: logo, payslip number, the employee's photo, code, designation, shift, joining date and blood group, an attendance row, earnings next to deductions, net pay in words (English or Urdu) and a PAID seal between the employee and authorised signatures. The daily record follows on the next page. Print it or share it as a PDF (WhatsApp, email). Record the salary as paid (cash, bank or other). Lock a finished month. Export all staff to CSV.</td></tr>
     <tr><td>Money</td><td>Advances (one month or split over 2 to 6 months), security deposit (added, cut from salary, returned) and bonus. A manager's entry waits for the owner.</td></tr>
     <tr><td>Final settlement</td><td>When someone leaves: pick the last working day and see the salary due, advance installments still due and the deposit to return. Print or share the letter. The owner finishes it, and the employee is made inactive and logged out.</td></tr>
@@ -458,7 +463,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   <h2>20. Versions and test checklist</h2>
   <table>
     <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
-    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>61 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
+    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>65 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
     <tr><td>Admin app</td><td><span class="tag done">Live</span></td><td>Login, board, requests and owner approvals, staff, money with installments, payroll with paid record and month lock, settlement, rules agreement, backups, reports, kiosk, Urdu.</td></tr>
     <tr><td>Employee app</td><td><span class="tag done">Live</span></td><td>Rules agreement, phone locking, fingerprint, check-in inside and outside the circle, check-in-again request, break, requests, reminders, offline punch, calendar, payslip, Urdu.</td></tr>
     <tr><td>iPhone web version</td><td><span class="tag done">v0.9</span></td><td>Owner allows it per person, login in Safari, check in inside the circle, Add to Home Screen.</td></tr>

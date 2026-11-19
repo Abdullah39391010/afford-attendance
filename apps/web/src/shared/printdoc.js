@@ -201,7 +201,13 @@ export async function printDoc(doc) {
 }
 
 /** Render to a real PDF file and open the share sheet (WhatsApp, email, etc.). */
-export async function shareDocPdf(doc, filename) {
+export async function shareDocPdf(doc, filename, opts = {}) {
+  const b64 = await docPdfBase64(doc);
+  return AffordDevice.shareFile({ filename, base64: b64, mime: 'application/pdf', title: t('Share PDF'), ...opts });
+}
+
+/** The document as a PDF file (base64). */
+export async function docPdfBase64(doc) {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas-pro'), import('jspdf')]);
   const host = document.createElement('div');
   host.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;background:#fff;padding:36px;';
@@ -224,8 +230,7 @@ export async function shareDocPdf(doc, filename) {
       if (i) pdf.addPage();
       pdf.addImage(slice.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pw, slice.height / pxPerPt);
     }
-    const b64 = pdf.output('datauristring').split(',')[1];
-    await AffordDevice.shareFile({ filename, base64: b64, mime: 'application/pdf', title: t('Share PDF') });
+    return pdf.output('datauristring').split(',')[1];
   } finally {
     host.remove();
   }

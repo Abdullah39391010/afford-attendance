@@ -30,7 +30,8 @@ const web = {
   async secureSet({ key, value }) { localStorage.setItem(`afford.secure.${key}`, value); },
   async secureGet({ key }) { return { value: localStorage.getItem(`afford.secure.${key}`) }; },
   async secureRemove({ key }) { localStorage.removeItem(`afford.secure.${key}`); },
-  async shareFile({ filename, base64, text, mime }) {
+  async shareFile({ filename, base64, text, mime, whatsapp, caption }) {
+    if (whatsapp) window.open(`https://wa.me/${whatsapp}${caption ? `?text=${encodeURIComponent(caption)}` : ''}`, '_blank');
     const blob = text != null ? new Blob([text], { type: mime }) : new Blob([Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))], { type: mime });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

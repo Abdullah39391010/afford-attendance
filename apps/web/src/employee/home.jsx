@@ -10,6 +10,7 @@ import { enqueue } from '../shared/offline.js';
 import { describe } from '../shared/describe.js';
 import { useEmp } from './app.jsx';
 import { HomeExtras, WebInstallHint } from './extra.jsx';
+import { SelfieSheet } from './selfie.jsx';
 
 /** distance in metres */
 function metres(a, b) {
@@ -39,6 +40,8 @@ export function Home() {
   const [now, setNow] = useState(api.serverNow());
   const [busy, setBusy] = useState(null);
   const [breakSheet, setBreakSheet] = useState(false);
+  const [selfieAsk, setSelfieAsk] = useState(null); // { done(photo|null) } while the selfie sheet is open
+  const takeSelfie = () => new Promise((done) => setSelfieAsk({ done }));
   useEffect(() => { const iv = setInterval(() => setNow(api.serverNow()), 15000); return () => clearInterval(iv); }, []);
 
   const emp = home.employee;
@@ -64,12 +67,18 @@ export function Home() {
         : await confirmBox({ title: t('Check out now?'), text: t('Your work time for today will end. If you are only going for a break, use "Take a break" instead.'), yes: t('Yes, check out'), danger: true });
       if (!ok) return;
     }
+    // selfie first (check-in only), so the photo is taken in the store
+    let photo = null;
+    if (type === 'in' && store.rules.staffSelfie) {
+      photo = await takeSelfie();
+      if (!photo) return;
+    }
     setBusy(type);
     let loc = null;
     try {
       loc = await getLoc();
-      if (loc.mock) throw Object.assign(new Error('MOCK_LOCATION'), { code: 'MOCK_LOCATION' });
-      const res = await api.post('/api/emp/punch', { type, loc, clientId: `a-${Date.now()}` });
+      // a fake GPS app is checked by the server too, which records it and tells the owner
+      const res = await api.post('/api/emp/punch', { type, loc, photo, clientId: `a-${Date.now()}` });
       toast(type === 'in' ? `${t('Checked in')} ${fmtTime(res.ts)}` : `${t('Checked out')} ${fmtTime(res.ts)}`, 'ok');
       if (res.today?.lateMin > 0) toast(t('Late {m} min', { m: res.today.lateMin }), 'err');
       await E.loadHome();
@@ -78,8 +87,9 @@ export function Home() {
         // no internet: check the circle on the phone and save the punch for later
         const anywhere = type === 'in' ? emp.fieldStaff || !store.rules.requireInRadiusCheckIn : emp.checkoutAnywhere;
         const near = store.locations.some((L) => metres(loc, L) - Math.min(loc.acc || 0, 50) <= L.radius);
+        if (loc.mock) { toastErr(Object.assign(new Error('MOCK_LOCATION'), { code: 'MOCK_LOCATION' })); return; }
         if (!anywhere && !near) { toast(t('You are outside the store circle.'), 'err'); return; }
-        const p = enqueue({ type, loc });
+        const p = enqueue({ type, loc, photo });
         const today = { ...d, isOpen: type === 'in', checkIn: type === 'in' ? d.checkIn || p.offlineTs : d.checkIn, checkOut: type === 'out' ? p.offlineTs : null };
         const next = { ...home, today };
         LS.set('afford.home', JSON.stringify(next));
@@ -217,6 +227,7 @@ export function Home() {
         )}
       </div>
       {rcSheet && <RecheckinSheet outTs={d.checkOut} onClose={() => setRcSheet(false)} onDone={() => { setRcSheet(false); E.loadHome(); }} />}
+      {selfieAsk && <SelfieSheet onShot={(p) => { selfieAsk.done(p); setSelfieAsk(null); }} onClose={() => { selfieAsk.done(null); setSelfieAsk(null); }} />}
       {breakSheet && <BreakSheet left={home.today.breakLeftMin} needsApproval={store.rules.breakNeedsApproval} onClose={() => setBreakSheet(false)} onDone={() => { setBreakSheet(false); E.loadHome(); }} />}
     </div>
   );
