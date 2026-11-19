@@ -280,10 +280,6 @@ public class AffordRich {
         cv.drawCircle(s / 2f, s / 2f, s / 2f, pt);
         return out;
     }
-        pt.setShader(new BitmapShader(sq, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
-        cv.drawCircle(s / 2f, s / 2f, s / 2f, pt);
-        return out;
-    }
 
     /** Round initials badge in the store red, like a chat app shows someone without a photo. */
     static Bitmap initials(String name) {
