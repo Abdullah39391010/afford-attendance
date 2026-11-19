@@ -185,4 +185,18 @@ export const UR2 = {
   "Photo saved": "تصویر محفوظ",
   "Change photo": "تصویر بدلیں",
   "Tap the picture to add or change the photo.": "تصویر شامل کرنے یا بدلنے کے لیے تصویر پر دبائیں۔",
+  // payslip (design 3B)
+  "SALARY SLIP": "تنخواہ کی پرچی",
+  "Designation": "عہدہ",
+  "day": "دن",
+  "Off days": "چھٹی کے دن",
+  "Earnings": "آمدن",
+  "Deductions": "کٹوتیاں",
+  "Amount": "رقم",
+  "Gross earnings": "کل آمدن",
+  "Total deductions": "کل کٹوتیاں",
+  "NET SALARY PAYABLE": "قابلِ ادا خالص تنخواہ",
+  "PAID": "ادا شدہ",
+  "NOT PAID": "ادا نہیں ہوئی",
+  "This is a computer generated payslip.": "یہ کمپیوٹر سے بنی تنخواہ کی پرچی ہے۔",
 };

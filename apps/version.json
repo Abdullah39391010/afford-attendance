@@ -1,7 +1,7 @@
 {
-  "version": "0.11.1",
+  "version": "0.11.2",
   "notes": {
-    "en": "New alert design: action cards with the person's photo, role and code, a coloured label, a details box, and big Approve / Decline buttons.",
-    "ur": "اطلاعات کا نیا انداز: ملازم کی تصویر، عہدہ اور کوڈ، رنگین لیبل، تفصیل کا خانہ، اور بڑے منظور / نامنظور بٹن۔"
+    "en": "New payslip design: official salary slip in the store red with the employee's photo, attendance, earnings next to deductions, net pay in words and a PAID seal.",
+    "ur": "تنخواہ کی پرچی کا نیا ڈیزائن: سٹور کے سرخ رنگ میں سرکاری انداز، ملازم کی تصویر، حاضری، آمدن اور کٹوتیاں ساتھ ساتھ، خالص تنخواہ الفاظ میں اور ادا شدہ مہر۔"
   }
 }

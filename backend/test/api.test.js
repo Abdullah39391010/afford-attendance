@@ -529,3 +529,14 @@ test('alerts without their own card get a plain action card', async () => {
   assert.equal(c.color, 'green'); assert.equal(c.name, 'Salary paid'); assert.equal(c.text, 'Rs. 5,000');
   assert.equal(plainCard({ id: 'rem-x', title: 't', lang: 'ur' }).label, '⏰ یاد دہانی');
 });
+
+test('payslip gets photo, joining date and blood group', async () => {
+  const t = await seeded();
+  await t.api('PUT', `/api/admin/employees/${t.ali.id}`, { bloodGroup: 'b+', joinDate: '2024-03-12' }, t.owner);
+  const st = (await t.api('GET', `/api/admin/payroll/${t.ali.id}?month=2026-11`, null, t.owner)).data.statement;
+  assert.equal(st.employee.bloodGroup, 'B+');
+  assert.equal(st.employee.joinDate, '2024-03-12');
+  assert.ok('photo' in st.employee);
+  const mine = (await t.aliApi('GET', '/api/emp/statement?month=2026-11')).data.statement;
+  assert.equal(mine.employee.bloodGroup, 'B+');
+});

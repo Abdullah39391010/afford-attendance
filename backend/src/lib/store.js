@@ -1047,6 +1047,15 @@ export class Store {
     for (const p of st.payments || []) if (p.signed) p.signature = this.db.get('SELECT data FROM signatures WHERE payment = ?', p.id)?.data || null;
     // the owner's authorised signature goes on the payslip once the employee has signed for the money
     if ((st.payments || []).some((p) => p.signature)) st.authSignature = this.db.kvGet('authSig', null)?.data || null;
+    // payslip extras: photo, joining date, blood group, Urdu role name
+    if (st.employee?.id) {
+      const r = this.db.get('SELECT photo, data FROM employees WHERE id = ?', st.employee.id);
+      if (r) {
+        const d = JSON.parse(r.data || '{}');
+        const role = this.settings.roles.find((x) => x.id === d.roleId);
+        Object.assign(st.employee, { photo: r.photo || null, joinDate: d.joinDate || null, bloodGroup: d.bloodGroup || '', roleUr: role?.nameUr || '' });
+      }
+    }
     return st;
   }
   liveStatement(emp, month, preloaded) {

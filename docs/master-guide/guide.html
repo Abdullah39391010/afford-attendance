@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 2.6 · 19 November 2026 (apps v0.11.1)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
+  <div class="meta">Version 2.7 · 19 November 2026 (apps v0.11.2)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -162,7 +162,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
     <tr><td>Urdu names</td><td>Employees, shifts, roles, holidays, branches and the store name can each have an Urdu name. The Urdu name shows when the app is in Urdu.</td></tr>
     <tr><td>Check in / out for staff</td><td>Check any employee in or out now or at a given time. A reason is required and it is written to the audit log.</td></tr>
     <tr><td>Calendar</td><td>Per employee, one solid colour per day (see section 13). Tap a day to see the punches, GPS distance, kiosk photo and requests.</td></tr>
-    <tr><td>Payroll</td><td>Monthly payslip per employee with a payslip number, store address and phone, every cut, overtime, advances, security deposit and net pay. Print it or share it as a PDF (WhatsApp, email). Record the salary as paid (cash, bank or other). Lock a finished month. Export all staff to CSV.</td></tr>
+    <tr><td>Payroll</td><td>Monthly payslip per employee with a payslip number, store address and phone, every cut, overtime, advances, security deposit and net pay. From v0.11.2 the payslip is an official salary slip in the store red: logo, payslip number, the employee's photo, code, designation, shift, joining date and blood group, an attendance row, earnings next to deductions, net pay in words (English or Urdu) and a PAID seal between the employee and authorised signatures. The daily record follows on the next page. Print it or share it as a PDF (WhatsApp, email). Record the salary as paid (cash, bank or other). Lock a finished month. Export all staff to CSV.</td></tr>
     <tr><td>Money</td><td>Advances (one month or split over 2 to 6 months), security deposit (added, cut from salary, returned) and bonus. A manager's entry waits for the owner.</td></tr>
     <tr><td>Final settlement</td><td>When someone leaves: pick the last working day and see the salary due, advance installments still due and the deposit to return. Print or share the letter. The owner finishes it, and the employee is made inactive and logged out.</td></tr>
     <tr><td>Staff rules agreement</td><td>The rules every employee accepts in the app, who has accepted and when. The owner can add rules and ask everyone to accept again.</td></tr>
@@ -458,7 +458,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   <h2>20. Versions and test checklist</h2>
   <table>
     <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
-    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>60 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
+    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>61 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
     <tr><td>Admin app</td><td><span class="tag done">Live</span></td><td>Login, board, requests and owner approvals, staff, money with installments, payroll with paid record and month lock, settlement, rules agreement, backups, reports, kiosk, Urdu.</td></tr>
     <tr><td>Employee app</td><td><span class="tag done">Live</span></td><td>Rules agreement, phone locking, fingerprint, check-in inside and outside the circle, check-in-again request, break, requests, reminders, offline punch, calendar, payslip, Urdu.</td></tr>
     <tr><td>iPhone web version</td><td><span class="tag done">v0.9</span></td><td>Owner allows it per person, login in Safari, check in inside the circle, Add to Home Screen.</td></tr>
