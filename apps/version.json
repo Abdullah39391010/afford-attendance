@@ -1,7 +1,7 @@
 {
-  "version": "0.11.0",
+  "version": "0.11.1",
   "notes": {
-    "en": "Snapchat-style alerts: the person's photo, alerts stacked by person, the Afford chime, and Approve / Decline buttons right in the alert.",
-    "ur": "نئی طرز کی اطلاعات: ملازم کی تصویر، ایک شخص کی اطلاعات اکٹھی، Afford کی آواز، اور اطلاع میں ہی منظور / نامنظور کے بٹن۔"
+    "en": "New alert design: action cards with the person's photo, role and code, a coloured label, a details box, and big Approve / Decline buttons.",
+    "ur": "اطلاعات کا نیا انداز: ملازم کی تصویر، عہدہ اور کوڈ، رنگین لیبل، تفصیل کا خانہ، اور بڑے منظور / نامنظور بٹن۔"
   }
 }

@@ -74,6 +74,8 @@ export function installOps(Store) {
         && now >= d.shiftStart - before && now < d.shiftStart && this.reminderOnce(`start:${e.id}:${today}`)) {
         const at = fmtClock(sm.start);
         this.queuePush('emp', [e.id], `rem-start-${e.id}-${today}`, (ur) => ({
+          card: { name: ur ? 'شفٹ جلد شروع ہو رہی ہے' : 'Your shift starts soon', sub: this.settings.storeName, label: ur ? '⏰ یاد دہانی' : '⏰ Reminder', color: 'red',
+            rows: [[ur ? 'شروع' : 'Starts at', at], [ur ? 'کیا کریں' : 'To do', ur ? 'اسٹور پہنچ کر چیک اِن کریں' : 'Check in when you reach the store']] },
           title: ur ? 'شفٹ جلد شروع ہو رہی ہے' : 'Your shift starts soon',
           body: ur ? `آپ کی شفٹ ${at} پر شروع ہے۔ وقت پر چیک اِن کریں۔` : `Your shift starts at ${at}. Check in on time.`,
         }));
@@ -84,6 +86,8 @@ export function installOps(Store) {
         const endTs = toTs(open.day, shiftMins(this.shiftOn(e, open.day)).end, s.tzOffsetMin);
         if (now > endTs + 30 * MIN && this.reminderOnce(`out:${e.id}:${open.day}`)) {
           this.queuePush('emp', [e.id], `rem-out-${e.id}-${open.day}`, (ur) => ({
+            card: { name: ur ? 'چیک آؤٹ بھول گئے؟' : 'Forgot to check out?', sub: this.settings.storeName, label: ur ? '⏰ یاد دہانی' : '⏰ Reminder', color: 'red',
+              rows: [[ur ? 'کیا کریں' : 'To do', ur ? 'اگر جا چکے ہیں تو ابھی چیک آؤٹ کریں' : 'If you have left, check out now']] },
             title: ur ? 'چیک آؤٹ بھول گئے؟' : 'Forgot to check out?',
             body: ur ? 'آپ کی شفٹ ختم ہو چکی ہے۔ اگر آپ جا چکے ہیں تو ابھی چیک آؤٹ کریں۔' : 'Your shift has ended. If you have left, check out now.',
           }));
@@ -140,6 +144,12 @@ export function installOps(Store) {
     this.audit(actor, 'payroll.salary_paid', emp.id, { name: emp.name, month, amount, method, note: str(body.note, 200), signed: sig ? true : undefined });
     this.queuePush('emp', [emp.id], `paid-${id}`, (ur) => ({
       actions: 'payslip',
+      card: {
+        name: ur ? 'تنخواہ ادا ہو گئی' : 'Salary paid', sub: ur ? month : monthName(month),
+        label: `${this.settings.currency} ${commas(amount)}`, color: 'green',
+        rows: [[ur ? 'طریقہ' : 'Paid by', ur ? ({ cash: 'نقد', bank: 'بینک', other: 'دیگر' }[method] || method) : ({ cash: 'Cash', bank: 'Bank transfer', other: 'Other' }[method] || method)],
+          [ur ? 'پے سلپ' : 'Payslip', ur ? 'ایپ میں تیار ہے' : 'Ready in the app']],
+      },
       title: ur ? `تنخواہ ادا ہو گئی · ${month}` : `Salary paid · ${monthName(month)}`,
       body: ur
         ? `${this.settings.currency} ${commas(amount)} ${method === 'bank' ? 'بینک میں' : method === 'cash' ? 'نقد' : ''} ادا کر دیے گئے۔ پے سلپ ایپ میں دیکھیں۔`

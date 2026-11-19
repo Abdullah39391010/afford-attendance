@@ -14,10 +14,13 @@ import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.view.View;
+import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.InputStream;
@@ -67,9 +70,26 @@ public class AffordRich {
             .setAutoCancel(true)
             .setGroup(group)
             .setContentIntent(openApp(ctx, id));
-        if (face != null) b.setLargeIcon(round(face));
+        JSONObject card = null;
+        try {
+            String cj = val(d, "card", "");
+            if (!cj.isEmpty()) card = new JSONObject(cj);
+        } catch (Exception ignored) { /* plain style */ }
 
-        if ("decide".equals(actions) && !ref.isEmpty()) {
+        if (card != null) {
+            // Design A "Action card": photo with red ring, name, role · code, label, details box, big buttons
+            Bitmap ph = face != null ? round(face) : null;
+            b.setCustomContentView(cardSmall(ctx, card, ph));
+            b.setCustomBigContentView(cardBig(ctx, card, ph, id, ref, actions, ur));
+            b.setCustomHeadsUpContentView(cardBig(ctx, card, ph, id, ref, actions, ur));
+            b.setStyle(new NotificationCompat.DecoratedCustomViewStyle());
+        } else if (face != null) {
+            b.setLargeIcon(round(face));
+        }
+
+        if (card != null) {
+            // buttons are inside the card
+        } else if ("decide".equals(actions) && !ref.isEmpty()) {
             b.addAction(0, ur ? "منظور" : "Approve", actionIntent(ctx, id, ref, true));
             b.addAction(0, ur ? "نامنظور" : "Decline", actionIntent(ctx, id, ref, false));
         } else if ("payslip".equals(actions)) {
@@ -96,6 +116,81 @@ public class AffordRich {
             // notifications switched off by the user
         }
         ack(p, id);
+    }
+
+    // ---------------------------------------------------------------- action card
+
+    static final String[] CHIPS = { "amber", "green", "blue", "red" };
+
+    static void setChip(RemoteViews v, JSONObject card) {
+        String color = card.optString("color", "blue");
+        String label = card.optString("label", "");
+        boolean found = false;
+        for (String c : CHIPS) if (c.equals(color)) found = true;
+        if (!found) color = "blue";
+        int[] ids = { R.id.af_chip_amber, R.id.af_chip_green, R.id.af_chip_blue, R.id.af_chip_red };
+        for (int i = 0; i < CHIPS.length; i++) {
+            boolean on = CHIPS[i].equals(color) && !label.isEmpty();
+            v.setViewVisibility(ids[i], on ? View.VISIBLE : View.GONE);
+            if (on) v.setTextViewText(ids[i], label);
+        }
+    }
+
+    static void setHead(RemoteViews v, JSONObject card, Bitmap photo) {
+        if (photo != null) v.setImageViewBitmap(R.id.af_photo, photo);
+        else v.setViewVisibility(R.id.af_photo, View.GONE);
+        v.setTextViewText(R.id.af_name, card.optString("name", ""));
+        setChip(v, card);
+    }
+
+    static RemoteViews cardSmall(Context ctx, JSONObject card, Bitmap photo) {
+        RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.afford_card_small);
+        setHead(v, card, photo);
+        return v;
+    }
+
+    static RemoteViews cardBig(Context ctx, JSONObject card, Bitmap photo, String id, String ref, String actions, boolean ur) {
+        RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.afford_card_big);
+        setHead(v, card, photo);
+        String sub = card.optString("sub", "");
+        if (sub.isEmpty()) v.setViewVisibility(R.id.af_sub, View.GONE);
+        else v.setTextViewText(R.id.af_sub, sub);
+
+        String text = card.optString("text", "");
+        if (!text.isEmpty()) {
+            v.setViewVisibility(R.id.af_text, View.VISIBLE);
+            v.setTextViewText(R.id.af_text, text);
+        }
+
+        JSONArray rows = card.optJSONArray("rows");
+        int n = 0;
+        if (rows != null) {
+            for (int i = 0; i < rows.length() && n < 4; i++) {
+                JSONArray r = rows.optJSONArray(i);
+                if (r == null || r.length() < 2) continue;
+                RemoteViews row = new RemoteViews(ctx.getPackageName(), R.layout.afford_card_row);
+                row.setTextViewText(R.id.af_k, r.optString(0, ""));
+                row.setTextViewText(R.id.af_v, r.optString(1, ""));
+                v.addView(R.id.af_box, row);
+                n++;
+            }
+        }
+        if (n == 0) v.setViewVisibility(R.id.af_box, View.GONE);
+
+        if ("decide".equals(actions) && !ref.isEmpty()) {
+            v.setTextViewText(R.id.af_ok, ur ? "✓ منظور" : "✓ Approve");
+            v.setTextViewText(R.id.af_no, ur ? "✕ نامنظور" : "✕ Decline");
+            v.setOnClickPendingIntent(R.id.af_ok, actionIntent(ctx, id, ref, true));
+            v.setOnClickPendingIntent(R.id.af_no, actionIntent(ctx, id, ref, false));
+        } else if ("payslip".equals(actions) || "open".equals(actions)) {
+            String t = "payslip".equals(actions) ? (ur ? "پے سلپ دیکھیں" : "View payslip") : (ur ? "کھولیں" : "Open");
+            v.setTextViewText(R.id.af_ok, t);
+            v.setOnClickPendingIntent(R.id.af_ok, openApp(ctx, id + "-a"));
+            v.setViewVisibility(R.id.af_no, View.GONE);
+        } else {
+            v.setViewVisibility(R.id.af_btns, View.GONE);
+        }
+        return v;
     }
 
     // ---------------------------------------------------------------- pieces
@@ -175,10 +270,16 @@ public class AffordRich {
 
     static Bitmap round(Bitmap src) {
         int s = Math.min(src.getWidth(), src.getHeight());
+        Bitmap sq = Bitmap.createBitmap(src, (src.getWidth() - s) / 2, (src.getHeight() - s) / 2, s, s);
+        // keep the alert small: the photo is copied into several views and must fit Android's IPC limit
+        if (s > 160) { sq = Bitmap.createScaledBitmap(sq, 160, 160, true); s = 160; }
         Bitmap out = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
         Canvas cv = new Canvas(out);
         Paint pt = new Paint(Paint.ANTI_ALIAS_FLAG);
-        Bitmap sq = Bitmap.createBitmap(src, (src.getWidth() - s) / 2, (src.getHeight() - s) / 2, s, s);
+        pt.setShader(new BitmapShader(sq, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
+        cv.drawCircle(s / 2f, s / 2f, s / 2f, pt);
+        return out;
+    }
         pt.setShader(new BitmapShader(sq, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
         cv.drawCircle(s / 2f, s / 2f, s / 2f, pt);
         return out;

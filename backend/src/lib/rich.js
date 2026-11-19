@@ -73,3 +73,57 @@ export function installRich(Store) {
     return late.length;
   };
 }
+
+// ---------------------------------------------------------------- "Action card" contents
+// The app draws: photo with red ring, name, role · code, a coloured label, a details box, buttons.
+const KIND_COLOR = {
+  leave: 'amber', field_duty: 'amber', advance: 'green', forgot_in: 'blue', forgot_out: 'blue', past_day: 'blue',
+  recheckin: 'blue', undo_checkout: 'blue', break: 'amber', swap: 'amber', pin_reset: 'red',
+};
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_UR = ['جنوری', 'فروری', 'مارچ', 'اپریل', 'مئی', 'جون', 'جولائی', 'اگست', 'ستمبر', 'اکتوبر', 'نومبر', 'دسمبر'];
+const dayTxt = (d, ur) => `${Number(d.slice(8))} ${(ur ? MONTHS_UR : MONTHS_EN)[Number(d.slice(5, 7)) - 1]}`;
+const ndays = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000) + 1;
+
+export function installCards(Store) {
+  const P = Store.prototype;
+
+  P.empCardHead = function empCardHead(empId, ur) {
+    const row = this.db.get('SELECT code, data FROM employees WHERE id = ?', empId);
+    if (!row) return { name: '?', sub: '' };
+    const d = JSON.parse(row.data);
+    const role = this.settings.roles.find((x) => x.id === d.roleId);
+    const roleName = role ? ((ur && role.nameUr) || role.name) : '';
+    return { name: (ur && d.nameUr) || d.name || '?', sub: [roleName, row.code].filter(Boolean).join(' · ') };
+  };
+
+  /** Details rows for a request, e.g. Dates / Reason / Leave left. */
+  P.requestRows = function requestRows(r, ur, withReason = true) {
+    let data = {};
+    try { data = typeof r.data === 'string' ? JSON.parse(r.data || '{}') : r.data || {}; } catch { /* ignore */ }
+    const L = ur
+      ? { dates: 'تاریخیں', date: 'تاریخ', time: 'وقت', amount: 'رقم', min: 'منٹ', reason: 'وجہ', left: 'باقی چھٹی', days: 'دن' }
+      : { dates: 'Dates', date: 'Date', time: 'Time', amount: 'Amount', min: 'Minutes', reason: 'Reason', left: 'Leave left', days: 'days' };
+    const rows = [];
+    if (data.date) {
+      const to = data.toDate && data.toDate !== data.date ? data.toDate : null;
+      rows.push(to ? [L.dates, `${dayTxt(data.date, ur)} – ${dayTxt(to, ur)} (${ndays(data.date, to)} ${L.days})`] : [L.date, dayTxt(data.date, ur)]);
+    }
+    if (data.time) rows.push([L.time, data.time]);
+    if (data.inTime || data.outTime) rows.push([L.time, `${data.inTime || '?'} – ${data.outTime || '?'}`]);
+    if (data.amount) rows.push([L.amount, `${this.settings.currency} ${Number(data.amount).toLocaleString('en-US')}`]);
+    if (data.minutes) rows.push([L.min, String(data.minutes)]);
+    if (withReason && data.reason) rows.push([L.reason, String(data.reason).slice(0, 80)]);
+    if (r.type === 'leave' && data.date) {
+      try {
+        const st = this.statement(this.empRow(r.emp, { withDeleted: true }), data.date.slice(0, 7));
+        rows.push([L.left, ur ? `${st.leave.left} / ${st.leave.quota} اس مہینے` : `${st.leave.left} of ${st.leave.quota} this month`]);
+      } catch { /* leave count is extra */ }
+    }
+    return rows.slice(0, 4);
+  };
+
+  P.requestCard = function requestCard(r, label, ur) {
+    return { ...this.empCardHead(r.emp, ur), label, color: KIND_COLOR[r.type] || 'blue', rows: this.requestRows(r, ur) };
+  };
+}

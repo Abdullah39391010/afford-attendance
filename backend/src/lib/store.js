@@ -10,7 +10,7 @@ import { installPro } from './pro.js';
 import { installOps } from './ops.js';
 import { installExtra } from './extra.js';
 import { installPins } from './pins.js';
-import { installRich } from './rich.js';
+import { installRich, installCards } from './rich.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -1296,6 +1296,11 @@ export class Store {
     const report = [];
     const msgs = rows.map((r) => ({
       token: r.token, id: `test-${this.now()}`, rich: this.isRich(r.token), lang: r.lang, actions: 'open',
+      card: {
+        name: actor.name, sub: r.lang === 'ur' ? (this.settings.storeNameUr || this.settings.storeName) : this.settings.storeName,
+        label: r.lang === 'ur' ? '✓ اطلاعات فعال' : '✓ Alerts are on', color: 'green',
+        rows: r.lang === 'ur' ? [['فون', 'یہ فون'], ['ملیں گی', 'درخواستیں، یاد دہانیاں، تنخواہ']] : [['Phone', 'This phone'], ['You get', 'Requests, reminders, salary']],
+      },
       title: r.lang === 'ur' ? `${this.settings.storeNameUr || this.settings.storeName} · اطلاعات فعال ہیں` : `${this.settings.storeName} · Alerts are on`,
       body: r.lang === 'ur' ? `${actor.name}، اس فون پر درخواستیں، یاد دہانیاں اور تنخواہ کی اطلاعات آئیں گی۔` : `${actor.name}, this phone will receive requests, shift reminders and salary updates.`,
     }));
@@ -1351,6 +1356,7 @@ export class Store {
       const detail = this.reqDetail(row, ur);
       return {
         person: r.emp, personName: (ur && d.nameUr) || d.name || '', actions: 'decide', ref: r.id,
+        card: this.requestCard(row, ur ? `${REQ_UR[r.type] || r.type} کی درخواست` : `${REQ_EN[r.type] || r.type} request`, ur),
         title: ur ? `${REQ_UR[r.type] || r.type} کی درخواست · ${d.nameUr || d.name || '?'}` : `${REQ_EN[r.type] || r.type} request · ${d.name || '?'}`,
         body: ur ? `${detail ? `${detail}\n` : ''}منظور یا نامنظور کرنے کے لیے کھولیں۔` : `${detail ? `${detail}\n` : ''}Tap to approve or decline.`,
       };
@@ -1364,6 +1370,11 @@ export class Store {
       const detail = this.reqDetail({ ...row, data: (() => { try { const x = JSON.parse(row.data || '{}'); delete x.reason; return x; } catch { return {}; } })() }, ur);
       return {
         actions: 'open', personName: ur ? 'انتظامیہ' : 'Management',
+        card: {
+          name: what, sub: ur ? (approved ? 'آپ کی درخواست منظور ہو گئی' : 'آپ کی درخواست نامنظور ہوئی') : (approved ? 'Your request was approved' : 'Your request was declined'),
+          label: ur ? (approved ? '✓ منظور' : '✕ نامنظور') : (approved ? '✓ Approved' : '✕ Declined'), color: approved ? 'green' : 'red',
+          rows: [...this.requestRows(row, ur, false), ...(note ? [[ur ? 'نوٹ' : 'Note', note.slice(0, 80)]] : [])].slice(0, 4),
+        },
         title: ur ? `${what} · ${approved ? 'منظور ✓' : 'نامنظور'}` : `${what} · ${approved ? 'Approved ✓' : 'Declined'}`,
         body: [detail, note ? (ur ? `نوٹ: ${note}` : `Note: ${note}`) : ''].filter(Boolean).join('\n') || (ur ? 'تفصیل کے لیے ایپ کھولیں۔' : 'Open the app for details.'),
       };
@@ -1859,3 +1870,4 @@ installOps(Store);
 installExtra(Store);
 installPins(Store);
 installRich(Store);
+installCards(Store);

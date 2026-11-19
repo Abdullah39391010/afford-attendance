@@ -61,7 +61,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
   <div class="sub">Master Guide · Afford Super Store</div>
   <div class="ur">حاضری اور تنخواہ کا نظام</div>
   <div class="bar"></div>
-  <div class="meta">Version 2.5 · 19 November 2026 (apps v0.11.0)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
+  <div class="meta">Version 2.6 · 19 November 2026 (apps v0.11.1)<br>Admin app · Employee app · Kiosk · Cloud backend</div>
 </div>
 
 <section>
@@ -158,7 +158,7 @@ svg text { font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
     <tr><td>Salary signature</td><td>When marking salary as paid in cash, the employee signs with a finger on the admin's phone. The signature is saved with the payment, shows on the salary statement in both apps and is printed on the payslip. The owner draws an authorised signature once in Settings → Store; it is added to the payslip automatically when the employee has signed.</td></tr>
     <tr><td>Blood group</td><td>Set in Edit details → Staff file. It shows on the profile and in the staff list. Type a group such as A+, ab+ or "o negative" in the Staff search box to list everyone with that group.</td></tr>
     <tr><td>Owner and manager photos</td><td>Tap your own picture at the top of More to add a photo. The owner can set each manager's photo in More → Managers (open the manager and tap the picture).</td></tr>
-    <tr><td>Phone alerts</td><td>Alerts use the store bag icon and say who, what and when, for example "Leave request · Ali Khan — 21 Nov – 23 Nov · “Family function”". They come in five types: Requests, Shift reminders, Salary &amp; payments, Announcements and Owner reports. Each type can be silenced separately in the phone's notification settings for the app. From v0.11.0 the app draws alerts itself: the employee's round photo (or initials), alerts from one person stacked together, the Afford chime, and Approve / Decline buttons on request alerts (managers can answer without opening the app). Safety backup: if a phone does not confirm an alert within about 5 minutes (strict battery savers), the server sends a plain alert instead; a phone that misses twice gets plain alerts until it confirms again.</td></tr>
+    <tr><td>Phone alerts</td><td>Alerts use the store bag icon and say who, what and when, for example "Leave request · Ali Khan — 21 Nov – 23 Nov · “Family function”". They come in five types: Requests, Shift reminders, Salary &amp; payments, Announcements and Owner reports. Each type can be silenced separately in the phone's notification settings for the app. From v0.11.0 the app draws alerts itself: the employee's round photo (or initials), alerts from one person stacked together, the Afford chime, and Approve / Decline buttons on request alerts (managers can answer without opening the app). From v0.11.1 every alert is an "action card": the photo in a red ring, the name with role and code, a coloured label (amber for leave, green for money, blue for time fixes, red for reminders), a details box (Dates, Reason, Leave left, or Amount) and big green Approve and red Decline buttons. Staff alerts use the same card, for example "Salary paid" with the amount and a View payslip button. Safety backup: if a phone does not confirm an alert within about 5 minutes (strict battery savers), the server sends a plain alert instead; a phone that misses twice gets plain alerts until it confirms again.</td></tr>
     <tr><td>Urdu names</td><td>Employees, shifts, roles, holidays, branches and the store name can each have an Urdu name. The Urdu name shows when the app is in Urdu.</td></tr>
     <tr><td>Check in / out for staff</td><td>Check any employee in or out now or at a given time. A reason is required and it is written to the audit log.</td></tr>
     <tr><td>Calendar</td><td>Per employee, one solid colour per day (see section 13). Tap a day to see the punches, GPS distance, kiosk photo and requests.</td></tr>
@@ -458,7 +458,7 @@ net pay = salary − all cuts − advances − deposit cut + bonus + overtime pa
   <h2>20. Versions and test checklist</h2>
   <table>
     <tr><th style="width:26%">Stage</th><th style="width:14%">Status</th><th>What to test</th></tr>
-    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>59 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
+    <tr><td>Backend</td><td><span class="tag done">Live</span></td><td>60 automated tests run before every deploy. Deploys only with the owner's OK.</td></tr>
     <tr><td>Admin app</td><td><span class="tag done">Live</span></td><td>Login, board, requests and owner approvals, staff, money with installments, payroll with paid record and month lock, settlement, rules agreement, backups, reports, kiosk, Urdu.</td></tr>
     <tr><td>Employee app</td><td><span class="tag done">Live</span></td><td>Rules agreement, phone locking, fingerprint, check-in inside and outside the circle, check-in-again request, break, requests, reminders, offline punch, calendar, payslip, Urdu.</td></tr>
     <tr><td>iPhone web version</td><td><span class="tag done">v0.9</span></td><td>Owner allows it per person, login in Safari, check in inside the circle, Add to Home Screen.</td></tr>

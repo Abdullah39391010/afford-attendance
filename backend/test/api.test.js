@@ -488,6 +488,12 @@ test('instant push: phones register, admins get new requests, staff get answers'
   const req = (await t.aliApi('POST', '/api/emp/requests', { type: 'leave', date: '2026-11-20', toDate: '2026-11-20', reason: 'x' })).data.request;
   assert.equal(sent.length, 2); // both admin tokens
   assert.match(sent[0].title, /^Leave request · Ali/); assert.match(sent[0].body, /Tap to approve or decline/);
+  // action card: name, role · code, label, details rows
+  const card = sent[0].card;
+  assert.match(card.name, /^Ali/); assert.equal(card.label, 'Leave request'); assert.equal(card.color, 'amber');
+  assert.deepEqual(card.rows[0], ['Date', '20 Nov']);
+  assert.ok(card.rows.some(([k]) => k === 'Reason'));
+  assert.ok(card.rows.some(([k]) => k === 'Leave left'));
   // dead token removed
   assert.equal(t.store.db.all("SELECT * FROM push_tokens WHERE kind = 'admin'").length, 1);
   sent.length = 0;
@@ -495,6 +501,7 @@ test('instant push: phones register, admins get new requests, staff get answers'
   assert.equal(sent.length, 1);
   assert.equal(sent[0].token, 'ali-phone-token-123456789012');
   assert.match(sent[0].title, /منظور ✓/);
+  assert.equal(sent[0].card.color, 'green'); assert.match(sent[0].card.label, /منظور/);
 });
 
 test('push test: sends to the caller only and reports the result', async () => {
@@ -514,4 +521,11 @@ test('push test: sends to the caller only and reports the result', async () => {
   const e = (await t.aliApi('POST', '/api/emp/push-test', {})).data;
   assert.equal(e.phones, 1);
   assert.equal(sent[1].token, 'ali-phone-token-123456789012');
+});
+
+test('alerts without their own card get a plain action card', async () => {
+  const { plainCard } = await import('../src/lib/push.js');
+  const c = plainCard({ id: 'paid-1', title: 'Salary paid', body: 'Rs. 5,000', lang: 'en' });
+  assert.equal(c.color, 'green'); assert.equal(c.name, 'Salary paid'); assert.equal(c.text, 'Rs. 5,000');
+  assert.equal(plainCard({ id: 'rem-x', title: 't', lang: 'ur' }).label, '⏰ یاد دہانی');
 });

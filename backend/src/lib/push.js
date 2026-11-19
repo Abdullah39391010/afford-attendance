@@ -62,7 +62,7 @@ export async function sendPushes(saJson, msgs, report) {
             ...(m.rich ? {} : { notification: { title: m.title, body: m.body } }),
             data: {
               id: String(m.id), title: String(m.title || ''), body: String(m.body || ''), channel: channelFor(m.id),
-              ...(m.rich ? { rich: '1', person: String(m.person || ''), personName: String(m.personName || ''), actions: String(m.actions || ''), ref: String(m.ref || ''), lang: String(m.lang || 'en') } : {}),
+              ...(m.rich ? { rich: '1', person: String(m.person || ''), personName: String(m.personName || ''), actions: String(m.actions || ''), ref: String(m.ref || ''), lang: String(m.lang || 'en'), card: JSON.stringify(m.card || plainCard(m)) } : {}),
             },
             android: {
               priority: 'HIGH',
@@ -94,6 +94,20 @@ export async function sendPushes(saJson, msgs, report) {
  * notification settings (people can mute one kind without missing the others).
  * The apps create these channels; ids must match AffordNotifyWorker.CHANNELS.
  */
+const CARD_KIND = {
+  afford_salary2: ['💵 Money', '💵 رقم', 'green'],
+  afford_reminders2: ['⏰ Reminder', '⏰ یاد دہانی', 'red'],
+  afford_reports2: ['📊 Report', '📊 رپورٹ', 'blue'],
+  afford_news2: ['📣 News', '📣 خبر', 'amber'],
+  afford_alerts2: ['🔔 Alert', '🔔 اطلاع', 'blue'],
+};
+
+/** Action card for an alert that has no card of its own: title as the name, the text below. */
+export function plainCard(m) {
+  const [en, ur, color] = CARD_KIND[channelFor(m.id)] || CARD_KIND.afford_alerts2;
+  return { name: String(m.title || ''), label: m.lang === 'ur' ? ur : en, color, text: String(m.body || '').slice(0, 300) };
+}
+
 export function channelFor(id) {
   const k = String(id || '');
   if (/^(paid-|money-)/.test(k)) return 'afford_salary2';

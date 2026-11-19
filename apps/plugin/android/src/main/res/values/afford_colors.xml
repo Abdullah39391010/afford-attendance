@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="afford_notify">#C62032</color>
+    <color name="afford_box">#14000000</color>
+    <color name="afford_text">#1B1B1F</color>
+    <color name="afford_sub">#6B6B76</color>
+    <color name="afford_chip_amber_bg">#FFF1D6</color>
+    <color name="afford_chip_amber_tx">#9A5B00</color>
+    <color name="afford_chip_green_bg">#DDF5E6</color>
+    <color name="afford_chip_green_tx">#167A3E</color>
+    <color name="afford_chip_blue_bg">#DDEBFF</color>
+    <color name="afford_chip_blue_tx">#1F5FBF</color>
+    <color name="afford_chip_red_bg">#FDE0E3</color>
+    <color name="afford_chip_red_tx">#B3192B</color>
+    <color name="afford_ok_bg">#1E9E53</color>
+    <color name="afford_no_bg">#FDE3E5</color>
+    <color name="afford_no_tx">#C62032</color>
 </resources>
