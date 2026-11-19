@@ -13,6 +13,7 @@ import { Roster } from './extra.jsx';
 import { OwnerCodeLogin, forgetOwnerPage } from './ownerpage.jsx';
 import { Settlement } from './ops.jsx';
 import { startNotify, stopNotify } from '../shared/notify.js';
+import { InstallGuide, needsInstallGuide, NotifyAsk, needsNotifyAsk, registerSW } from '../shared/webapp.jsx';
 import { PermissionGate } from '../shared/perms.jsx';
 import { UpdatePopup } from '../shared/update.jsx';
 import { Board } from './board.jsx';
@@ -44,10 +45,14 @@ export function App() {
   const [bootErr, setBootErr] = useState(null);
   const splashDone = useRef(false);
   const nextPhase = useRef(null);
+  const [guide, setGuide] = useState(needsInstallGuide); // web on iPhone Safari: install guide first
+  const [ask, setAsk] = useState(false);
+  useEffect(() => { if (phase === 'app') setAsk(needsNotifyAsk()); }, [phase]);
 
   useEffect(() => onLang(() => force((x) => x + 1)), []);
   useEffect(() => {
     applyDir();
+    registerSW();
     api.onAuthLost(() => { secureRemove(SECURE_TOKEN); api.setToken(null); setMe(null); setPhase('login'); });
     boot();
   }, []);
@@ -105,12 +110,14 @@ export function App() {
   return (
     <div>
       {phase === 'splash' && <Splash title="Afford Super Store" sub={t('Attendance & Payroll · Admin')} onDone={onSplashDone} minMs={IS_WEB ? 1200 : undefined} />}
-      {phase === 'server' && <ServerSetup err={bootErr} onSaved={() => { setPhase('splash2'); boot().then(() => { splashDone.current = true; setPhase(nextPhase.current || 'login'); }); }} />}
+      {guide && phase !== 'splash' && phase !== 'splash2' && <InstallGuide onSkip={() => setGuide(false)} />}
+      {!guide && phase === 'server' && <ServerSetup err={bootErr} onSaved={() => { setPhase('splash2'); boot().then(() => { splashDone.current = true; setPhase(nextPhase.current || 'login'); }); }} />}
       {phase === 'splash2' && <div class="auth"><Spinner /></div>}
-      {phase === 'setup' && <OwnerSetup onDone={signedIn} />}
-      {phase === 'login' && (IS_WEB ? <OwnerCodeLogin onDone={signedIn} /> : <Login info={info} onDone={signedIn} onKiosk={() => setPhase('kiosk')} />)}
+      {!guide && phase === 'setup' && <OwnerSetup onDone={signedIn} />}
+      {!guide && phase === 'login' && (IS_WEB ? <OwnerCodeLogin onDone={signedIn} /> : <Login info={info} onDone={signedIn} onKiosk={() => setPhase('kiosk')} />)}
       {phase === 'kiosk' && <KioskMode onExit={async (res) => { await secureRemove('kioskToken'); api.setToken(null); if (res) signedIn(res, { remember: false }); else setPhase('login'); }} />}
-      {phase === 'app' && me && <Shell me={me} logout={logout} toKiosk={() => setPhase('kiosk')} />}
+      {!guide && phase === 'app' && me && <Shell me={me} logout={logout} toKiosk={() => setPhase('kiosk')} />}
+      {!guide && phase === 'app' && me && ask && <NotifyAsk kind="admin" onDone={() => setAsk(false)} />}
       <ToastHost />
       <ConfirmHost />
       {phase !== 'splash' && !IS_WEB && <UpdatePopup />}

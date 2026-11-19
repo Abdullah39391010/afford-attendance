@@ -5,6 +5,7 @@
 import { AffordDevice } from 'afford-device';
 import { api, LS, deviceInfo } from './api.js';
 import { getLang, onLang } from './i18n.js';
+import { IS_WEB, webPushRegister, webPushRemove } from './webapp.jsx';
 
 let current = null;
 let langHooked = false;
@@ -27,10 +28,11 @@ export async function startNotify(kind) {
     const dev = await deviceInfo();
     await AffordDevice.startBackgroundCheck({ base: api.base, token: api.token, deviceId: dev.deviceId, kind, lang: getLang() });
   } catch { /* not available on this phone */ }
-  registerPush(kind);
+  if (IS_WEB) webPushRegister(kind); // iPhone / browser alerts
+  else registerPush(kind);
   if (!timer) {
     timer = setInterval(() => { if (current && document.visibilityState === 'visible') AffordDevice.checkNow().catch(() => {}); }, 20000);
-    document.addEventListener('visibilitychange', () => { if (current && document.visibilityState === 'visible') registerPush(current); });
+    document.addEventListener('visibilitychange', () => { if (current && document.visibilityState === 'visible') (IS_WEB ? webPushRegister : registerPush)(current); });
   }
   if (!langHooked) { langHooked = true; onLang(() => current && startNotify(current)); }
 }
@@ -38,6 +40,7 @@ export async function startNotify(kind) {
 export async function stopNotify() {
   const kind = current;
   current = null;
+  if (IS_WEB && kind) await webPushRemove(kind);
   const tk = LS.get('afford.pushToken');
   if (tk && kind && api.token) { try { await api.post(`/api/${kind}/push-token`, { token: tk, remove: true }); } catch { /* ignore */ } }
   LS.set('afford.pushToken', null);

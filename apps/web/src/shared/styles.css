@@ -496,3 +496,32 @@ html.glass.noblur .backdrop { background: rgba(20,20,28,.42); }
 .selfie-cam video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .selfie-shot { width: 100%; height: 100%; object-fit: cover; }
 .selfie-count { position: absolute; inset: 0; display: grid; place-items: center; font-size: 72px; font-weight: 800; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+
+/* ---------- web version: install guide (iPhone) and notifications question */
+.ig { position: relative; }
+.ig .logo { width: 170px; }
+.ig-box { background: var(--card); border-radius: 18px; box-shadow: 0 4px 20px rgba(0,0,0,.06); padding: 4px 16px; }
+.ig-step { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.ig-step:last-child { border-bottom: 0; }
+.ig-n { width: 30px; height: 30px; flex: none; border-radius: 50%; background: var(--red); color: #fff; font-weight: 800; display: grid; place-items: center; }
+.ig-ic { width: 44px; height: 44px; flex: none; border-radius: 12px; background: #EAF2FF; color: #2F6FDB; display: grid; place-items: center; }
+.ig-ic svg { width: 24px; height: 24px; }
+.ig-skip { margin-top: 16px; font-weight: 600; color: #2F6FDB; background: none; border: 0; font-size: 14px; }
+.ig-arrow { margin-top: auto; padding-top: 20px; color: var(--red); animation: igbob 1.2s ease-in-out infinite; }
+.ig-arrow svg { width: 40px; height: 40px; }
+@keyframes igbob { 50% { transform: translateY(8px); } }
+.na { position: fixed; inset: 0; z-index: 90; overflow: auto; display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: calc(var(--safe-top) + 46px) 18px calc(var(--safe-bottom) + 22px); background: linear-gradient(160deg, #fbeff1, #eef0f8 50%, #f6f1ea); }
+.na-bell { width: 96px; height: 96px; border-radius: 28px; background: linear-gradient(135deg, var(--red), #8E1322); color: #fff; display: grid; place-items: center; box-shadow: 0 10px 30px rgba(198,32,50,.35); }
+.na-bell svg { width: 48px; height: 48px; }
+.na h1 { font-size: 24px; margin-top: 20px; }
+.na .sub { color: var(--muted); margin: 6px 16px 0; }
+.na-list { width: 100%; max-width: 380px; margin-top: 22px; background: var(--card); border-radius: 18px; box-shadow: 0 4px 20px rgba(0,0,0,.06); padding: 6px 16px; text-align: start; }
+.na-item { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.na-item:last-child { border-bottom: 0; }
+.na-ic { width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center; }
+.na-ic svg { width: 20px; height: 20px; }
+.na-ic.blue { background: #EAF2FF; color: #2F6FDB; } .na-ic.amber { background: #FFF1DC; color: #E07B00; }
+.na-ic.green { background: #E3F4EA; color: #1E9E53; } .na-ic.red { background: var(--red-soft); color: var(--red); }
+.na-foot { width: 100%; max-width: 380px; margin-top: auto; padding-top: 22px; }
+.na-later { margin-top: 14px; font-weight: 600; color: var(--muted); background: none; border: 0; font-size: 14px; }

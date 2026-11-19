@@ -12,6 +12,7 @@ import { installExtra } from './extra.js';
 import { installPins } from './pins.js';
 import { installRich, installCards } from './rich.js';
 import { installInsights, AUDIT_KINDS } from './insights.js';
+import { installWebPush } from './webpush.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -50,7 +51,8 @@ export class Store {
     }
     this.routes = this.buildRoutes();
     this.outbox = [];
-    this.pushSender = (msgs, report) => sendPushes(this.env.FIREBASE_SERVICE_ACCOUNT, msgs, report);
+    // phone apps go through Firebase, the web versions (iPhone) through Web Push
+    this.pushSender = (msgs, report) => this.sendAll(msgs, report, (m, r) => sendPushes(this.env.FIREBASE_SERVICE_ACCOUNT, m, r));
   }
 
   // ---------------------------------------------------------------- settings / helpers
@@ -357,6 +359,7 @@ export class Store {
     this.pinsRoutes(add, A);
     this.richRoutes(add, A);
     this.insightsRoutes(add, A);
+    this.webPushRoutes(add, A);
     return R;
   }
 
@@ -1302,10 +1305,12 @@ export class Store {
 
   /** Sends a test alert to the caller's own phone(s) right now and says what happened. */
   async pushTest({ actor, body }, kind) {
-    const configured = !!this.env.FIREBASE_SERVICE_ACCOUNT;
     const tk = str(body.token, 400);
-    if (tk && tk.length >= 20) this.pushToken({ actor, body: { token: tk, lang: body.lang } }, kind);
-    const rows = this.db.all('SELECT token, lang FROM push_tokens WHERE kind = ? AND sub = ?', kind, actor.id);
+    if (tk && tk.length >= 20 && !tk.startsWith('web:')) this.pushToken({ actor, body: { token: tk, lang: body.lang } }, kind);
+    let rows = this.db.all('SELECT token, lang FROM push_tokens WHERE kind = ? AND sub = ?', kind, actor.id);
+    // without Firebase only the web versions (iPhone) can get alerts
+    if (!this.env.FIREBASE_SERVICE_ACCOUNT) rows = rows.filter((r) => r.token.startsWith('web:'));
+    const configured = !!this.env.FIREBASE_SERVICE_ACCOUNT || rows.length > 0;
     if (!configured || !rows.length) return { configured, phones: rows.length, results: [] };
     const report = [];
     const msgs = rows.map((r) => ({
@@ -1886,3 +1891,4 @@ installPins(Store);
 installRich(Store);
 installCards(Store);
 installInsights(Store);
+installWebPush(Store);

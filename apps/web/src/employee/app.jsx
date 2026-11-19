@@ -9,6 +9,7 @@ import { Splash, ToastHost, ConfirmHost, PinPad, LangSwitch, BottomNav, Field, I
 import { UpdatePopup } from '../shared/update.jsx';
 import { flush, onQueue, queued } from '../shared/offline.js';
 import { startNotify, stopNotify } from '../shared/notify.js';
+import { InstallGuide, needsInstallGuide, NotifyAsk, needsNotifyAsk, registerSW } from '../shared/webapp.jsx';
 import { PermissionGate } from '../shared/perms.jsx';
 import { Home } from './home.jsx';
 import { MyCalendar, MyRequests, MyPay, MyMore, Helper, MyPin } from './screens.jsx';
@@ -27,10 +28,14 @@ export function App() {
   const [phase, setPhase] = useState('splash'); // splash | server | login | unlock | app
   const splashDone = useRef(false);
   const next = useRef(null);
+  const [guide, setGuide] = useState(needsInstallGuide); // web on iPhone Safari: install guide first
+  const [ask, setAsk] = useState(false);
+  useEffect(() => { if (phase === 'app') setAsk(needsNotifyAsk()); }, [phase]);
 
   useEffect(() => onLang(() => force((x) => x + 1)), []);
   useEffect(() => {
     applyDir();
+    registerSW();
     api.onAuthLost(async (e) => {
       await secureRemove(SECURE_TOKEN);
       api.setToken(null);
@@ -77,10 +82,12 @@ export function App() {
   return (
     <div>
       {phase === 'splash' && <Splash title="Afford Super Store" sub={t('Staff attendance')} minMs={(typeof __WEB_APP__ !== 'undefined' && __WEB_APP__) ? 1200 : undefined} onDone={() => { splashDone.current = true; setPhase(next.current || 'login'); }} />}
-      {phase === 'server' && <ServerSetup onSaved={() => { boot(); setPhase('login'); }} />}
-      {phase === 'login' && <Login onDone={signedIn} />}
-      {phase === 'unlock' && <Unlock onDone={async () => { api.setToken(await secureGet(SECURE_TOKEN)); setPhase('app'); }} onPin={async () => { await secureRemove(SECURE_TOKEN); setPhase('login'); }} />}
-      {phase === 'app' && <Shell logout={logout} />}
+      {guide && phase !== 'splash' && <InstallGuide onSkip={() => setGuide(false)} />}
+      {!guide && phase === 'server' && <ServerSetup onSaved={() => { boot(); setPhase('login'); }} />}
+      {!guide && phase === 'login' && <Login onDone={signedIn} />}
+      {!guide && phase === 'unlock' && <Unlock onDone={async () => { api.setToken(await secureGet(SECURE_TOKEN)); setPhase('app'); }} onPin={async () => { await secureRemove(SECURE_TOKEN); setPhase('login'); }} />}
+      {!guide && phase === 'app' && <Shell logout={logout} />}
+      {!guide && phase === 'app' && ask && <NotifyAsk kind="emp" onDone={() => setAsk(false)} />}
       <ToastHost />
       <ConfirmHost />
       {phase === 'app' && !(typeof __WEB_APP__ !== 'undefined' && __WEB_APP__) && <UpdatePopup />}

@@ -252,4 +252,18 @@ export const UR2 = {
   // selfie retake
   'Is your face clear? If not, take it again.': 'کیا آپ کا چہرہ صاف ہے؟ اگر نہیں تو دوبارہ لیں۔', 'Retake': 'دوبارہ لیں',
   'Use photo and check in': 'یہ تصویر لگائیں اور چیک اِن کریں', 'Take selfie': 'سیلفی لیں',
+  // iPhone web version: install guide and notifications
+  'Install {app}': '{app} انسٹال کریں',
+  'Put the app on your home screen. It then opens like a normal app and can send you alerts.': 'ایپ کو اپنی ہوم اسکرین پر لگائیں۔ پھر یہ عام ایپ کی طرح کھلے گی اور آپ کو اطلاعات بھیج سکے گی۔',
+  'Tap the Share button': 'شیئر کا بٹن دبائیں', 'At the bottom of Safari (or tap ⋯ first)': 'سفاری میں نیچے (یا پہلے ⋯ دبائیں)',
+  'Tap "Add to Home Screen"': '"Add to Home Screen" دبائیں', "Scroll down the list if you don't see it": 'نظر نہ آئے تو فہرست نیچے کریں',
+  'Tap "Add"': '"Add" دبائیں', 'Then open {app} from your home screen': 'پھر ہوم اسکرین سے {app} کھولیں',
+  'Continue in browser instead': 'براؤزر میں ہی جاری رکھیں',
+  'Turn on notifications': 'اطلاعات آن کریں', 'Allow notifications': 'اطلاعات کی اجازت دیں', 'Not now': 'ابھی نہیں',
+  'So you never miss a shift or a message from the store.': 'تاکہ آپ کی کوئی ڈیوٹی یا اسٹور کا کوئی پیغام نہ چھوٹے۔',
+  'So you see requests and warnings right away.': 'تاکہ درخواستیں اور انتباہ فوراً نظر آئیں۔',
+  'Shift starts soon': 'ڈیوٹی جلد شروع', 'You forgot to check out': 'آپ چیک آؤٹ کرنا بھول گئے',
+  'Leave approved or declined': 'چھٹی منظور یا نامنظور', 'Salary paid': 'تنخواہ ادا ہو گئی',
+  'Requests to approve': 'منظوری کے لیے درخواستیں', 'Fake GPS and other warnings': 'جعلی GPS اور دیگر انتباہ',
+  'Daily summary': 'روزانہ خلاصہ', 'Staff late or absent': 'اسٹاف دیر سے یا غیر حاضر',
 };
