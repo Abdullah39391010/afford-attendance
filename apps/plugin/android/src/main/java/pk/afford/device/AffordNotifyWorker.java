@@ -86,12 +86,25 @@ public class AffordNotifyWorker extends Worker {
         }
     }
 
+    /** Alert types, each its own channel so people can mute one kind in phone settings. Ids match the server (push.js channelFor). */
+    static final String[][] CHANNELS = {
+        // id, English name, Urdu name, description, importance (4 = high, 3 = default)
+        {"afford_alerts", "Requests", "درخواستیں", "New requests and answers to requests", "4"},
+        {"afford_reminders", "Shift reminders", "شفٹ یاد دہانی", "Shift starts soon, forgot to check out", "4"},
+        {"afford_salary", "Salary & payments", "تنخواہ اور ادائیگیاں", "Salary paid, bonus, advance, fines", "4"},
+        {"afford_news", "Announcements", "اعلانات", "Holidays, duty roster, notes from the store", "3"},
+        {"afford_reports", "Owner reports", "مالک کی رپورٹس", "Daily summary, approvals, backups, server", "3"},
+    };
+
     static void ensureChannel(Context ctx) {
-        if (Build.VERSION.SDK_INT >= 26) {
-            NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm.getNotificationChannel(CHANNEL) == null) {
-                NotificationChannel ch = new NotificationChannel(CHANNEL, "Requests", NotificationManager.IMPORTANCE_HIGH);
-                ch.setDescription("New requests and answers to requests");
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        boolean ur = "ur".equals(java.util.Locale.getDefault().getLanguage())
+            || "ur".equals(ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("lang", ""));
+        for (String[] c : CHANNELS) {
+            NotificationChannel ch = nm.getNotificationChannel(c[0]);
+            if (ch == null) {
+                ch = new NotificationChannel(c[0], ur ? c[2] : c[1], Integer.parseInt(c[4]));
                 ch.enableVibration(true);
                 ch.enableLights(true);
                 ch.setLightColor(0xFFC62032);
@@ -99,26 +112,32 @@ public class AffordNotifyWorker extends Worker {
                 ch.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION),
                     new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
                         .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
-                nm.createNotificationChannel(ch);
-                if (nm.getNotificationChannel("afford_requests") != null) nm.deleteNotificationChannel("afford_requests");
+            } else {
+                ch.setName(ur ? c[2] : c[1]); // only the name and description can change after creation
             }
+            ch.setDescription(c[3]);
+            nm.createNotificationChannel(ch);
         }
+        if (nm.getNotificationChannel("afford_requests") != null) nm.deleteNotificationChannel("afford_requests");
     }
 
-    static void show(Context ctx, String id, String title, String body) {
+    static void show(Context ctx, String id, String title, String body) { show(ctx, id, title, body, CHANNEL); }
+
+    static void show(Context ctx, String id, String title, String body, String channel) {
         ensureChannel(ctx);
+        if (channel == null || channel.isEmpty()) channel = CHANNEL;
         Intent open = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
         if (open == null) open = new Intent();
         open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(ctx, id.hashCode(), open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL)
+        NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, channel)
             .setSmallIcon(R.drawable.ic_afford_notify)
             .setColor(0xFFC62032)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setCategory("afford_reminders".equals(channel) ? NotificationCompat.CATEGORY_REMINDER : NotificationCompat.CATEGORY_MESSAGE)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)

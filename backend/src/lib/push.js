@@ -58,12 +58,12 @@ export async function sendPushes(saJson, msgs, report) {
             // (phone makers' battery savers can block data-only messages). Sound follows the phone's
             // ring mode, so a phone on silent only shows it.
             notification: { title: m.title, body: m.body },
-            data: { id: String(m.id), title: m.title, body: m.body },
+            data: { id: String(m.id), title: m.title, body: m.body, channel: channelFor(m.id) },
             android: {
               priority: 'HIGH',
               ttl: '86400s',
               notification: {
-                channel_id: 'afford_alerts', icon: 'ic_afford_notify', color: '#C62032', tag: String(m.id),
+                channel_id: channelFor(m.id), icon: 'ic_afford_notify', color: '#C62032', tag: String(m.id),
                 default_sound: true, default_vibrate_timings: true, notification_priority: 'PRIORITY_HIGH', visibility: 'PUBLIC',
               },
             },
@@ -80,4 +80,18 @@ export async function sendPushes(saJson, msgs, report) {
     if (report) report.push({ status, error: txt ? (txt.match(/"message":\s*"([^"]+)"/)?.[1] || txt).slice(0, 200) : '' });
   }));
   return dead;
+}
+
+/**
+ * Alert type -> Android notification channel. Each type shows separately in the phone's
+ * notification settings (people can mute one kind without missing the others).
+ * The apps create these channels; ids must match AffordNotifyWorker.CHANNELS.
+ */
+export function channelFor(id) {
+  const k = String(id || '');
+  if (/^(paid-|money-)/.test(k)) return 'afford_salary';
+  if (/^rem-/.test(k)) return 'afford_reminders';
+  if (/^(sum-|err-|drive-|appr-|greet-owner-)/.test(k)) return 'afford_reports';
+  if (/^(hol-|greet-|note-|roster-|swap-)/.test(k)) return 'afford_news';
+  return 'afford_alerts'; // requests and answers to requests
 }

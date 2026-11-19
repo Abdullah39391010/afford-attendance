@@ -1,7 +1,7 @@
 // All store logic: one instance lives inside the store's Durable Object.
 import {
   HttpError, bad, forbidden, notFound, uid, MIN, local, toTs, hm, isDate, isMonth, addDays, dateRange,
-  monthDates, metres, clampInt, str, csv, fmtHM, daysInMonth,
+  monthDates, metres, clampInt, str, csv, fmtHM, daysInMonth, commas,
 } from './util.js';
 import { hashPin, checkPin, newToken, sha256, validPin } from './crypto.js';
 import { makeBackup, checkBackup, applyBackup } from './backup.js';
@@ -1293,8 +1293,8 @@ export class Store {
     const report = [];
     const msgs = rows.map((r) => ({
       token: r.token, id: `test-${this.now()}`,
-      title: r.lang === 'ur' ? 'ٹیسٹ اطلاع' : 'Test alert',
-      body: r.lang === 'ur' ? 'اطلاعات ٹھیک کام کر رہی ہیں۔' : 'Alerts are working on this phone.',
+      title: r.lang === 'ur' ? `${this.settings.storeNameUr || this.settings.storeName} · اطلاعات فعال ہیں` : `${this.settings.storeName} · Alerts are on`,
+      body: r.lang === 'ur' ? `${actor.name}، اس فون پر درخواستیں، یاد دہانیاں اور تنخواہ کی اطلاعات آئیں گی۔` : `${actor.name}, this phone will receive requests, shift reminders and salary updates.`,
     }));
     let dead = [];
     try { dead = await this.pushSender(msgs, report); } catch (e) { report.push({ status: 0, error: String(e?.message || e).slice(0, 200) }); }
@@ -1320,22 +1320,47 @@ export class Store {
     }
   }
 
+  /** Short "what / when / why" line for a request, used in phone alerts. */
+  reqDetail(r, ur) {
+    let data = {};
+    try { data = typeof r.data === 'string' ? JSON.parse(r.data || '{}') : r.data || {}; } catch { /* ignore */ }
+    const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = (d) => (isDate(d) ? (ur ? `${Number(d.slice(8))}/${Number(d.slice(5, 7))}` : `${Number(d.slice(8))} ${M[Number(d.slice(5, 7)) - 1]}`) : '');
+    const parts = [];
+    if (data.date) parts.push(data.toDate && data.toDate !== data.date ? `${day(data.date)} – ${day(data.toDate)}` : day(data.date));
+    if (data.time) parts.push(data.time);
+    if (data.inTime || data.outTime) parts.push(`${data.inTime || '?'} – ${data.outTime || '?'}`);
+    if (data.amount) parts.push(`${this.settings.currency} ${commas(data.amount)}`);
+    if (data.minutes) parts.push(ur ? `${data.minutes} منٹ` : `${data.minutes} min`);
+    if (data.reason) parts.push(`“${String(data.reason).slice(0, 80)}”`);
+    return parts.filter(Boolean).join(' · ');
+  }
+
   pushNewRequest(r) {
     const e = this.db.get('SELECT data FROM employees WHERE id = ?', r.emp);
     const d = e ? JSON.parse(e.data) : {};
     const admins = this.db.all('SELECT id, role, perms FROM admins WHERE active = 1')
       .filter((a) => a.role === 'owner' || JSON.parse(a.perms || '[]').includes('requests.decide')).map((a) => a.id);
-    this.queuePush('admin', admins, r.id, (ur) => ({
-      title: ur ? `نئی درخواست: ${REQ_UR[r.type] || r.type}` : `New request: ${REQ_EN[r.type] || r.type}`,
-      body: ur ? `${d.nameUr || d.name || '?'} نے درخواست بھیجی ہے۔` : `${d.name || '?'} sent a request. Tap to review.`,
-    }));
+    const row = this.db.get('SELECT * FROM requests WHERE id = ?', r.id) || r;
+    this.queuePush('admin', admins, r.id, (ur) => {
+      const detail = this.reqDetail(row, ur);
+      return {
+        title: ur ? `${REQ_UR[r.type] || r.type} کی درخواست · ${d.nameUr || d.name || '?'}` : `${REQ_EN[r.type] || r.type} request · ${d.name || '?'}`,
+        body: ur ? `${detail ? `${detail}\n` : ''}منظور یا نامنظور کرنے کے لیے کھولیں۔` : `${detail ? `${detail}\n` : ''}Tap to approve or decline.`,
+      };
+    });
   }
 
   pushDecided(r, approved, note) {
-    this.queuePush('emp', [r.emp], `${r.id}-d`, (ur) => ({
-      title: ur ? (approved ? 'درخواست منظور ہو گئی' : 'درخواست نامنظور') : (approved ? 'Request approved' : 'Request refused'),
-      body: `${ur ? REQ_UR[r.type] || r.type : REQ_EN[r.type] || r.type}${note ? ` · ${note}` : ''}`,
-    }));
+    const row = this.db.get('SELECT * FROM requests WHERE id = ?', r.id) || r;
+    this.queuePush('emp', [r.emp], `${r.id}-d`, (ur) => {
+      const what = ur ? REQ_UR[r.type] || r.type : REQ_EN[r.type] || r.type;
+      const detail = this.reqDetail({ ...row, data: (() => { try { const x = JSON.parse(row.data || '{}'); delete x.reason; return x; } catch { return {}; } })() }, ur);
+      return {
+        title: ur ? `${what} · ${approved ? 'منظور ✓' : 'نامنظور'}` : `${what} · ${approved ? 'Approved ✓' : 'Declined'}`,
+        body: [detail, note ? (ur ? `نوٹ: ${note}` : `Note: ${note}`) : ''].filter(Boolean).join('\n') || (ur ? 'تفصیل کے لیے ایپ کھولیں۔' : 'Open the app for details.'),
+      };
+    });
   }
 
   // ---------------------------------------------------------------- phone notifications (background check)

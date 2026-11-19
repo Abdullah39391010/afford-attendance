@@ -487,14 +487,14 @@ test('instant push: phones register, admins get new requests, staff get answers'
   assert.equal((await t.aliApi('POST', '/api/emp/push-token', { token: 'ali-phone-token-123456789012', lang: 'ur' })).status, 200);
   const req = (await t.aliApi('POST', '/api/emp/requests', { type: 'leave', date: '2026-11-20', toDate: '2026-11-20', reason: 'x' })).data.request;
   assert.equal(sent.length, 2); // both admin tokens
-  assert.match(sent[0].title, /New request: Leave/);
+  assert.match(sent[0].title, /^Leave request · Ali/); assert.match(sent[0].body, /Tap to approve or decline/);
   // dead token removed
   assert.equal(t.store.db.all("SELECT * FROM push_tokens WHERE kind = 'admin'").length, 1);
   sent.length = 0;
   await t.api('POST', `/api/admin/requests/${req.id}/decide`, { approve: true }, t.owner);
   assert.equal(sent.length, 1);
   assert.equal(sent[0].token, 'ali-phone-token-123456789012');
-  assert.equal(sent[0].title, 'درخواست منظور ہو گئی');
+  assert.match(sent[0].title, /منظور ✓/);
 });
 
 test('push test: sends to the caller only and reports the result', async () => {

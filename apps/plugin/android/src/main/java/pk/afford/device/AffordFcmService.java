@@ -23,7 +23,7 @@ public class AffordFcmService extends FirebaseMessagingService {
         }
         if (title == null) return;
         String id = d.get("id") != null ? d.get("id") : String.valueOf(System.currentTimeMillis());
-        AffordNotifyWorker.show(getApplicationContext(), id, title, body == null ? "" : body);
+        AffordNotifyWorker.show(getApplicationContext(), id, title, body == null ? "" : body, d.get("channel"));
     }
 
     @Override
