@@ -42,6 +42,7 @@ export function installOps(Store) {
     } catch (e) {
       this.logError('reminders', e);
     }
+    try { this.pushFallback(); } catch (e) { this.logError('push-fallback', e); }
     if (this.outbox.length) await this.flushPush();
   };
 
@@ -138,6 +139,7 @@ export function installOps(Store) {
     if (sig) this.db.run('INSERT INTO signatures (payment, emp, data, ts) VALUES (?, ?, ?, ?)', id, emp.id, sig, this.now());
     this.audit(actor, 'payroll.salary_paid', emp.id, { name: emp.name, month, amount, method, note: str(body.note, 200), signed: sig ? true : undefined });
     this.queuePush('emp', [emp.id], `paid-${id}`, (ur) => ({
+      actions: 'payslip',
       title: ur ? `تنخواہ ادا ہو گئی · ${month}` : `Salary paid · ${monthName(month)}`,
       body: ur
         ? `${this.settings.currency} ${commas(amount)} ${method === 'bank' ? 'بینک میں' : method === 'cash' ? 'نقد' : ''} ادا کر دیے گئے۔ پے سلپ ایپ میں دیکھیں۔`

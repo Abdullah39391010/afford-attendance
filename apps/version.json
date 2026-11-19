@@ -1,7 +1,7 @@
 {
-  "version": "0.10.4",
+  "version": "0.11.0",
   "notes": {
-    "en": "Professional alerts: store bag icon, clear titles with name and details, and separate alert types you can manage in phone settings.",
-    "ur": "بہتر اطلاعات: اسٹور کا بیگ آئیکن، نام اور تفصیل کے ساتھ واضح عنوان، اور الگ الگ قسم کی اطلاعات جنہیں فون کی سیٹنگز میں سنبھالا جا سکتا ہے۔"
+    "en": "Snapchat-style alerts: the person's photo, alerts stacked by person, the Afford chime, and Approve / Decline buttons right in the alert.",
+    "ur": "نئی طرز کی اطلاعات: ملازم کی تصویر، ایک شخص کی اطلاعات اکٹھی، Afford کی آواز، اور اطلاع میں ہی منظور / نامنظور کے بٹن۔"
   }
 }

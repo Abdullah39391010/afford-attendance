@@ -33,7 +33,7 @@ public class AffordNotifyWorker extends Worker {
 
     static final String PREFS = "afford_notify";
     static final String WORK = "afford-notify";
-    static final String CHANNEL = "afford_alerts";
+    static final String CHANNEL = "afford_alerts2";
 
     public AffordNotifyWorker(@NonNull Context ctx, @NonNull WorkerParameters params) {
         super(ctx, params);
@@ -89,11 +89,11 @@ public class AffordNotifyWorker extends Worker {
     /** Alert types, each its own channel so people can mute one kind in phone settings. Ids match the server (push.js channelFor). */
     static final String[][] CHANNELS = {
         // id, English name, Urdu name, description, importance (4 = high, 3 = default)
-        {"afford_alerts", "Requests", "درخواستیں", "New requests and answers to requests", "4"},
-        {"afford_reminders", "Shift reminders", "شفٹ یاد دہانی", "Shift starts soon, forgot to check out", "4"},
-        {"afford_salary", "Salary & payments", "تنخواہ اور ادائیگیاں", "Salary paid, bonus, advance, fines", "4"},
-        {"afford_news", "Announcements", "اعلانات", "Holidays, duty roster, notes from the store", "3"},
-        {"afford_reports", "Owner reports", "مالک کی رپورٹس", "Daily summary, approvals, backups, server", "3"},
+        {"afford_alerts2", "Requests", "درخواستیں", "New requests and answers to requests", "4"},
+        {"afford_reminders2", "Shift reminders", "شفٹ یاد دہانی", "Shift starts soon, forgot to check out", "4"},
+        {"afford_salary2", "Salary & payments", "تنخواہ اور ادائیگیاں", "Salary paid, bonus, advance, fines", "4"},
+        {"afford_news2", "Announcements", "اعلانات", "Holidays, duty roster, notes from the store", "3"},
+        {"afford_reports2", "Owner reports", "مالک کی رپورٹس", "Daily summary, approvals, backups, server", "3"},
     };
 
     static void ensureChannel(Context ctx) {
@@ -109,7 +109,7 @@ public class AffordNotifyWorker extends Worker {
                 ch.enableLights(true);
                 ch.setLightColor(0xFFC62032);
                 ch.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
-                ch.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION),
+                ch.setSound(android.net.Uri.parse("android.resource://" + ctx.getPackageName() + "/" + R.raw.afford_chime),
                     new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
                         .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
             } else {
@@ -118,7 +118,10 @@ public class AffordNotifyWorker extends Worker {
             ch.setDescription(c[3]);
             nm.createNotificationChannel(ch);
         }
-        if (nm.getNotificationChannel("afford_requests") != null) nm.deleteNotificationChannel("afford_requests");
+        // older channels (default sound) are replaced by the ones above with the Afford chime
+        for (String old : new String[] {"afford_requests", "afford_alerts", "afford_reminders", "afford_salary", "afford_news", "afford_reports"}) {
+            if (nm.getNotificationChannel(old) != null) nm.deleteNotificationChannel(old);
+        }
     }
 
     static void show(Context ctx, String id, String title, String body) { show(ctx, id, title, body, CHANNEL); }

@@ -57,15 +57,22 @@ export async function sendPushes(saJson, msgs, report) {
             // A notification message: Android shows it itself even when the app is closed or asleep
             // (phone makers' battery savers can block data-only messages). Sound follows the phone's
             // ring mode, so a phone on silent only shows it.
-            notification: { title: m.title, body: m.body },
-            data: { id: String(m.id), title: m.title, body: m.body, channel: channelFor(m.id) },
+            // Rich (new apps): data only, the app draws it with photo and buttons, then acks.
+            // Plain: Android shows it by itself (also the backup when a rich alert was not acked).
+            ...(m.rich ? {} : { notification: { title: m.title, body: m.body } }),
+            data: {
+              id: String(m.id), title: String(m.title || ''), body: String(m.body || ''), channel: channelFor(m.id),
+              ...(m.rich ? { rich: '1', person: String(m.person || ''), personName: String(m.personName || ''), actions: String(m.actions || ''), ref: String(m.ref || ''), lang: String(m.lang || 'en') } : {}),
+            },
             android: {
               priority: 'HIGH',
               ttl: '86400s',
-              notification: {
-                channel_id: channelFor(m.id), icon: 'ic_afford_notify', color: '#C62032', tag: String(m.id),
-                default_sound: true, default_vibrate_timings: true, notification_priority: 'PRIORITY_HIGH', visibility: 'PUBLIC',
-              },
+              ...(m.rich ? {} : {
+                notification: {
+                  channel_id: channelFor(m.id), icon: 'ic_afford_notify', color: '#C62032', tag: String(m.id),
+                  default_sound: true, default_vibrate_timings: true, notification_priority: 'PRIORITY_HIGH', visibility: 'PUBLIC',
+                },
+              }),
             },
           },
         }),
@@ -89,9 +96,9 @@ export async function sendPushes(saJson, msgs, report) {
  */
 export function channelFor(id) {
   const k = String(id || '');
-  if (/^(paid-|money-)/.test(k)) return 'afford_salary';
-  if (/^rem-/.test(k)) return 'afford_reminders';
-  if (/^(sum-|err-|drive-|appr-|greet-owner-)/.test(k)) return 'afford_reports';
-  if (/^(hol-|greet-|note-|roster-|swap-)/.test(k)) return 'afford_news';
-  return 'afford_alerts'; // requests and answers to requests
+  if (/^(paid-|money-)/.test(k)) return 'afford_salary2';
+  if (/^rem-/.test(k)) return 'afford_reminders2';
+  if (/^(sum-|err-|drive-|appr-|greet-owner-)/.test(k)) return 'afford_reports2';
+  if (/^(hol-|greet-|note-|roster-|swap-)/.test(k)) return 'afford_news2';
+  return 'afford_alerts2'; // requests and answers to requests
 }

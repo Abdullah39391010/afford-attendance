@@ -439,3 +439,36 @@ test('owner and manager photos', async () => {
   r = await t.api('PUT', '/api/admin/me/photo', { dataUrl: 'data:text/html;base64,AAAA' }, t.owner);
   assert.equal(r.data.error, 'BAD_IMAGE');
 });
+
+test('rich alerts: data message, ack, plain backup when not acked', async () => {
+  const t = await seeded('2026-11-16T08:00');
+  const sent = [];
+  t.store.pushSender = async (msgs) => { sent.push(...msgs); return []; };
+  await t.api('POST', '/api/admin/push-token', { token: 'owner-rich-token-1234567890', lang: 'en', rich: true }, t.owner);
+  await t.api('POST', '/api/admin/push-token', { token: 'owner-old-token-12345678901', lang: 'en' }, t.owner);
+  await t.aliApi('POST', '/api/emp/requests', { type: 'leave', date: '2026-11-20', reason: 'Wedding' });
+  const rich = sent.find((m) => m.token === 'owner-rich-token-1234567890');
+  const plain = sent.find((m) => m.token === 'owner-old-token-12345678901');
+  assert.equal(rich.rich, true);
+  assert.equal(rich.person, t.ali.id);
+  assert.equal(rich.actions, 'decide');
+  assert.equal(plain.rich, false);
+  // acked: no backup
+  let r = await t.api('POST', '/api/push-ack', { token: rich.token, id: rich.id });
+  assert.equal(r.data.ok, true);
+  t.setTime('2026-11-16T08:10');
+  sent.length = 0;
+  await t.store.tick();
+  assert.equal(sent.filter((m) => m.fallback).length, 0);
+  // not acked: plain backup after the wait
+  await t.aliApi('POST', '/api/emp/requests', { type: 'leave', date: '2026-11-21', reason: 'Again' });
+  const second = sent.find((m) => m.token === rich.token && m.rich);
+  sent.length = 0;
+  await t.store.tick();
+  assert.equal(sent.filter((m) => m.fallback).length, 0); // too soon
+  t.setTime('2026-11-16T08:20');
+  await t.store.tick();
+  const fb = sent.find((m) => m.fallback);
+  assert.equal(fb.id, second.id);
+  assert.equal(fb.rich, false);
+});

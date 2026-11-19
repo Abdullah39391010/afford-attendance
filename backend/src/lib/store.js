@@ -10,6 +10,7 @@ import { installPro } from './pro.js';
 import { installOps } from './ops.js';
 import { installExtra } from './extra.js';
 import { installPins } from './pins.js';
+import { installRich } from './rich.js';
 import { defaultSettings, mergeSettings, normDows, PERMISSIONS, DEFAULT_MANAGER_PERMS, shiftMins } from './settings.js';
 import { daySummary, payroll, empShift, empRole, MARKS, paidLeaveQuota, empRules } from './attendance.js';
 
@@ -350,6 +351,7 @@ export class Store {
     this.opsRoutes(add, A);
     this.extraRoutes(add, A);
     this.pinsRoutes(add, A);
+    this.richRoutes(add, A);
     return R;
   }
 
@@ -1276,7 +1278,8 @@ export class Store {
   pushToken({ actor, body }, kind) {
     const token = str(body.token, 400);
     if (!token || token.length < 20) throw bad('BAD_TOKEN', 'Push token missing');
-    if (body.remove) { this.db.run('DELETE FROM push_tokens WHERE token = ?', token); return { ok: true }; }
+    if (body.remove) { this.db.run('DELETE FROM push_tokens WHERE token = ?', token); this.setRich(token, false); return { ok: true }; }
+    this.setRich(token, body.rich === true);
     this.db.run(`INSERT INTO push_tokens (token, kind, sub, lang, updated) VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(token) DO UPDATE SET kind = excluded.kind, sub = excluded.sub, lang = excluded.lang, updated = excluded.updated`,
     token, kind, actor.id, body.lang === 'ur' ? 'ur' : 'en', this.now());
@@ -1292,12 +1295,13 @@ export class Store {
     if (!configured || !rows.length) return { configured, phones: rows.length, results: [] };
     const report = [];
     const msgs = rows.map((r) => ({
-      token: r.token, id: `test-${this.now()}`,
+      token: r.token, id: `test-${this.now()}`, rich: this.isRich(r.token), lang: r.lang, actions: 'open',
       title: r.lang === 'ur' ? `${this.settings.storeNameUr || this.settings.storeName} · اطلاعات فعال ہیں` : `${this.settings.storeName} · Alerts are on`,
       body: r.lang === 'ur' ? `${actor.name}، اس فون پر درخواستیں، یاد دہانیاں اور تنخواہ کی اطلاعات آئیں گی۔` : `${actor.name}, this phone will receive requests, shift reminders and salary updates.`,
     }));
     let dead = [];
     try { dead = await this.pushSender(msgs, report); } catch (e) { report.push({ status: 0, error: String(e?.message || e).slice(0, 200) }); }
+    this.rememberRich(msgs.filter((m) => !(dead || []).includes(m.token)));
     for (const d of dead || []) this.db.run('DELETE FROM push_tokens WHERE token = ?', d);
     return { configured, phones: rows.length, results: report };
   }
@@ -1306,7 +1310,7 @@ export class Store {
   queuePush(kind, subs, id, make) {
     if (!subs.length) return;
     const rows = this.db.all(`SELECT token, lang FROM push_tokens WHERE kind = ? AND sub IN (${subs.map(() => '?').join(',')})`, kind, ...subs);
-    for (const r of rows) this.outbox.push({ token: r.token, id, ...make(r.lang === 'ur') });
+    for (const r of rows) this.outbox.push({ token: r.token, id, lang: r.lang, rich: this.isRich(r.token), ...make(r.lang === 'ur') });
   }
 
   async flushPush() {
@@ -1314,7 +1318,8 @@ export class Store {
     this.outbox = [];
     try {
       const dead = await this.pushSender(msgs);
-      for (const tk of dead || []) this.db.run('DELETE FROM push_tokens WHERE token = ?', tk);
+      for (const tk of dead || []) { this.db.run('DELETE FROM push_tokens WHERE token = ?', tk); this.setRich(tk, false); }
+      this.rememberRich(msgs.filter((m) => !(dead || []).includes(m.token)));
     } catch (e) {
       console.warn('push failed', e?.message);
     }
@@ -1345,6 +1350,7 @@ export class Store {
     this.queuePush('admin', admins, r.id, (ur) => {
       const detail = this.reqDetail(row, ur);
       return {
+        person: r.emp, personName: (ur && d.nameUr) || d.name || '', actions: 'decide', ref: r.id,
         title: ur ? `${REQ_UR[r.type] || r.type} کی درخواست · ${d.nameUr || d.name || '?'}` : `${REQ_EN[r.type] || r.type} request · ${d.name || '?'}`,
         body: ur ? `${detail ? `${detail}\n` : ''}منظور یا نامنظور کرنے کے لیے کھولیں۔` : `${detail ? `${detail}\n` : ''}Tap to approve or decline.`,
       };
@@ -1357,6 +1363,7 @@ export class Store {
       const what = ur ? REQ_UR[r.type] || r.type : REQ_EN[r.type] || r.type;
       const detail = this.reqDetail({ ...row, data: (() => { try { const x = JSON.parse(row.data || '{}'); delete x.reason; return x; } catch { return {}; } })() }, ur);
       return {
+        actions: 'open', personName: ur ? 'انتظامیہ' : 'Management',
         title: ur ? `${what} · ${approved ? 'منظور ✓' : 'نامنظور'}` : `${what} · ${approved ? 'Approved ✓' : 'Declined'}`,
         body: [detail, note ? (ur ? `نوٹ: ${note}` : `Note: ${note}`) : ''].filter(Boolean).join('\n') || (ur ? 'تفصیل کے لیے ایپ کھولیں۔' : 'Open the app for details.'),
       };
@@ -1851,3 +1858,4 @@ installPro(Store);
 installOps(Store);
 installExtra(Store);
 installPins(Store);
+installRich(Store);

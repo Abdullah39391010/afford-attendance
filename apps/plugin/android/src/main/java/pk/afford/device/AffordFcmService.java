@@ -15,6 +15,10 @@ public class AffordFcmService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage msg) {
         Map<String, String> d = msg.getData();
+        if ("1".equals(d.get("rich")) && d.get("title") != null) {
+            AffordRich.show(getApplicationContext(), d);
+            return;
+        }
         String title = d.get("title");
         String body = d.get("body");
         if (title == null && msg.getNotification() != null) {

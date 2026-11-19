@@ -14,7 +14,8 @@ async function registerPush(kind) {
   try {
     const { token } = await AffordDevice.getPushToken();
     if (!token) return;
-    await api.post(`/api/${kind}/push-token`, { token, lang: getLang() });
+    // rich: this app draws alerts itself (photo, buttons) and replies when one arrives
+    await api.post(`/api/${kind}/push-token`, { token, lang: getLang(), rich: true });
     LS.set('afford.pushToken', token);
   } catch { /* push not set up */ }
 }

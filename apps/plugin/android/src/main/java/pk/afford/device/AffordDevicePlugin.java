@@ -441,7 +441,12 @@ public class AffordDevicePlugin extends Plugin {
         }
         com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             JSObject r = new JSObject();
-            r.put("token", task.isSuccessful() ? task.getResult() : null);
+            String tk = task.isSuccessful() ? task.getResult() : null;
+            if (tk != null) {
+                // kept for the "alert arrived" reply that rich alerts send to the server
+                getContext().getSharedPreferences(AffordNotifyWorker.PREFS, Context.MODE_PRIVATE).edit().putString("pushToken", tk).apply();
+            }
+            r.put("token", tk);
             call.resolve(r);
         });
     }
