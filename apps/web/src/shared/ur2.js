@@ -249,4 +249,7 @@ export const UR2 = {
   // developer details
   'Apps · Websites · Software': 'ایپس · ویب سائٹس · سافٹ ویئر', 'App & web developer': 'ایپ اور ویب ڈویلپر',
   'Layyah, Punjab': 'لیہ، پنجاب', 'Call': 'کال', 'Email': 'ای میل', 'Made in Layyah': 'لیہ میں تیار کردہ',
+  // selfie retake
+  'Is your face clear? If not, take it again.': 'کیا آپ کا چہرہ صاف ہے؟ اگر نہیں تو دوبارہ لیں۔', 'Retake': 'دوبارہ لیں',
+  'Use photo and check in': 'یہ تصویر لگائیں اور چیک اِن کریں', 'Take selfie': 'سیلفی لیں',
 };

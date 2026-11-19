@@ -10,6 +10,7 @@ export function SelfieSheet({ onShot, onClose }) {
   const stream = useRef(null);
   const [cam, setCam] = useState('starting'); // starting | on | off
   const [count, setCount] = useState(null);
+  const [shot, setShot] = useState(null); // photo waiting for Use / Retake
 
   useEffect(() => {
     let live = true;
@@ -51,14 +52,15 @@ export function SelfieSheet({ onShot, onClose }) {
       clearInterval(iv);
       const photo = snap();
       setCount(null);
-      if (photo) onShot(photo);
+      if (photo) setShot(photo);
     }, 650);
   };
 
   return (
     <Sheet open onClose={onClose} title={t('Selfie for check-in')}>
       <div class="selfie-cam">
-        <video ref={video} playsInline muted autoPlay style={cam === 'on' ? '' : 'display:none'} />
+        <video ref={video} playsInline muted autoPlay style={cam === 'on' && !shot ? '' : 'display:none'} />
+        {shot && <img class="selfie-shot" src={shot} alt="" />}
         {cam === 'starting' && <Spinner />}
         {cam === 'off' && <div class="small muted center"><Icon n="camera" /><br />{t('Camera not available')}</div>}
         {count != null && <div class="selfie-count">{count}</div>}
@@ -68,10 +70,18 @@ export function SelfieSheet({ onShot, onClose }) {
           <Banner kind="err">{t('The camera is needed to check in. Allow camera for this app in phone settings.')}</Banner>
           <button class="btn block ghost" style="margin-top:10px" onClick={() => AffordDevice.openAppSettings()}>{t('Open phone settings')}</button>
         </div>
+      ) : shot ? (
+        <div>
+          <p class="small muted center" style="margin:8px 0 10px">{t('Is your face clear? If not, take it again.')}</p>
+          <div style="display:flex;gap:10px">
+            <button class="btn ghost big" style="flex:1" onClick={() => setShot(null)}><Icon n="refresh" /> {t('Retake')}</button>
+            <button class="btn big" style="flex:1.6" onClick={() => onShot(shot)}><Icon n="check" /> {t('Use photo and check in')}</button>
+          </div>
+        </div>
       ) : (
         <div>
           <p class="small muted center" style="margin:8px 0 10px">{t('Look at the camera. Your photo is saved with this check-in.')}</p>
-          <button class="btn block big" disabled={cam !== 'on' || count != null} onClick={take}><Icon n="camera" /> {t('Take selfie and check in')}</button>
+          <button class="btn block big" disabled={cam !== 'on' || count != null} onClick={take}><Icon n="camera" /> {t('Take selfie')}</button>
         </div>
       )}
     </Sheet>

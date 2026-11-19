@@ -1,7 +1,7 @@
 {
-  "version": "0.12.0",
+  "version": "0.12.1",
   "notes": {
-    "en": "New: selfie with every check-in, owner dashboard with monthly charts, payslips sent on WhatsApp, change history with filters, and owner alerts for fake GPS.",
-    "ur": "نیا: ہر چیک اِن پر سیلفی، ماہانہ چارٹس کے ساتھ مالک کا ڈیش بورڈ، واٹس ایپ پر تنخواہ کی پرچیاں، فلٹر کے ساتھ تبدیلیوں کی تاریخ، اور جعلی GPS پر مالک کو اطلاع۔"
+    "en": "Selfie check-in: you now see your photo after the 3-2-1 and can tap Retake if it is not clear, before checking in.",
+    "ur": "سیلفی چیک اِن: 3-2-1 کے بعد اب آپ اپنی تصویر دیکھ سکتے ہیں، اور صاف نہ ہو تو چیک اِن سے پہلے \"دوبارہ لیں\" دبا سکتے ہیں۔"
   }
 }
